@@ -262,6 +262,11 @@ void asCRestore::WriteFunction(asCScriptFunction* func)
 	for( i = 0; i < count; ++i ) 
 		WriteDataType(&func->parameterTypes[i]);
 
+	count = (asUINT)func->inOutFlags.GetLength();
+	WRITE_NUM(count);
+	for( i = 0; i < count; ++i )
+		WRITE_NUM(func->inOutFlags[i]);
+
 	int id = FindFunctionIndex(func);
 	WRITE_NUM(id);
 	
@@ -444,6 +449,14 @@ void asCRestore::ReadFunction(asCScriptFunction* func)
 	{
 		ReadDataType(&dt);
 		func->parameterTypes.PushLast(dt);
+	}
+
+	READ_NUM(count);
+	func->inOutFlags.Allocate(count, 0);
+	for( i = 0; i < count; ++i )
+	{
+		READ_NUM(num);
+		func->inOutFlags.PushLast(num);
 	}
 
 	int id;

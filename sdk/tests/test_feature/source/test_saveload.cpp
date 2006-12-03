@@ -80,6 +80,9 @@ static const char *script2 =
 "    number = 1234567890;                  \n"
 "}                                         \n";
 
+static const char *script3 = 
+"void Test(int a) {}";
+
 bool fail = false;
 int number = 0;
 COutStream out;
@@ -157,16 +160,41 @@ bool Test()
 	CBytecodeStream stream;
 	engine->SaveByteCode(0, &stream);
 
-//	engine->Release();
-//	engine = ConfigureEngine();
-
-	// Load the compiled byte code into the same module
+	// Test loading without releasing the engine first
 	engine->LoadByteCode(0, &stream);
 
 	engine->AddScriptSection("DynamicModule", TESTNAME ":2", script2, strlen(script2), 0);
 	engine->Build("DynamicModule");
 
 	TestScripts(engine);
+
+	// Test loading for a new engine
+	engine->Release();
+	engine = ConfigureEngine();
+
+	stream.rpointer = 0;
+	engine->LoadByteCode(0, &stream);
+
+	engine->AddScriptSection("DynamicModule", TESTNAME ":2", script2, strlen(script2), 0);
+	engine->Build("DynamicModule");
+
+	TestScripts(engine);
+
+	engine->Release();
+
+	//-----------------------------------------
+	// A different case
+	engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+	engine->AddScriptSection(0, "script3", script3, strlen(script3));
+	engine->Build(0);
+	CBytecodeStream stream2;
+	engine->SaveByteCode(0, &stream2);
+
+	engine->Release();
+	engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+
+	engine->LoadByteCode(0, &stream2);
+	engine->ExecuteString(0, "Test(3)");
 
 	engine->Release();
 
