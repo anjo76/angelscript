@@ -90,6 +90,23 @@ struct asSListPatternDataTypeNode : public asSListPatternNode
 	asCDataType dataType;
 };
 
+enum asELiteralPatternParamType
+{
+	asLPPT_UINT64, // f(uint64)
+	asLPPT_DOUBLE, // f(double)
+	asLPPT_STRING, // f(const string&in)
+	asLPPT_USER    // f(int&in, uint)
+};
+
+struct asSLiteralPatternNode
+{
+	asSLiteralPatternNode(asCString name, asELiteralPatternParamType t, bool isPrefix) 
+		: patternName(std::move(name)), paramType(t), prefix(isPrefix) {}
+	asCString patternName;
+	asELiteralPatternParamType paramType;
+	bool prefix; // otherwise the pattern is a suffix
+};
+
 enum asEObjVarInfoOption
 {
 	asOBJ_UNINIT,	// object is uninitialized/destroyed
@@ -274,6 +291,9 @@ public:
 
 	int       RegisterListPattern(const char *decl, asCScriptNode *listPattern);
 	int       ParseListPattern(asSListPatternNode *&target, const char *decl, asCScriptNode *listPattern);
+
+	int       RegisterLiteralPattern(const char *decl, asCScriptNode *literalPattern, asCString* outLiteral = 0, bool *outIsPrefix = 0);
+	int       ParseLiteralPattern();
 
 	bool      DoesReturnOnStack() const;
 

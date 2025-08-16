@@ -81,6 +81,7 @@ enum eScriptNode
 	snImport,
 	snClass,
 	snInitList,
+	snUserLiteral,
 	snInterface,
 	snEnum,
 	snTypedef,
@@ -92,6 +93,7 @@ enum eScriptNode
 	snUsing,
 	snMixin,
 	snListPattern,
+	snLiteralPattern,
 	snNamedArgument,
 	snScope,
 	snTryCatch
