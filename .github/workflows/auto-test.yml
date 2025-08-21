@@ -1,0 +1,35 @@
+name: Automated test
+permissions:
+  contents: read
+  
+on:
+  push:
+    branches: [ "master" ]
+
+jobs:
+  Linux-x86-64:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: build angelscript
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/angelscript/projects/gnuc
+        make
+
+    - name: build test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/gnuc
+        make
+
+    - name: run test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./testgnuc > result.txt
+        cat result.txt
+        grep "All of the tests passed with success." result.txt
+        
+        
+    

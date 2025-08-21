@@ -13,6 +13,62 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test using namespace with nested namespaces
+	// https://github.com/anjo76/angelscript/issues/1
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"int value = 0; \n"
+			"namespace A { \n"
+			"	void fn_a() { \n"
+			"		value = 1; \n"
+			"	} \n"
+			"} \n"
+			" \n"
+			"namespace A { \n"
+			"	namespace B { \n"
+			"		void fn_b() { \n"
+			"			value = 2; \n"
+			"		} \n"
+			"	} \n"
+			"} \n"
+			" \n"
+			"void main() { \n"
+			"	using namespace A; \n"
+			"	fn_a(); // OK \n"
+			"   assert( value == 1 ); \n"
+			" \n"
+			"	B::fn_b(); // OK \n"
+			"   assert( value == 2 ); \n"
+			" \n"
+			"	using namespace A::B; \n"
+			"   value = 0; \n"
+			"	fn_b(); // [error] No matching symbol 'fn_b' \n"
+			"   assert( value == 2 ); \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "main()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test subclasses and using namespaces
 	// Reported by Sam Tupy
 	{

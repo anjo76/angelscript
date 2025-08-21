@@ -1450,6 +1450,13 @@ void asCCompiler::CompileStatementBlock(asCScriptNode *block, bool ownVariableSc
 			asCScriptNode* n = node->firstChild;
 			asCString name(&script->code[n->tokenPos], n->tokenLength);
 
+			while( n->next && n->next->nodeType == snIdentifier )
+			{
+				n = n->next;
+				name += "::";
+				name += asCString(&script->code[n->tokenPos], n->tokenLength);
+			}
+
 			auto visibleNamespace = engine->FindNameSpace(name.AddressOf());
 
 			if (visibleNamespace == 0)
@@ -4574,11 +4581,13 @@ void asCCompiler::CompileSwitchStatement(asCScriptNode *snode, bool *hasReturn, 
 	{
 		// We can join numbers that are less than 5 numbers
 		// apart since the output code will still be smaller
-		if( caseValues[n] > caseValues[n-1] + 5 )
+		// Do this comparison using int64 so we don't get errors with large 32bit numbers
+		if( asINT64(caseValues[n]) > asINT64(caseValues[n-1]) + 5 )
 			ranges.PushLast(n);
 	}
 
 	// If the value is larger than the largest case value, jump to default
+	// TODO: optimize: If the largest value is already the max value of int32, i.e. 2147483647, then there is no need to do this check
 	int tmpOffset = AllocateVariable(asCDataType::CreatePrimitive(ttInt, false), true);
 	expr.bc.InstrSHORT_DW(asBC_SetV4, (short)tmpOffset, caseValues[caseValues.GetLength()-1]);
 	expr.bc.InstrW_W(asBC_CMPi, offset, tmpOffset);
@@ -4594,8 +4603,8 @@ void asCCompiler::CompileSwitchStatement(asCScriptNode *snode, bool *hasReturn, 
 	{
 		// Find the largest value in this range
 		int maxRange = caseValues[ranges[range]];
-		int index = ranges[range];
-		for( ; (index < (int)caseValues.GetLength()) && (caseValues[index] <= maxRange + 5); index++ )
+		int index = ranges[range]+1;
+		for( ; (index < (int)caseValues.GetLength()) && (asINT64(caseValues[index]) <= asINT64(maxRange) + 5); index++ )
 			maxRange = caseValues[index];
 
 		// If there are only 2 numbers then it is better to compare them directly
@@ -4629,12 +4638,13 @@ void asCCompiler::CompileSwitchStatement(asCScriptNode *snode, bool *hasReturn, 
 
 			// Add the list of jumps to the correct labels (any holes, jump to default)
 			index = ranges[range];
-			for( int i = caseValues[index]; i <= maxRange; i++ )
+			for( int i = caseValues[index]; ; i++ )
 			{
 				if( caseValues[index] == i )
 					expr.bc.InstrINT(asBC_JMP, caseLabels[index++]);
 				else
 					expr.bc.InstrINT(asBC_JMP, defaultLabel);
+				if (i == maxRange) break;
 			}
 
 			expr.bc.Label((short)nextRangeLabel);
