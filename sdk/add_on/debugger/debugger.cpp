@@ -14,6 +14,7 @@ CDebugger::CDebugger()
 	m_action = CONTINUE;
 	m_lastFunction = 0;
 	m_engine = 0;
+	m_useSectionFileNameOnly = true;
 }
 
 CDebugger::~CDebugger()
@@ -227,11 +228,14 @@ bool CDebugger::CheckBreakPoint(asIScriptContext *ctx)
 	const char *tmp = 0;
 	int lineNbr = ctx->GetLineNumber(0, 0, &tmp);
 
-	// Consider just filename, not the full path
 	string file = tmp ? tmp : "";
-	size_t r = file.find_last_of("\\/");
-	if( r != string::npos )
-		file = file.substr(r+1);
+	if( m_useSectionFileNameOnly )
+	{
+		// Consider just filename, not the full path
+		size_t r = file.find_last_of("\\/");
+		if( r != string::npos )
+			file = file.substr(r+1);
+	}
 
 	// Did we move into a new function?
 	asIScriptFunction *func = ctx->GetFunction();
@@ -801,18 +805,19 @@ void CDebugger::AddFuncBreakPoint(const string &func)
 
 void CDebugger::AddFileBreakPoint(const string &file, int lineNbr)
 {
-	// Store just file name, not entire path
-	size_t r = file.find_last_of("\\/");
-	string actual;
-	if( r != string::npos )
-		actual = file.substr(r+1);
-	else
-		actual = file;
-
-	// Trim the file name
-	size_t b = actual.find_first_not_of(" \t");
-	size_t e = actual.find_last_not_of(" \t");
-	actual = actual.substr(b, e != string::npos ? e-b+1 : string::npos);
+	string actual = file;
+	if( m_useSectionFileNameOnly )
+	{
+		// Store just file name, not entire path
+		size_t r = file.find_last_of("\\/");
+		if( r != string::npos )
+			actual = file.substr(r+1);
+		
+		// Trim the file name
+		size_t b = actual.find_first_not_of(" \t");
+		size_t e = actual.find_last_not_of(" \t");
+		actual = actual.substr(b, e != string::npos ? e-b+1 : string::npos);
+	}
 
 	stringstream s;
 	s << "Setting break point in file '" << actual << "' at line " << lineNbr << endl;
@@ -858,6 +863,16 @@ void CDebugger::SetEngine(asIScriptEngine *engine)
 asIScriptEngine *CDebugger::GetEngine()
 {
 	return m_engine;
+}
+
+bool CDebugger::GetUseSectionFileNameOnly() const
+{
+	return m_useSectionFileNameOnly;
+}
+
+void CDebugger::SetUseSectionFileNameOnly(bool useSectionFileNameOnly)
+{
+	m_useSectionFileNameOnly = useSectionFileNameOnly;
 }
 
 END_AS_NAMESPACE
