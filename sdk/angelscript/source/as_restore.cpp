@@ -1198,7 +1198,10 @@ void asCReader::ReadFunctionSignature(asCScriptFunction *func, asCObjectType **p
 		count = ReadEncodedUInt();
 		func->templateSubTypes.SetLength(count);
 		for (asUINT n = 0; n < count; n++)
-			ReadDataType(&func->templateSubTypes[n]);
+        {
+            ReadDataType(&func->templateSubTypes[n]);
+            func->templateSubTypes[n].GetTypeInfo()->AddRefInternal();
+        }
 	}
 }
 
