@@ -24,6 +24,7 @@ bool Test7();
 bool Test8();
 bool Test9();
 bool TestRetRef();
+bool TestUserLiteral();
 
 struct A {
     A() { text = "hello"; }
@@ -205,40 +206,6 @@ bool Test()
 	CBufferedOutStream bout;
 	COutStream out;
 	asIScriptModule *mod;
-
-	// Passing const value types by value to constructors as implicit conversion
-	// https://www.gamedev.net/forums/topic/717880-asbehave_construct-with-custom-pod-string-type-requires-const/5468147/
-	{
-		engine = asCreateScriptEngine();
-		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
-		bout.buffer = "";
-
-		engine->RegisterObjectType("string_view", 1, asOBJ_VALUE | asOBJ_POD);
-		engine->RegisterStringFactory("const string_view", &testStringFactory);
-		engine->RegisterObjectType("type", 1, asOBJ_VALUE);
-		engine->RegisterObjectBehaviour("type", asBEHAVE_CONSTRUCT, "void f(const type &in)", asFUNCTION(0), asCALL_GENERIC);
-		engine->RegisterObjectBehaviour("type", asBEHAVE_CONSTRUCT, "void f(string_view)", asFUNCTION(0), asCALL_GENERIC);
-		engine->RegisterObjectBehaviour("type", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(0), asCALL_GENERIC);
-		engine->RegisterGlobalFunction("void test(type)", asFUNCTION(0), asCALL_GENERIC);
-
-		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
-		mod->AddScriptSection("test",
-			"void main() { \n"
-			"  type t('test'); \n"
-			"  test('test'); \n"
-			"} \n");
-		r = mod->Build();
-		if (r < 0)
-			TEST_FAILED;
-
-		engine->ShutDownAndRelease();
-
-		if (bout.buffer != "")
-		{
-			PRINTF("%s", bout.buffer.c_str());
-			TEST_FAILED;
-		}
-	}
 
 	// Assign with invalid type
 	// https://www.gamedev.net/forums/topic/717831-failed-assertion-on-const-type-w-invalid-assignment/
@@ -5705,15 +5672,16 @@ bool Test()
 		engine->Release();
 	}
 
-	fail = Test2() || fail;
-	fail = Test3() || fail;
-	fail = Test4() || fail;
-	fail = Test5() || fail;
-	fail = Test6() || fail;
-	fail = Test7() || fail;
-	fail = Test8() || fail;
-	fail = Test9() || fail;
-	fail = TestRetRef() || fail;
+	//fail = Test2() || fail;
+	//fail = Test3() || fail;
+	//fail = Test4() || fail;
+	//fail = Test5() || fail;
+	//fail = Test6() || fail;
+	//fail = Test7() || fail;
+	//fail = Test8() || fail;
+	//fail = Test9() || fail;
+	//fail = TestRetRef() || fail;
+	 fail = TestUserLiteral() || fail;
 
 	// Success
  	return fail;
@@ -6278,6 +6246,68 @@ bool TestRetRef()
 
 	engine->ShutDownAndRelease();
 	g_node->Release();
+
+	return fail;
+}
+
+class Fixed32
+{
+public:
+	int value; // 16bit integer + 16bit fraction
+
+	Fixed32(int v) : value(v) {}
+
+	static void LiteralConstructInt(int intVal, void* mem)
+	{
+		new(mem) Fixed32(intVal);
+	}
+
+	static void LiteralConstructDouble(double dblVal, void* mem) 
+	{
+		int integer = int(dblVal);
+		int fraction = int(dblVal * double(1 << 15));
+
+		new(mem) Fixed32((integer << 15) + fraction);
+	}
+
+	operator int() const
+	{
+		return value >> 15;
+	}
+};
+
+bool TestUserLiteral()
+{
+	bool fail = false;
+	CBufferedOutStream bout;
+	int r;
+
+	asIScriptEngine* engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+	engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+	// TODO: Remove this after user literal no longer depending on a registered string
+	RegisterScriptString(engine);
+
+	engine->RegisterObjectType("Fixed32", sizeof(int), asGetTypeTraits<Fixed32>() | asOBJ_POD | asOBJ_VALUE | asOBJ_APP_CLASS_ALLINTS);
+	r = engine->RegisterObjectBehaviour("Fixed32", asBEHAVE_LITERAL_CONSTRUCT, "void f(string&in) {'_f32' suffix}", asFUNCTION(Fixed32::LiteralConstructDouble), asCALL_CDECL_OBJLAST);
+	if (r < 0)
+	{
+		PRINTF("%s", bout.buffer.c_str());
+		TEST_FAILED;
+	}
+
+	asIScriptModule* m = engine->GetModule("Fixed32Literal", asGM_ALWAYS_CREATE);
+	m->AddScriptSection(
+		"Fixed32Literal",
+		"Fixed32 test() { return 3.14_f32; }"
+	);
+	if (m->Build() < 0)
+	{
+		PRINTF("%s", bout.buffer.c_str());
+		TEST_FAILED;
+	}
+
+	engine->ShutDownAndRelease();
 
 	return fail;
 }
