@@ -250,7 +250,6 @@ enum asEObjTypeFlags
 	asOBJ_APP_CLASS_ALIGN8            = (1<<19),
 	asOBJ_IMPLICIT_HANDLE             = (1<<20),
 	asOBJ_APP_CLASS_UNION             = (asQWORD(1)<<32),
-	asOBJ_MASK_VALID_FLAGS            = 0x1801FFFFFul,
 	// Internal flags
 	asOBJ_SCRIPT_OBJECT               = (1<<21),
 	asOBJ_SHARED                      = (1<<22),
@@ -263,6 +262,9 @@ enum asEObjTypeFlags
 	asOBJ_ABSTRACT                    = (1<<29),
 	asOBJ_APP_ALIGN16                 = (1<<30)
 };
+
+
+#define asOBJ_MASK_VALID_FLAGS 0x1801FFFFF // need to be define since it is too large for asQWORD on 32-bit platforms
 
 // Behaviours
 enum asEBehaviours
