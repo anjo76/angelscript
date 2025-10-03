@@ -210,7 +210,7 @@ enum asECallConvTypes
 };
 
 // Object type flags
-enum asEObjTypeFlags : asQWORD
+enum asEObjTypeFlags
 {
 	asOBJ_REF                         = (1<<0),
 	asOBJ_VALUE                       = (1<<1),
