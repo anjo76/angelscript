@@ -1148,25 +1148,21 @@ void asCReader::ReadFunctionSignature(asCScriptFunction *func, asCObjectType **p
 		func->nameSpace = func->objectType->nameSpace;
 	}
 
-	// Only read the function traits if it is a class method, or could potentially be a global virtual property
-	if (func->objectType || func->name.SubString(0, 4) == "get_" || func->name.SubString(0, 4) == "set_")
-	{
-		asBYTE b;
-		ReadData(&b, 1);
-		func->SetReadOnly((b & 1) ? true : false);
-		func->SetPrivate((b & 2) ? true : false);
-		func->SetProtected((b & 4) ? true : false);
-		func->SetFinal((b & 8) ? true : false);
-		func->SetOverride((b & 16) ? true : false);
-		func->SetExplicit((b & 32) ? true : false);
-		func->SetProperty((b & 64) ? true : false);
-	}
+	asBYTE b;
+	ReadData(&b, 1);
+	func->SetReadOnly((b & 1) ? true : false);
+	func->SetPrivate((b & 2) ? true : false);
+	func->SetProtected((b & 4) ? true : false);
+	func->SetFinal((b & 8) ? true : false);
+	func->SetOverride((b & 16) ? true : false);
+	func->SetExplicit((b & 32) ? true : false);
+	func->SetProperty((b & 64) ? true : false);
+	func->SetVariadic((b & 128) ? true : false);
 
 	if (!func->objectType)
 	{
 		if (func->funcType == asFUNC_FUNCDEF)
 		{
-			asBYTE b;
 			ReadData(&b, 1);
 			if (b == 'n')
 			{
@@ -4271,19 +4267,19 @@ void asCWriter::WriteFunctionSignature(asCScriptFunction *func)
 
 	WriteTypeInfo(func->objectType);
 
-	// Only write function traits for methods and global functions that can potentially be virtual properties
-	if (func->objectType || func->name.SubString(0, 4) == "get_" || func->name.SubString(0, 4) == "set_")
-	{
-		asBYTE b = 0;
-		b += func->IsReadOnly() ? 1 : 0;
-		b += func->IsPrivate() ? 2 : 0;
-		b += func->IsProtected() ? 4 : 0;
-		b += func->IsFinal() ? 8 : 0;
-		b += func->IsOverride() ? 16 : 0;
-		b += func->IsExplicit() ? 32 : 0;
-		b += func->IsProperty() ? 64 : 0;
-		WriteData(&b, 1);
-	}
+	// TODO: Only the Variadic trait must be saved for all 
+	// function types. Can we store that bit somewhere else so it 
+	// is possible to save 1 byte for other types of functions/methods?
+	asBYTE b = 0;
+	b += func->IsReadOnly() ? 1 : 0;
+	b += func->IsPrivate() ? 2 : 0;
+	b += func->IsProtected() ? 4 : 0;
+	b += func->IsFinal() ? 8 : 0;
+	b += func->IsOverride() ? 16 : 0;
+	b += func->IsExplicit() ? 32 : 0;
+	b += func->IsProperty() ? 64 : 0;
+	b += func->IsVariadic() ? 128 : 0;
+	WriteData(&b, 1);
 
 	if (!func->objectType)
 	{
@@ -4292,14 +4288,14 @@ void asCWriter::WriteFunctionSignature(asCScriptFunction *func)
 			if (func->nameSpace)
 			{
 				// This funcdef was declared as global entity
-				asBYTE b = 'n';
+				b = 'n';
 				WriteData(&b, 1);
 				WriteString(&func->nameSpace->name);
 			}
 			else
 			{
 				// This funcdef was declared as class member
-				asBYTE b = 'o';
+				b = 'o';
 				WriteData(&b, 1);
 				WriteTypeInfo(func->funcdefType->parentClass);
 			}

@@ -2321,6 +2321,12 @@ void test()
 		if( r != asEXECUTION_FINISHED )
 			TEST_FAILED;
 
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
 		// Must not be possible to create delegate with const object and non-const method
 		bout.buffer = "";
 		mod->AddScriptSection("test",

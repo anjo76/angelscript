@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2025/10/06</h2>
+<h2>Version 2.39.0 WIP - 2025/10/07</h2>
 
 <ul>
 <li>Bug fixes
@@ -33,6 +33,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed crash with foreach on empty array of strings (Thanks li zhuang)
 <li>Fixed crash after loading saved bytecode with template functions (Thanks gyxos-logan)
 <li>Fixed crash that could happen while loading saved bytecode on certain compilers and platforms (Thanks Aleksander Jaronik)
+<li>Variadic functions were incorrectly matched to non-variadic functions when the argument types were the same (Thanks oktonion)
 </ul>
 <li>Library
 <ul>
