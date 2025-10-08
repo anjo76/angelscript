@@ -342,6 +342,20 @@ int asCScriptFunction::ParseListPattern(asSListPatternNode *&target, const char 
 	return 0;
 }
 
+int asCScriptFunction::RegisterLiteralPattern(const char* decl, asCScriptNode* literalPattern, asCString* outLiteral, bool* outIsPrefix)
+{
+	if (!literalPattern)
+		return asINVALID_ARG;
+
+	(void)decl;
+	if (outLiteral)
+		(void)outLiteral;
+	if(outIsPrefix)
+		outIsPrefix = false;
+
+	return 0;
+}
+
 // internal
 asCScriptFunction::asCScriptFunction(asCScriptEngine *engine, asCModule *mod, asEFuncType _funcType)
 {
