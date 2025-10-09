@@ -240,7 +240,6 @@ enum asEObjTypeFlags
 	asOBJ_APP_CLASS_A                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT),
 	asOBJ_APP_CLASS_AK                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
 	asOBJ_APP_CLASS_K                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31),
 	asOBJ_APP_PRIMITIVE               = (1<<13),
 	asOBJ_APP_FLOAT                   = (1<<14),
 	asOBJ_APP_ARRAY                   = (1<<15),
@@ -249,7 +248,6 @@ enum asEObjTypeFlags
 	asOBJ_NOCOUNT                     = (1<<18),
 	asOBJ_APP_CLASS_ALIGN8            = (1<<19),
 	asOBJ_IMPLICIT_HANDLE             = (1<<20),
-	asOBJ_APP_CLASS_UNION             = (asQWORD(1)<<32),
 	// Internal flags
 	asOBJ_SCRIPT_OBJECT               = (1<<21),
 	asOBJ_SHARED                      = (1<<22),
@@ -263,8 +261,12 @@ enum asEObjTypeFlags
 	asOBJ_APP_ALIGN16                 = (1<<30)
 };
 
-
-#define asOBJ_MASK_VALID_FLAGS 0x1801FFFFF // need to be define since it is too large for asQWORD on 32-bit platforms
+// need to be there since it is too large for enum underlying type (int32 or uint32) on 32-bit platforms
+namespace {
+	static const asQWORD asOBJ_MASK_VALID_FLAGS = (asQWORD(0x1801FFFFF));
+	static const asQWORD asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31);
+	static const asQWORD asOBJ_APP_CLASS_UNION = (asQWORD(1) << 32);
+}
 
 // Behaviours
 enum asEBehaviours
