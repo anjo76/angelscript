@@ -210,61 +210,61 @@ enum asECallConvTypes
 };
 
 // Object type flags
-enum asEObjTypeFlags
+namespace asEObjTypeFlags { namespace
 {
-	asOBJ_REF                         = (1<<0),
-	asOBJ_VALUE                       = (1<<1),
-	asOBJ_GC                          = (1<<2),
-	asOBJ_POD                         = (1<<3),
-	asOBJ_NOHANDLE                    = (1<<4),
-	asOBJ_SCOPED                      = (1<<5),
-	asOBJ_TEMPLATE                    = (1<<6),
-	asOBJ_ASHANDLE                    = (1<<7),
-	asOBJ_APP_CLASS                   = (1<<8),
-	asOBJ_APP_CLASS_CONSTRUCTOR       = (1<<9),
-	asOBJ_APP_CLASS_DESTRUCTOR        = (1<<10),
-	asOBJ_APP_CLASS_ASSIGNMENT        = (1<<11),
-	asOBJ_APP_CLASS_COPY_CONSTRUCTOR  = (1<<12),
-	asOBJ_APP_CLASS_C                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR),
-	asOBJ_APP_CLASS_CD                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR),
-	asOBJ_APP_CLASS_CA                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT),
-	asOBJ_APP_CLASS_CK                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_CDA               = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT),
-	asOBJ_APP_CLASS_CDK               = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_CAK               = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_CDAK              = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_D                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR),
-	asOBJ_APP_CLASS_DA                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT),
-	asOBJ_APP_CLASS_DK                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_DAK               = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_A                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT),
-	asOBJ_APP_CLASS_AK                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_K                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31),
-	asOBJ_APP_PRIMITIVE               = (1<<13),
-	asOBJ_APP_FLOAT                   = (1<<14),
-	asOBJ_APP_ARRAY                   = (1<<15),
-	asOBJ_APP_CLASS_ALLINTS           = (1<<16),
-	asOBJ_APP_CLASS_ALLFLOATS         = (1<<17),
-	asOBJ_NOCOUNT                     = (1<<18),
-	asOBJ_APP_CLASS_ALIGN8            = (1<<19),
-	asOBJ_IMPLICIT_HANDLE             = (1<<20),
-	asOBJ_APP_CLASS_UNION             = (asQWORD(1)<<32),
+	static const asQWORD asOBJ_REF = (1 << 0);
+	static const asQWORD asOBJ_VALUE = (1 << 1);
+	static const asQWORD asOBJ_GC = (1 << 2);
+	static const asQWORD asOBJ_POD = (1 << 3);
+	static const asQWORD asOBJ_NOHANDLE = (1 << 4);
+	static const asQWORD asOBJ_SCOPED = (1 << 5);
+	static const asQWORD asOBJ_TEMPLATE = (1 << 6);
+	static const asQWORD asOBJ_ASHANDLE = (1 << 7);
+	static const asQWORD asOBJ_APP_CLASS = (1 << 8);
+	static const asQWORD asOBJ_APP_CLASS_CONSTRUCTOR = (1 << 9);
+	static const asQWORD asOBJ_APP_CLASS_DESTRUCTOR = (1 << 10);
+	static const asQWORD asOBJ_APP_CLASS_ASSIGNMENT = (1 << 11);
+	static const asQWORD asOBJ_APP_CLASS_COPY_CONSTRUCTOR = (1 << 12);
+	static const asQWORD asOBJ_APP_CLASS_C = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_CD = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_CA = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT);
+	static const asQWORD asOBJ_APP_CLASS_CK = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_CDA = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT);
+	static const asQWORD asOBJ_APP_CLASS_CDK = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_CAK = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_CDAK = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_CONSTRUCTOR + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_D = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_DA = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT);
+	static const asQWORD asOBJ_APP_CLASS_DK = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_DAK = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_DESTRUCTOR + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_A = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT);
+	static const asQWORD asOBJ_APP_CLASS_AK = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_K = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_COPY_CONSTRUCTOR);
+	static const asQWORD asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31);
+	static const asQWORD asOBJ_APP_PRIMITIVE = (1 << 13);
+	static const asQWORD asOBJ_APP_FLOAT = (1 << 14);
+	static const asQWORD asOBJ_APP_ARRAY = (1 << 15);
+	static const asQWORD asOBJ_APP_CLASS_ALLINTS = (1 << 16);
+	static const asQWORD asOBJ_APP_CLASS_ALLFLOATS = (1 << 17);
+	static const asQWORD asOBJ_NOCOUNT = (1 << 18);
+	static const asQWORD asOBJ_APP_CLASS_ALIGN8 = (1 << 19);
+	static const asQWORD asOBJ_IMPLICIT_HANDLE = (1 << 20);
+	static const asQWORD asOBJ_APP_CLASS_UNION = (asQWORD(1) << 32);
 	// Internal flags
-	asOBJ_SCRIPT_OBJECT               = (1<<21),
-	asOBJ_SHARED                      = (1<<22),
-	asOBJ_NOINHERIT                   = (1<<23),
-	asOBJ_FUNCDEF                     = (1<<24),
-	asOBJ_LIST_PATTERN                = (1<<25),
-	asOBJ_ENUM                        = (1<<26),
-	asOBJ_TEMPLATE_SUBTYPE            = (1<<27),
-	asOBJ_TYPEDEF                     = (1<<28),
-	asOBJ_ABSTRACT                    = (1<<29),
-	asOBJ_APP_ALIGN16                 = (1<<30)
-};
+	static const asQWORD asOBJ_SCRIPT_OBJECT = (1 << 21);
+	static const asQWORD asOBJ_SHARED = (1 << 22);
+	static const asQWORD asOBJ_NOINHERIT = (1 << 23);
+	static const asQWORD asOBJ_FUNCDEF = (1 << 24);
+	static const asQWORD asOBJ_LIST_PATTERN = (1 << 25);
+	static const asQWORD asOBJ_ENUM = (1 << 26);
+	static const asQWORD asOBJ_TEMPLATE_SUBTYPE = (1 << 27);
+	static const asQWORD asOBJ_TYPEDEF = (1 << 28);
+	static const asQWORD asOBJ_ABSTRACT = (1 << 29);
+	static const asQWORD asOBJ_APP_ALIGN16 = (1 << 30);
+	static const asQWORD asOBJ_MASK_VALID_FLAGS = asQWORD(0x1801FFFFF);
+}} using namespace asEObjTypeFlags;
 
 
-#define asOBJ_MASK_VALID_FLAGS 0x1801FFFFF // need to be define since it is too large for asQWORD on 32-bit platforms
 
 // Behaviours
 enum asEBehaviours
