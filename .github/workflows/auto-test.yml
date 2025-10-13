@@ -42,6 +42,20 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
         ./testgnuc
+
+  Linux_arm64_Clang_AS_USE_NAMESPACE:
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v4
+    - name: build angelscript & test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
+        cmake . -DCMAKE_CXX_FLAGS='-DAS_USE_NAMESPACE'
+        cmake --build .
+    - name: run test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./test_feature
         
   Windows_x86-64_Clang:      
     runs-on: windows-latest
