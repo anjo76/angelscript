@@ -108,6 +108,20 @@ jobs:
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
         ./test_feature
+
+  MacOS_x86-64_Clang:
+    runs-on: macos-15-intel
+    steps:
+    - uses: actions/checkout@v4
+    - name: build angelscript & test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
+        cmake .
+        cmake --build .
+    - name: run test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./test_feature        
         
 
 
