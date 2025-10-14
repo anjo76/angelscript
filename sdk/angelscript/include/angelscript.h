@@ -210,7 +210,7 @@ enum asECallConvTypes
 };
 
 // Object type flags
-enum asEObjTypeFlags : asQWORD
+enum asEObjTypeFlags
 {
 	asOBJ_REF                         = (1<<0),
 	asOBJ_VALUE                       = (1<<1),
@@ -240,7 +240,6 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_APP_CLASS_A                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT),
 	asOBJ_APP_CLASS_AK                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
 	asOBJ_APP_CLASS_K                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31),
 	asOBJ_APP_PRIMITIVE               = (1<<13),
 	asOBJ_APP_FLOAT                   = (1<<14),
 	asOBJ_APP_ARRAY                   = (1<<15),
@@ -249,8 +248,6 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_NOCOUNT                     = (1<<18),
 	asOBJ_APP_CLASS_ALIGN8            = (1<<19),
 	asOBJ_IMPLICIT_HANDLE             = (1<<20),
-	asOBJ_APP_CLASS_UNION             = (asQWORD(1)<<32),
-	asOBJ_MASK_VALID_FLAGS            = 0x1801FFFFFul,
 	// Internal flags
 	asOBJ_SCRIPT_OBJECT               = (1<<21),
 	asOBJ_SHARED                      = (1<<22),
@@ -263,6 +260,14 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_ABSTRACT                    = (1<<29),
 	asOBJ_APP_ALIGN16                 = (1<<30)
 };
+
+// need to be there since it is too large for enum underlying type (int32 or uint32) on 32-bit platforms
+namespace {
+	static const asQWORD asOBJ_MASK_VALID_FLAGS =                 // `0xC00FFFFF` and `1` are valid 32-bit integers but `0x1801FFFFF` is not
+		(asQWORD(0xC00FFFFF) + asQWORD(0xC00FFFFF) + asQWORD(1)); // we use it to make valid 64-bit integer of `asQWORD` := `0x1801FFFFF` (0xC00FFFFF * 2 + 1 = 0x1801FFFFF)
+	static const asQWORD asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31);
+	static const asQWORD asOBJ_APP_CLASS_UNION = (asQWORD(1) << 32);
+}
 
 // Behaviours
 enum asEBehaviours
