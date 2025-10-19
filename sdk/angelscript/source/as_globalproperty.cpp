@@ -39,6 +39,7 @@ BEGIN_AS_NAMESPACE
 
 asCGlobalProperty::asCGlobalProperty() 
 { 
+	storage         = 0;
 	memory          = &storage; 
 	memoryAllocated = false; 
 	realAddress     = 0; 
