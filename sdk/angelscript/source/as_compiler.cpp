@@ -1190,6 +1190,8 @@ int asCCompiler::CallDefaultConstructor(const asCDataType &type, int offset, boo
 				}
 				ctx.bc.Instr(asBC_PopPtr);
 				ReleaseTemporaryVariable(ctx.type.stackOffset, &ctx.bc);
+
+				ProcessDeferredParams(&ctx);
 			}
 
 			bc->AddCode(&ctx.bc);
@@ -1256,13 +1258,12 @@ int asCCompiler::CallDefaultConstructor(const asCDataType &type, int offset, boo
 					if( func )
 					{
 						// Call the constructor as a normal function
-						bc->InstrSHORT(asBC_PSF, (short)offset);
+						ctx.bc.InstrSHORT(asBC_PSF, (short)offset);
 						if( derefDest )
-							bc->Instr(asBC_RDSPtr);
+							ctx.bc.Instr(asBC_RDSPtr);
 
-						asCExprContext ctxCall(engine);
-						PerformFunctionCall(func, &ctxCall, false, 0, CastToObjectType(type.GetTypeInfo()));
-						bc->AddCode(&ctxCall.bc);
+						PerformFunctionCall(func, &ctx, false, &args, CastToObjectType(type.GetTypeInfo()));
+						bc->AddCode(&ctx.bc);
 					}
 
 					// TODO: value on stack: This probably needs to be done in PerformFunctionCall
@@ -1277,19 +1278,21 @@ int asCCompiler::CallDefaultConstructor(const asCDataType &type, int offset, boo
 					if( func )
 					{
 						// Call the constructor as a normal function
-						bc->InstrSHORT(asBC_PSF, 0);
-						bc->Instr(asBC_RDSPtr);
-						bc->InstrSHORT_DW(asBC_ADDSi, (short)offset, engine->GetTypeIdFromDataType(asCDataType::CreateType(outFunc->objectType, false)));
+						ctx.bc.InstrSHORT(asBC_PSF, 0);
+						ctx.bc.Instr(asBC_RDSPtr);
+						ctx.bc.InstrSHORT_DW(asBC_ADDSi, (short)offset, engine->GetTypeIdFromDataType(asCDataType::CreateType(outFunc->objectType, false)));
 
-						asCExprContext ctxCall(engine);
-						PerformFunctionCall(func, &ctxCall, false, 0, CastToObjectType(type.GetTypeInfo()));
-						bc->AddCode(&ctxCall.bc);
+						PerformFunctionCall(func, &ctx, false, &args, CastToObjectType(type.GetTypeInfo()));
+						bc->AddCode(&ctx.bc);
 					}
 				}
 				else
 				{
 					asASSERT( false );
 				}
+
+				ProcessDeferredParams(&ctx);
+				bc->AddCode(&ctx.bc);
 			}
 			else
 			{
@@ -3374,6 +3377,7 @@ bool asCCompiler::CompileInitialization(asCScriptNode *node, asCByteCode *bc, co
 								ctx.bc.ObjInfo(offset, asOBJ_INIT);
 							}
 						}
+
 						ProcessDeferredParams(&ctx);
 						bc->AddCode(&ctx.bc);
 					}
