@@ -1992,12 +1992,13 @@ bool Test()
 		class JitCompiler : public asIJITCompilerV2
 		{
 		public:
-			JitCompiler() : invokeCount(0), compileCount(0) {}
+			JitCompiler() : invokeCount(0), compileCount(0), releaseCount(0) {}
 			virtual void NewFunction(asIScriptFunction* /*function*/) {
 				invokeCount++;
 			}
 			virtual void CleanFunction(asIScriptFunction * /*scriptFunc*/, asJITFunction func) {
 				delete reinterpret_cast<int*>(func);
+				releaseCount++;
 			}
 			void Compile(asIScriptEngine* engine)
 			{
@@ -2013,6 +2014,7 @@ bool Test()
 			}
 			int invokeCount;
 			int compileCount;
+			int releaseCount;
 		} jit;
 
 		engine->SetEngineProperty(asEP_INCLUDE_JIT_INSTRUCTIONS, true);
@@ -2043,6 +2045,9 @@ bool Test()
 			TEST_FAILED;
 
 		engine->ShutDownAndRelease();
+
+		if (jit.releaseCount != jit.invokeCount)
+			TEST_FAILED;
 	}
 
 	// Test the logic for JIT compilation (version 1)

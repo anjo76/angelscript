@@ -1487,9 +1487,11 @@ void asCScriptFunction::ReleaseReferences()
 		{
 			if (engine->ep.jitInterfaceVersion == 1)
 				static_cast<asIJITCompiler*>(engine->jitCompiler)->ReleaseJITFunction(scriptData->jitFunction);
-			else if (engine->ep.jitInterfaceVersion == 2)
-				static_cast<asIJITCompilerV2*>(engine->jitCompiler)->CleanFunction(this, scriptData->jitFunction);
 		}
+		// For JIT v2, the CleanFunction is called even if the jitFunction has not been set. This is because the
+		// JIT compiler may have cached data associated with the function that needs to be cleaned up.
+		if (funcType == asFUNC_SCRIPT && scriptData && engine->ep.jitInterfaceVersion == 2)
+			static_cast<asIJITCompilerV2*>(engine->jitCompiler)->CleanFunction(this, scriptData->jitFunction);
 		scriptData->jitFunction = 0;
 	}
 
