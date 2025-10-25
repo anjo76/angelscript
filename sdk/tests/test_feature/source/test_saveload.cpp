@@ -397,6 +397,84 @@ bool Test()
 	asIScriptEngine* engine;
 	asIScriptModule* mod;
 
+	// Test saving bytecode loaded from precompiled bytecode
+	// Reported by Aleksander Jaronik
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		CBytecodeStream stream((string("AS_DEBUG/bc_") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+
+		{
+			mod = engine->GetModule("DynamicModule", asGM_ALWAYS_CREATE);
+			mod->AddScriptSection("script", 
+				"int test = 0;\n"
+				"void TestFunc(int i)\n"
+				"{\n"
+				"	test += i; \n"
+				"}\n"
+				"class Test\n"
+				"{\n"
+				"	private int t = 0; \n"
+				"	void T()\n"
+				"	{\n"
+				"		t++; \n"
+				"	}\n"
+				"	private void T2()\n"
+				"	{\n"
+				"		t += 2; \n"
+				"	}\n"
+				"}\n");
+			r = mod->Build();
+			if( r < 0 )
+				TEST_FAILED;
+
+			mod->SaveByteCode(&stream);
+		}
+		engine->ShutDownAndRelease();
+
+
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		{
+			mod = engine->GetModule("DynamicModule", asGM_ALWAYS_CREATE);
+			r = mod->LoadByteCode(&stream);
+			if( r < 0 )
+				TEST_FAILED;
+		}
+
+		// Save the bytecode again to verify that it can be saved multiple times
+		{
+			CBytecodeStream stream2((string("AS_DEBUG/bc_2") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+			mod->SaveByteCode(&stream2);
+
+			asDWORD crc32_1 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
+			asDWORD crc32_2 = ComputeCRC32(&stream2.buffer[0], asUINT(stream2.buffer.size()));
+			if( crc32_1 != crc32_2 )
+			{
+				//PRINTF("The saved byte code has different checksum in the two saves\n");
+
+				// TODO: Investigate if this is really a bug. It might just be that the data is ordered differently
+				// TEST_FAILED;
+			}
+			if(stream.buffer.size() != stream2.buffer.size())
+			{
+				PRINTF("The saved byte code has different size in the two saves\n");
+				TEST_FAILED;
+			}
+		}
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test saving / loading bytecode with class that cannot generate copy constructor containing other class that cannot generate copy constructor
 	// Problem reported by Sam Tupy
 	{
@@ -425,7 +503,7 @@ bool Test()
 		mod->Discard();
 
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if (crc32 != 0x6B5CC4DF)
+		if (crc32 != 0x8EB2B645)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -476,7 +554,7 @@ bool Test()
 		mod->Discard();
 
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if (crc32 != 0x200443CA)
+		if (crc32 != 0x68AC7B19)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -526,7 +604,7 @@ bool Test()
 		mod->Discard();
 
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if (crc32 != 0x9E469FF8)
+		if (crc32 != 0xAE8B6E7B)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -599,7 +677,7 @@ bool Test()
 		mod->Discard();
 
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if (crc32 != 0xBAA90FEE)
+		if (crc32 != 0x130C3E76)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -677,7 +755,7 @@ bool Test()
 		CBytecodeStream stream(__FILE__);
 
 		r = engine->RegisterObjectType("vObj", sizeof(int), asOBJ_VALUE | asOBJ_POD); assert(r >= 0);
-		r = engine->RegisterObjectBehaviour("vObj", asBEHAVE_CONSTRUCT, "void f()", NULL, asCALL_GENERIC);
+		r = engine->RegisterObjectBehaviour("vObj", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(0), asCALL_GENERIC);
 
 		{
 			mod = engine->GetModule(0, asGM_ALWAYS_CREATE); assert(mod != NULL);
@@ -846,9 +924,9 @@ bool Test()
 			TEST_FAILED;
 		
 		if (bout.buffer != " (0, 0) : Error   : Shared type 'Test1' doesn't match the original declaration in other module\n"
-						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 170\n"
+						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 172\n"
 						   " (0, 0) : Error   : Shared type 'Test1' doesn't match the original declaration in other module\n"
-						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 170\n") 
+						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 172\n") 
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1449,7 +1527,7 @@ bool Test()
 		else
 		{
 			asDWORD crc32 = ComputeCRC32(&bc.buffer[0], asUINT(bc.buffer.size()));
-			if (crc32 != 0x87D58890)
+			if (crc32 != 0x29A9772D)
 			{
 				PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 				TEST_FAILED;
@@ -1493,7 +1571,7 @@ bool Test()
 		asIScriptFunction *func = mod->GetFunctionByName("main");
 		asBYTE expect[] =
 		{
-			asBC_SUSPEND,asBC_PshVPtr,asBC_PshVPtr,asBC_ChkNullS,asBC_ChkNullS,asBC_CALL,asBC_SUSPEND,asBC_FREE, asBC_RET
+			asBC_PshVPtr,asBC_PshVPtr,asBC_ChkNullS,asBC_ChkNullS,asBC_CALL,asBC_SUSPEND,asBC_FREE, asBC_RET
 		};
 		if (!ValidateByteCode(func, expect))
 			TEST_FAILED;
@@ -1504,7 +1582,7 @@ bool Test()
 			TEST_FAILED;
 
 		asDWORD crc32 = ComputeCRC32(&bc.buffer[0], asUINT(bc.buffer.size()));
-		if (crc32 != 0x6DD76484)
+		if (crc32 != 0x39F29D9)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -1566,7 +1644,7 @@ bool Test()
 			TEST_FAILED;
 
 		asDWORD crc = ComputeCRC32(&bc.buffer[0], asUINT(bc.buffer.size()));
-		if (crc != 184024235u)
+		if (crc != 2083861111u)
 		{
 			PRINTF("Wrong checksum. Got %u\n", crc);
 			TEST_FAILED;
@@ -2028,7 +2106,7 @@ bool Test()
 			TEST_FAILED;
 		
 		if( bout.buffer != " (0, 0) : Error   : Template type 'typeof' doesn't exist\n"
-						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 239\n" )
+						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 241\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2420,26 +2498,26 @@ bool Test()
 		mod->SaveByteCode(&stream2, true);
 
 #ifndef STREAM_TO_FILE
-		if (stream.buffer.size() != 2433)
+		if (stream.buffer.size() != 2449)
 			PRINTF("The saved byte code is not of the expected size. It is %d bytes\n", (int)stream.buffer.size());
 		asUINT zeroes = stream.CountZeroes();
-		if (zeroes != 611)
+		if (zeroes != 638)
 		{
 			PRINTF("The saved byte code contains a different amount of zeroes than the expected. Counted %d\n", zeroes);
 			// Mac OS X PPC has more zeroes, probably due to the bool type being 4 bytes
 		}
 		asDWORD crc32 = ComputeCRC32(&stream.buffer[0], asUINT(stream.buffer.size()));
-		if( crc32 != 0xE4913FF2)
+		if( crc32 != 0x6807180)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
 		}
 
 		// Without debug info
-		if (stream2.buffer.size() != 2022)
+		if (stream2.buffer.size() != 2038)
 			PRINTF("The saved byte code without debug info is not of the expected size. It is %d bytes\n", (int)stream2.buffer.size());
 		zeroes = stream2.CountZeroes();
-		if (zeroes != 441)
+		if (zeroes != 466)
 			PRINTF("The saved byte code without debug info contains a different amount of zeroes than the expected. Counted %d\n", zeroes);
 #endif
 		// Test loading without releasing the engine first
@@ -2511,7 +2589,7 @@ bool Test()
 		mod->SaveByteCode(&streamTiny, true);
 		engine->Release();
 
-		asBYTE expected[] = {0x01,0x00,0x00,0x00,0x00,0x00,0x01,0x66,0x02,0x66,0x00,0x40,0x52,0x00,0x00,0x01,0x00,0x00,0x00,0x02,0x3F,0x0A,0x00,0x00,0x00,0x01,0x72,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+		asBYTE expected[] = {0x01,0x00,0x00,0x00,0x00,0x00,0x01,0x66,0x02,0x66,0x00,0x40,0x52,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x01,0x0A,0x00,0x00,0x00,0x01,0x72,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
 		bool match = true;
 		for( asUINT n = 0; n < streamTiny.buffer.size(); n++ )
 			if( streamTiny.buffer[n] != expected[n] )
@@ -2524,11 +2602,11 @@ bool Test()
 			PRINTF("Tiny module gave a different result than expected:\n");
 			PRINTF("got     : ");
 			for( asUINT n = 0; n < streamTiny.buffer.size(); n++ )
-				PRINTF("%0.2X", streamTiny.buffer[n]);
+				PRINTF("%.2X", streamTiny.buffer[n]);
 			PRINTF("\n");
 			PRINTF("expected: ");
 			for( asUINT m = 0; m < sizeof(expected); m++ )
-				PRINTF("%0.2X", expected[m]);
+				PRINTF("%.2X", expected[m]);
 			PRINTF("\n");
 			TEST_FAILED;
 		}
@@ -3349,7 +3427,7 @@ bool Test()
 			TEST_FAILED;
 
 		if( bout.buffer != " (0, 0) : Error   : Attempting to instantiate invalid template type 'tmpl<int>'\n"
-			               " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 104\n" )
+			               " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 105\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

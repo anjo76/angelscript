@@ -1040,8 +1040,8 @@ void asCParser::GetToken(sToken *token)
 	}
 	// Filter out whitespace and comments
 	while( token->type == ttWhiteSpace ||
-	       token->type == ttOnelineComment ||
-	       token->type == ttMultilineComment );
+		   token->type == ttOnelineComment ||
+		   token->type == ttMultilineComment );
 }
 
 void asCParser::SetPos(size_t pos)
@@ -1779,9 +1779,12 @@ asCScriptNode *asCParser::ParseExprValue()
 }
 
 // BNF:12: LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
-// BNF:17: NUMBER        ::= [0-9]+("."[0-9]+)?                // single token:  includes integers and real numbers, same as C++ 
+// BNF:17: DIGIT         ::= #'[0-9](\'(?=[0-9]))?'             // single token:  like C++14, a digit can contain a ' if a digit comes after it
+// TODO: literal: The expression for DIGIT looks a bit odd to me, need to verify it
+// BNF:17: NUMBER        ::= DIGIT+("."DIGIT+)?                 // single token:  includes integers and real numbers, same as C++
 // BNF:17: STRING        ::= '"' ("\". | [^"#x0D#x0A\\])* '"'   // single token:  single quoted ', double quoted ", or heredoc multi-line string """
-// BNF:17: BITS          ::= '0'[bBoOdDxX][0-9A-Fa-f]+         // single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
+// BNF:17: BITS          ::= '0'[bBoOdDxX][0-9A-Fa-f]+          // single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
+// TODO: literal: BNF for BITS also needs to be adjusted to accept separators. NUMBER must be adjusted to accept the exponent after 'e' or 'E'
 asCScriptNode *asCParser::ParseConstant()
 {
 	asCScriptNode *node = CreateNode(snConstant);
@@ -2891,7 +2894,8 @@ int asCParser::ParseStatementBlock(asCScriptCode *in_script, asCScriptNode *in_b
 	return 0;
 }
 
-// BNF:1: ENUM          ::= ('shared' | 'external')* 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ('=' EXPR)? (',' IDENTIFIER ('=' EXPR)?)* '}'))
+// TODO: enum: The parser should accept any type, and then the compiler should reject invalid types with proper error message. This will be necessary to support typedefs and aliases
+// BNF:1: ENUM          ::= {'shared' | 'external'} 'enum' IDENTIFIER [ ':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64') ] (';' | ('{' IDENTIFIER ['=' EXPR] {',' IDENTIFIER ['=' EXPR]} '}'))
 asCScriptNode *asCParser::ParseEnumeration()
 {
 	asCScriptNode *ident;
@@ -2946,8 +2950,33 @@ asCScriptNode *asCParser::ParseEnumeration()
 	ident->UpdateSourcePos(token.pos, token.length);
 	dataType->AddChildLast(ident);
 
-	// External shared declarations are ended with ';'
 	GetToken(&token);
+	
+	// Check for underlying type
+	if (token.type == ttColon)
+	{
+		GetToken(&token);
+		
+		if (!((token.type >= ttInt && token.type <= ttInt64) ||
+			  (token.type >= ttUInt && token.type <= ttUInt64)))
+		{
+			int tokens[] = { ttInt, ttInt8, ttInt16, ttInt64, ttUInt, ttUInt8, ttUInt16, ttUInt64 };
+			Error(ExpectedOneOf(tokens, 2), &token);
+			Error(InsteadFound(token), &token);
+			return node;
+		}
+		
+		ident = CreateNode(snDataType);
+		if (ident == 0) return node;
+		
+		ident->SetToken(&token);
+		ident->UpdateSourcePos(token.pos, token.length);
+		dataType->AddChildLast(ident);
+		
+		GetToken(&token);
+	}
+	
+	// External shared declarations are ended with ';'
 	if (token.type == ttEndStatement)
 	{
 		RewindTo(&token);

@@ -35,11 +35,139 @@ void Print_Generic(asIScriptGeneric* gen)
 	g_printBuffer += *str;
 }
 
+class ScriptQueryIterator
+{
+	public:
+	ScriptQueryIterator() : it(0) {}
+	ScriptQueryIterator(const ScriptQueryIterator& other) : it(other.it) {}
+	ScriptQueryIterator& operator=(const ScriptQueryIterator& other) { it = other.it; return *this; }
+	int it;
+
+
+};
+
+static void ConstructScriptQueryIterator(ScriptQueryIterator* self)
+{
+	new(self) ScriptQueryIterator();
+}
+
+static void DestroyScriptQueryIterator(ScriptQueryIterator* self)
+{
+	self->~ScriptQueryIterator();
+}
+
+class Query
+{
+
+};
+
+ScriptQueryIterator ScriptQueryOpForBegin(const Query& /*q*/)
+{
+	ScriptQueryIterator it;
+	it.it = 0; // Initialize the iterator
+	return it;
+}
+
+bool ScriptQueryOpForEnd(const Query& q, const ScriptQueryIterator& it)
+{
+	// For simplicity, let's assume the query has 10 items
+	return it.it >= 10;
+}
+
+ScriptQueryIterator ScriptQueryOpForNext(const Query& q, const ScriptQueryIterator& it)
+{
+	ScriptQueryIterator next = it;
+	next.it++;
+	return next;
+}
+
+int ScriptQueryOpForValue(const Query& q, const ScriptQueryIterator& it)
+{
+	// For simplicity, let's return a dummy value
+	// In a real implementation, this would return the actual value from the query
+	return it.it; // Just returning the iterator index as a dummy value
+}
+
 bool Test()
 {
 	bool fail = false;
 	int r;
 	CBufferedOutStream bout;
+
+	// Test foreach on empty array of strings
+	// reported by li zhuang
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterStdString(engine);
+		RegisterScriptArray(engine, true);
+
+		r = ExecuteString(engine, 
+			"array<string> arr = {}; \n"
+			"foreach (auto str : arr) { \n"
+			"} \n");
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			TEST_FAILED;
+			PRINTF("%s", bout.buffer.c_str());
+		}
+	}
+
+	// Test foreach with non-pod value type
+	// https://github.com/anjo76/angelscript/issues/5
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterObjectType("QueryIterator", sizeof(ScriptQueryIterator), asOBJ_VALUE | asGetTypeTraits<ScriptQueryIterator>());
+		engine->RegisterObjectBehaviour("QueryIterator", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(ConstructScriptQueryIterator), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectBehaviour("QueryIterator", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(DestroyScriptQueryIterator), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("QueryIterator", "QueryIterator& opAssign(const QueryIterator&in)", asMETHOD(ScriptQueryIterator, operator=), asCALL_THISCALL);
+
+		engine->RegisterObjectType("Query", 0, asOBJ_REF | asOBJ_NOCOUNT);
+		engine->RegisterObjectMethod("Query", "QueryIterator opForBegin() const", asFUNCTION(ScriptQueryOpForBegin), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("Query", "bool opForEnd(QueryIterator it) const", asFUNCTION(ScriptQueryOpForEnd), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("Query", "QueryIterator opForNext(QueryIterator it) const", asFUNCTION(ScriptQueryOpForNext), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("Query", "int opForValue(QueryIterator it) const", asFUNCTION(ScriptQueryOpForValue), asCALL_CDECL_OBJFIRST);
+
+		Query q;
+		engine->RegisterGlobalProperty("Query q", &q);
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		const char* script =
+			"void main() \n"
+			"{ \n"
+			"  int sum = 0; \n"
+			"  foreach( int v : q ) \n"
+			"    sum += v; \n"
+			"  assert( sum == 45 ); \n"
+			"} \n";
+
+		asIScriptModule* mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", script);
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		r = ExecuteString(engine, "main()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			TEST_FAILED;
+			PRINTF("%s", bout.buffer.c_str());
+		}
+	}
 
 	// Test foreach with auto (without @) and polymorphism. As for normal var decl auto should implicitly use @
 	// https://www.gamedev.net/forums/topic/718755-unexpected-foreach-behavior-with-auto/5470713/

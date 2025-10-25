@@ -545,6 +545,9 @@
     <ClCompile Include="..\..\source\test_foreach.cpp">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\source\test_literal.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\angelscript\include\angelscript.h" />

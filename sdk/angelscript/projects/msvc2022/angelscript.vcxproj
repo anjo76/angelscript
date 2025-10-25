@@ -552,6 +552,7 @@
     <None Include="..\..\source\as_callfunc_arm_xcode.S" />
     <None Include="..\..\source\as_callfunc_e2k.S" />
     <None Include="..\..\source\as_callfunc_riscv64_gcc.S" />
+    <None Include="..\..\source\as_callfunc_x64_msvc_clang.S" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -723,8 +723,8 @@ public:
 	virtual int GetDefaultArrayTypeId() const = 0;
 
 	// Enums
-	virtual int          RegisterEnum(const char *type) = 0;
-	virtual int          RegisterEnumValue(const char *type, const char *name, int value) = 0;
+	virtual int          RegisterEnum(const char* typeName, const char* underlyingType = "int32") = 0;
+	virtual int          RegisterEnumValue(const char* type, const char* name, asINT64 value) = 0;
 	virtual asUINT       GetEnumCount() const = 0;
 	virtual asITypeInfo *GetEnumByIndex(asUINT index) const = 0;
 
@@ -1092,6 +1092,7 @@ public:
 	virtual int              GetSubTypeId(asUINT subTypeIndex = 0) const = 0;
 	virtual asITypeInfo     *GetSubType(asUINT subTypeIndex = 0) const = 0;
 	virtual asUINT           GetSubTypeCount() const = 0;
+	virtual int              GetUnderlyingTypeId() const = 0;
 
 	// Interfaces
 	virtual asUINT           GetInterfaceCount() const = 0;
@@ -1125,10 +1126,13 @@ public:
 
 	// Enums
 	virtual asUINT      GetEnumValueCount() const = 0;
-	virtual const char *GetEnumValueByIndex(asUINT index, int *outValue) const = 0;
+	virtual const char *GetEnumValueByIndex(asUINT index, asINT64 *outValue) const = 0;
 
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-09-13, 2.39.0
 	// Typedef
 	virtual int GetTypedefTypeId() const = 0;
+#endif
 
 	// Funcdef
 	virtual asIScriptFunction *GetFuncdefSignature() const = 0;
@@ -1202,6 +1206,8 @@ public:
 	virtual const char      *GetVarDecl(asUINT index, bool includeNamespace = false) const = 0;
 	virtual int              FindNextLineWithCode(int line) const = 0;
 	virtual int              GetDeclaredAt(const char** scriptSection, int* row, int* col) const = 0;
+	virtual int              GetLineEntryCount() const = 0;
+	virtual int              GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const = 0;
 
 	// For JIT compilation
 	virtual asDWORD         *GetByteCode(asUINT *length = 0) = 0;

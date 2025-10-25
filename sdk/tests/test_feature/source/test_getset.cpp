@@ -176,7 +176,7 @@ bool Test()
 			TEST_FAILED;
 
 		asDWORD crc32 = ComputeCRC32(&stream1.buffer[0], asUINT(stream1.buffer.size()));
-		if (crc32 != 0x720A13BF)
+		if (crc32 != 0xBF3359F5)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;

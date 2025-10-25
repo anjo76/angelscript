@@ -523,7 +523,7 @@ bool Test()
 		asIScriptFunction *func = mod->GetFunctionByName("foo");
 		asBYTE expect[] = 
 			{	
-				asBC_SUSPEND,asBC_PSF,asBC_Cast,asBC_STOREOBJ,asBC_ClrVPtr,asBC_CmpPtr,asBC_TZ,asBC_CpyRtoV4,asBC_FREE,asBC_FREE,asBC_PshV4,asBC_CALLSYS,
+				asBC_PSF,asBC_Cast,asBC_STOREOBJ,asBC_ClrVPtr,asBC_CmpPtr,asBC_TZ,asBC_CpyRtoV4,asBC_FREE,asBC_FREE,asBC_PshV4,asBC_CALLSYS,
 				asBC_SUSPEND,asBC_RET
 			};
 		if( !ValidateByteCode(func, expect) )

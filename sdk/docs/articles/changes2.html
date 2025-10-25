@@ -15,13 +15,52 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2025/08/19</h2>
+<h2>Version 2.39.0 WIP - 2025/10/24</h2>
 
 <ul>
 <li>Bug fixes
 <ul>
 <li>Fixed using namespaces with nested namespaces (Thanks sashi0034)
 <li>Fixed issue in compiling the switch cases for large numbers due to 32bit overflow (Thanks power_mcu)
+<li>Fixed assert failure in compiling foreach with iterator as non-pod value type (Thanks atoft)
+<li>GetGlobalFunctionByDecl wasn't using the explicit namespace in the declaration (Thanks Miss)
+<li>Fixed used of deprecated OSAtomicIncrement32 on MacOS (Thanks Billy O'Neal)
+<li>Unprepare was not clearing exception info (Thanks romanpunia_gd)
+<li>Compiler was incorrectly making copy of object member property before type conversion in expressions (Thanks Sam Tupy)
+<li>Added proper error message when opCast returned type by value
+<li>Fixed compilation error with AS_DEBUG with computed gotos (Thanks williamjcm)
+<li>Fixed crash with AS_DEBUG on engines with more than 32768 functions (Thanks Alexander Orefkov)
+<li>Fixed crash with foreach on empty array of strings (Thanks li zhuang)
+<li>Fixed crash after loading saved bytecode with template functions (Thanks gyxos-logan)
+<li>Fixed crash that could happen while loading saved bytecode on certain compilers and platforms (Thanks Aleksander Jaronik)
+<li>Variadic functions were incorrectly matched to non-variadic functions when the argument types were the same (Thanks oktonion)
+<li>Fixed compiler error for Android NDK (Thanks luadebug)
+<li>Added AS_NO_EXCEPTIONS for MacOS x64 with Clang as the stack unwind is currently not working
+<li>Fixed problem with calling constructor that has only default arguments (Thanks jit-zs)
+<li>asIJITCompilerV2::CleanFunction is now called for all script functions regardless if the JIT function was compiled or not (Thanks Asu)
+<li>Fixed crash on CompilerGlobalVar when attempting to clean up after a name conflict (Thanks Wing-summer)
+</ul>
+<li>Library
+<ul>
+<li>Removed the first SUSPEND instruction in all compiled functions (Thanks OriolCS2)
+<li>Added support for Fiber Local Storage on Windows (Thanks Roel Binnendijk)
+<li>Improved error messages for function matching to indicate the reason a match failed (Thanks Paril)
+</ul>
+<li>Library interface
+<ul>
+<li>Added GetLineEntryCount and GetLineEntry to asIScriptFunction (Thanks a-k-)
+<li>Now it is possible to register enum types with defined underlying types (Thanks Paril)
+<li>Added asITypeInfo::GetUnderlyingTypeId for retrieving the underlying type for enums and typedefs
+<li>Deprecated asITypeInfo::GetTypedefTypeId
+</ul>
+<li>Script language
+<ul>
+<li>Added support for number separators, e.g. 1'000'000 (Thanks Paril)
+<li>Enums can now be declared with underlying type to define the size of the enum (Thanks Paril)
+</ul>
+<li>Project
+<ul>
+<li>Added port of MSVC assembly to GNU/AT&amp;T assembly for pure clang builds on Windows (Thanks OctalCodes)
 </ul>
 </ul>
 
@@ -123,7 +162,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>The any::retrieve methods were not registered as const (Thanks Paril)
 <li>Fixed bug in script builder that didn't clear metadata from previous builds (Thanks Svenvh)
 </ul>
-<li>project
+<li>Project
 <ul>
 <li>Fixed cmake project for compiling on Risc-V 64bit (Thanks Vixea 0)
 <li>Made installing the library optional in the cmakefile (Thanks 1vanK)
@@ -319,7 +358,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed invalid bytecode sequence on creating a delegate from a lambda (Thanks Phong Ba)
 <li>Declaring arrays using the type[] syntax will now properly add implicit handle for the type when needed (Thanks Quentin Cosendey)
 <li>Fixed crash if attempting to call CreateScriptObjectCopy with an asITypeInfo for a script function (Thanks HoShiMin)
-<li>Fixed error in compilation of ternary condition operator with regards to deferred arguments (Thanks Polyák István)
+<li>Fixed error in compilation of ternary condition operator with regards to deferred arguments (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed compilation error in C++Builder with older compiler (Thanks Savas Savvides)
 <li>Added more sanity checks in LoadByteCode to avoid crash on invalid stream data (Thanks LeonMrBonnie)
 <li>Compiler didn't give an error on declaring mixin classes abstract or external (Thanks Dantrell B)
@@ -385,8 +424,8 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed crash when using copy constructor declared as taking the object by value (Thanks Miss)
 <li>Fixed memory invasion in compiler when compiling initialization lists with expressions using default arguments (Thanks jsd1982)
 <li>Fixed memory invasion in compiler when compiling default arguments
-<li>Fixed an issue in compiler with auto type and constness (Thanks Polyák István)
-<li>Fixed symbol lookup of child type from within class method while compiling a construct call (Thanks Polyák István)
+<li>Fixed an issue in compiler with auto type and constness (Thanks PolyÃ¡k IstvÃ¡n)
+<li>Fixed symbol lookup of child type from within class method while compiling a construct call (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed crash after a discarding a module that compiled a shared object type that continues to be used by other modules (Thanks MrFloat)
 <li>Funcdefs are marked with asOBJ_GC as they can form circular references when used with delegates (Thanks cmann)
 <li>Fixed memory leak when using CompileGlobalVar to add a variable to a module with an object type (Thanks gmp3)
@@ -908,7 +947,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed bug in compiler when using compound assignment on virtual property on temporary variable (Thanks Violet CLM)
 <li>Compiler no longer gives error when access global variable in global namespace from class in namespace (Thanks Sir Ementaler)
 <li>Fixed bug with compiler accepting null handle in initialization lists that didn't support it (Thanks Phong Ba)
-<li>Parser properly handles template type and non-template type of same name in different namespaces (Thanks Polyák István)
+<li>Parser properly handles template type and non-template type of same name in different namespaces (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed problem with ternary conditions returning references to global variables (Thanks Jonathan Sandusky)
 <li>Fixed bug with opIndex when global variable had same name as datatype in a different namespace (Thanks dkrusu)
 <li>Saving bytecode that used templates with multiple subtypes is now working properly (Thanks Phong Ba)
@@ -988,7 +1027,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Compiler didn't properly check the access masks for registered class methods (Thanks Solokiller)
 <li>Directly calling a funcdef retrieved from member property accessor would get wrong arguments (Thanks Solokiller)
 <li>Methods declared in mixins in namespaces weren't compiled with the correct namespace (Thanks Sir Ementaler)
-<li>Fixed problem with compiler not detecting incorrect type when passing class method as argument to constructor (Thanks Polyák István)
+<li>Fixed problem with compiler not detecting incorrect type when passing class method as argument to constructor (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed bug in asBC_u64TOd and asBC_u64TOf on non-MSVC compilers (Thanks Turo Lamminen)
 <li>Fixed crash on iOS/arm64 with thiscall callback functions (Thanks _Engine_)
 <li>Fixed incorrect compiler warning about converting to handle after get accessor (Thanks agentprog)
@@ -1032,7 +1071,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 </ul>
 <li>Script language
 <ul>
-<li>The ternary condition operator can now be used as lvalue if both options are lvalues of the same type (Thanks Polyák István)
+<li>The ternary condition operator can now be used as lvalue if both options are lvalues of the same type (Thanks PolyÃ¡k IstvÃ¡n)
 <li>opImplConv can now be used to allow implicit conversion to bool for registered value types
 <li>imported functions can now be placed in namespaces too (Thanks cvet)
 <li>Compound assignment operators can now be used with virtual properties
@@ -1188,7 +1227,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Added the flag asOBJ_APP_ARRAY to support registering types that are really C arrays
 <li>The parameter names from the declaration are now stored in the functions (Thanks GGLucas)
 <li>The parameter names are stored with the saved bytecode, unless debug information is stripped
-<li>Improved C++ exception handling to avoid deleting object that was never returned (Thanks Polyák István)
+<li>Improved C++ exception handling to avoid deleting object that was never returned (Thanks PolyÃ¡k IstvÃ¡n)
 <li>CreateScriptObject will return null if the object constructor throws C++ exception
 <li>The template callback can now write error messages to facilitate the understanding of why a template cannot be instantiated (Thanks JaviCervera)
 <li>Compiling the library with Sun CC for SPARC is now possible, though without native calling conventions (Thanks Andrey Bergman)
@@ -1222,7 +1261,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <ul>
 <li>The GetTypeTraits&lt;T&gt;() helper function automatically detects when to use asOBJ_APP_ARRAY
 <li>Added default factory and resize method to the grid
-<li>Array and grid properly handle exceptions while constructing elements (Thanks Polyák István)
+<li>Array and grid properly handle exceptions while constructing elements (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed compilation error with xcode 5.1 in dictionary (Thanks Jordi Oliveras Rovira)
 <li>The array and grid addons use the asAllocMem and asFreeMem as default memory routines
 <li>CScriptHandle implements the opHndlAssign instead of the opAssign
@@ -1448,9 +1487,9 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <ul>
 <li>Bug fixes
 <ul>
-<li>Compiler would call a script class' opAssign method as if it was a system function in a specific situation causing a crash (Thanks Polyák István)
-<li>A compound assignment to a class member could be compiled incorrectly if the lvalue had deferred parameters in expression (Thanks Polyák István)
-<li>GetExceptionLineNumber would crash if the exception had been raised in a generated function (Thanks Polyák István)
+<li>Compiler would call a script class' opAssign method as if it was a system function in a specific situation causing a crash (Thanks PolyÃ¡k IstvÃ¡n)
+<li>A compound assignment to a class member could be compiled incorrectly if the lvalue had deferred parameters in expression (Thanks PolyÃ¡k IstvÃ¡n)
+<li>GetExceptionLineNumber would crash if the exception had been raised in a generated function (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed compiler error on FreeBSD (Thanks Veniamin Gvozdikov)
 <li>Compiler didn't detect ambigious enum values when compiling initialization of global variables
 <li>Nested calls in context could overwrite value in register (Thanks Philip Bennefall)
@@ -1469,9 +1508,9 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Added GetDelegateObject and GetDelegateFunction to asIScriptFunction
 <li>Added CreateDelegate to asIScriptEngine
 <li>RegisterObjectBehaviour and RegisterStringFactory now accepts asCALL_THISCALL_ASGLOBAL
-<li>Added type modifier asTM_CONST to indicate parameters and return types that are const references (Thanks Polyák István)
+<li>Added type modifier asTM_CONST to indicate parameters and return types that are const references (Thanks PolyÃ¡k IstvÃ¡n)
 <li>GetArgTypeId and GetReturnTypeId now have optional parameter to retrieve the type modifier flags
-<li>Added GetFuncDefFromTypeId to allow getting the asIScriptFunction for a function definition (Thanks Polyák István)
+<li>Added GetFuncDefFromTypeId to allow getting the asIScriptFunction for a function definition (Thanks PolyÃ¡k IstvÃ¡n)
 <li>NotifyGarbageCollectorOfNewObject will return the sequence number attributed to the object
 <li>Added GetObjectInGC to allow inspecting objects that are currently known by the GC
 <li>The new behaviour asBEHAVE_GET_WEAKREF_FLAG was added to support weak references (Thanks vroad)
@@ -1497,8 +1536,8 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 </ul>
 <li>Add-ons & samples
 <ul>
-<li>Script array add-on can now sort arrays of handles by calling the opCmp on the objects (Thanks Polyák István)
-<li>Script array does a better search for matching opCmp and opEquals (Thanks Polyák István)
+<li>Script array add-on can now sort arrays of handles by calling the opCmp on the objects (Thanks PolyÃ¡k IstvÃ¡n)
+<li>Script array does a better search for matching opCmp and opEquals (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed compilation error with has_trivial_destructor on g++ 4.8 in GetTypeTraits (Thanks Craig Soutar)
 <li>Added the weakref add-on (Thanks vroad)
 <li>The game sample uses the weakref add-on
@@ -1515,7 +1554,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed bug in compiler where the class constructor could become invalid if two classes with the same name was declared in different namespaces (Thanks loverlin)
 <li>A null pointer access error could happen when compiling a script with enums after discarding a script with global variables (Thanks Robert Weitzel)
 <li>The context could in some situations attempt to destroy objects on the stack that had never been initialized upon cleanup (Thanks Philip Bennefall)
-<li>Multi-template types where both subtypes are of the same script class no longer crash the GC (Thanks Polyák István)
+<li>Multi-template types where both subtypes are of the same script class no longer crash the GC (Thanks PolyÃ¡k IstvÃ¡n)
 </ul>
 <li>Library interface
 <ul>
@@ -1530,7 +1569,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 </ul>
 <li>Add-ons
 <ul>
-<li>Script array add-on will not allow subtypes of reference types unless they are handles if asEP_DISALLOW_VALUE_ASSIGN_FOR_REF_TYPE is turned on (Thanks Polyák István)
+<li>Script array add-on will not allow subtypes of reference types unless they are handles if asEP_DISALLOW_VALUE_ASSIGN_FOR_REF_TYPE is turned on (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Added methods GetSectionCount() and GetSectionName() to builder for enumerating the included script sections
 <li>Added fpToIEEE and fpFromIEEE to the math addon. These allow platform agnostic conversion between floating point and IEEE 754 representation (Thanks Maarten van Berkel)
 </ul>
@@ -1570,7 +1609,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <ul>
 <li>Updated the Android makefile to make sure the library is compiled with thumb mode turned off (Thanks quarnster)
 <li>Modified the gnuc makefile to make it easier for Linux package maintainers (Thanks Michael Shigorin)
-<li>Updated trolltech makefile to allow it to compile as_callfunc_x64_msvc_asm.asm on 64bit Windows (Thanks Markus Mönig)
+<li>Updated trolltech makefile to allow it to compile as_callfunc_x64_msvc_asm.asm on 64bit Windows (Thanks Markus MÃ¶nig)
 </ul>
 </ul>
 
@@ -1581,7 +1620,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <ul>
 <li>Fixed compiler error on Mac OS X in with the atomic functions (Thanks thd.MM)
 <li>Fixed segfault in GetGlobalVarIndexByDecl on passing invalid declaration (Thanks Nate Kent)
-<li>AssignScriptObject and CopyFrom wasn't using the script class' opAssign method (Thanks Polyák István)
+<li>AssignScriptObject and CopyFrom wasn't using the script class' opAssign method (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Fixed bug in compiler with complex expressions in default args (Thanks Philip Bennefall)
 <li>Fixed the line numbers for for-loops (Thanks FDsagizi)
 <li>Fixed bug with the allocation of function ids, which could cause random behaviour for very large scripts (Thanks TheAtom)
@@ -1762,26 +1801,26 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <ul>
 <li>Bug fixes
 <ul>
-<li>GetEnumByIndex and GetTypedefByIndex wasn't returning a valid typeId when the type was not in the default namespace (Thanks Polyák István)
-<li>Inheriting from a class or interface in a different namespace didn't work (Thanks Polyák István)
-<li>Functions and class methods didn't accept the scope operator in the return type (Thanks Polyák István)
+<li>GetEnumByIndex and GetTypedefByIndex wasn't returning a valid typeId when the type was not in the default namespace (Thanks PolyÃ¡k IstvÃ¡n)
+<li>Inheriting from a class or interface in a different namespace didn't work (Thanks PolyÃ¡k IstvÃ¡n)
+<li>Functions and class methods didn't accept the scope operator in the return type (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Compiler missed adding a validation for a null pointer when compiling a return statement for a function returning object by value (Thanks Philip Bennefall)
 <li>Fixed crash when cleaning up after a script exception in a function that returns a value object by value (Thanks Philip Bennefall)
 <li>Fixed memory leak when compiling script that declares interface with virtual properties (Thanks brumi)
 <li>Functions that take 64bit types as arguments now work with Android native calling conventions (Thanks Fredrik Ehnbom)
 <li>Fixed bug in compiler when assigning value from property accessor to array element (Thanks Philip Bennefall)
-<li>Fixed crash in garbage collector when using automatic collections (Thanks Polyák István)
+<li>Fixed crash in garbage collector when using automatic collections (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Compiler failed to compile default argument expression that accessed an index in global array (Thanks Philip Bennefall)
 <li>Avoid temporary copy of script object without explicit opAssign method when assigned from global variable (Thanks Andrew Ackermann)
 <li>Duplicate class methods are now detected at their declaration (Thanks FDsagizi)
 <li>Local function pointers variables now properly take precedence over class methods of the same name (Thanks cellulose)
 <li>Serializing bytecode that called funcions with variable arguments didn't work properly (Thanks Markus Lenger)
 <li>Construct calls in expressions are now parsed properly when the type is preceeded with the namespace (Thanks Andrew Ackermann)
-<li>Compiler gave error when compiling non-const methods that returned const references to members (Thanks Polyák István)
+<li>Compiler gave error when compiling non-const methods that returned const references to members (Thanks PolyÃ¡k IstvÃ¡n)
 </ul>
 <li>Library
 <ul>
-<li>The VM will catch C++ exceptions thrown by the registered functions and set a script exception. This can be turned off by AS_NO_EXCEPTIONS if exception handling is not supported (Thanks Polyák István)
+<li>The VM will catch C++ exceptions thrown by the registered functions and set a script exception. This can be turned off by AS_NO_EXCEPTIONS if exception handling is not supported (Thanks PolyÃ¡k IstvÃ¡n)
 <li>Loading large precompiled bytecode files will now be significantly faster. Performance should now be similar to pre 2.23.0 (Thanks loboWu)
 <li>Improved build performance of tokenizer for large initialization lists (Thanks Markus Lenger)
 <li>Improved build performance of parser for scripts with a lot of statements
@@ -2596,7 +2635,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed bug with incremental garbage collector (Thanks hoboaki)
 <li>Saving byte code that used template classes didn't work properly (Thanks hoboaki)
 <li>Fixed bug with property accessors in type conversions (Thanks Philip Bennefall)
-<li>Fixed assert failure on compílation error with undeclared variable (Thanks Philip Bennefall)
+<li>Fixed assert failure on compÃ­lation error with undeclared variable (Thanks Philip Bennefall)
 <li>Fixed bug with implicit ref casts for global variables (Thanks Gilad Novik)
 <li>Fixes to the Xbox 360 calling convention codes (Thanks Cyril Tissier)
 <li>Fixed bug in the bytecode optimization on big endian CPUs (Thanks Remi Gillig)
@@ -3872,7 +3911,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <ul>
 <li>Bug fixes
 <ul>
-<li>Structure definitions and function declarations where not order independent. (Thanks Carl Ådahl)
+<li>Structure definitions and function declarations where not order independent. (Thanks Carl Ã…dahl)
 <li>Added the old CreateContext() and GetGlobalVarPointer() as deprecated methods.
 <li>Fixed some more compiler warnings.
 </ul>
@@ -3997,7 +4036,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>GetGlobalVarPointer() was returning a pointer to a pointer for registered object types. (Thanks Rain Dog)
 <li>Fixed a possible crash when calling AddScriptSection() with 0 for section name.
 <li>The operands for overloaded operators are now evaluated left-to-right.
-<li>Output parameters weren't working correctly for object methods (Thanks Mårten Svanfeldt, a.k.a thebolt00)
+<li>Output parameters weren't working correctly for object methods (Thanks MÃ¥rten Svanfeldt, a.k.a thebolt00)
 <li>The engine failed when calling registered functions that received objects both by value and by reference (Thanks Lennart Denninger)
 <li>Registered object types without registered constructor couldn't be used to create temporary objects in expressions.
 <li>Global variables couldn't use overloaded assignment operators to initialize the variables.

@@ -208,6 +208,26 @@ bool Test()
 	asIScriptModule *mod = 0;
 	asIScriptContext *ctx = 0;
 
+	// Test function overloads with variadic functions
+	// https://github.com/anjo76/angelscript/issues/14
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		r = engine->RegisterGlobalFunction("void fn(int, const ?&in ...)", asFUNCTION(0), asCALL_GENERIC);
+		r = engine->RegisterGlobalFunction("void fn(int, const ?&in a)", asFUNCTION(0), asCALL_GENERIC);
+		if( r < 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test saving and loading bytecode using variadic functions
 	// Reported by Paril
 	{

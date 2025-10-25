@@ -185,6 +185,7 @@ public:
 
 	void SetInternalException(const char *descr, bool allowCatch = true);
 	bool FindExceptionTryCatch();
+	void ClearException();
 
 	// Must be protected for multiple accesses
 	mutable asCAtomic m_refCount;

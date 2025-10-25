@@ -41,59 +41,6 @@ static const char *script2 =
 
 std::string printBuffer;
 
-static const char *correct =
-"Module1:void main():5,3\n"
-"Module1:void main():5,3\n"
-"Module1:void main():6,3\n"
-"Module1:void main():7,3\n"
-" Module1:c@ c():0,0\n"
-"  Module1:c::c():0,0\n"
-"Module1:void main():7,9\n"
-" Module1:void c::Test1():15,5\n"
-" Module1:void c::Test1():15,5\n"
-" Module1:void c::Test1():16,4\n"
-"Module1:void main():8,3\n"
-"Module1:void main():9,3\n"
-" Module2:void Test2():3,3\n"
-" Module2:void Test2():3,3\n"
-" Module2:void Test2():4,3\n"
-"  Module2:void Test3():8,3\n"
-"  Module2:void Test3():8,3\n"
-"  Module2:void Test3():9,3\n"
-"   (null):int[]@ $fact():0,0\n"
-"  Module2:void Test3():10,3\n"
-"--- exception ---\n"
-"desc: Index out of bounds\n"
-"func: void Test3()\n"
-"modl: Module2\n"
-"sect: :2\n"
-"line: 10,3\n"
-" (in scope) int c = 3\n"
-" (in scope) int[] a = {...}\n"
-"--- call stack ---\n"
-"Module2:void Test2():4,3\n"
-" (in scope) int b = 2\n"
-"Module1:void main():9,3\n"
-" (in scope) int a = 1\n"
-" (in scope) string s = 'text'\n"
-" (in scope) c _c = {...}\n"
-" (in scope) func_t@ t = {...}\n"
-"--- exception ---\n"
-"desc: Index out of bounds\n"
-"func: void Test3()\n"
-"modl: Module2\n"
-"sect: :2\n"
-"line: 10,3\n"
-" (in scope) int c = 3\n"
-" (in scope) int[] a = {...}\n"
-"--- call stack ---\n"
-"Module2:void Test2():4,3\n"
-" (in scope) int b = 2\n"
-"Module1:void main():9,3\n"
-" (in scope) int a = 1\n"
-" (in scope) string s = 'text'\n"
-" (in scope) c _c = {...}\n"
-" (in scope) func_t@ t = {...}\n";
 
 void print(const char *format, ...)
 {
@@ -335,6 +282,108 @@ bool Test()
 	int r;
 	bool fail = Test2();
 
+	// Test basic function and LineCallback
+	// https://github.com/anjo76/angelscript/issues/10
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		COutStream out;
+
+		engine->SetMessageCallback(asMETHOD(COutStream, Callback), &out, asCALL_THISCALL);
+
+		asIScriptModule* mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"int speed = 0; \n"
+			"void Start() { \n"
+			"	speed = 10; \n"
+			"} \n");
+		int r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		printBuffer = "";
+		asIScriptContext* ctx = engine->CreateContext();
+		ctx->SetLineCallback(asFUNCTION(LineCallback4), 0, asCALL_CDECL);
+		ctx->Prepare(mod->GetFunctionByDecl("void Start()"));
+		r = ctx->Execute();
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		ctx->Release();
+
+		// TODO: The callback is called twice at each start of function. The first call from PrepareScriptFunction 
+		// is done to allow interrupting infinitely recursive loops even on scripts compiled without line cues, and 
+		// the second is one the first SUSPEND in the function. Which one should be removed?
+
+		if (printBuffer != ":void Start():3,2\n"
+						   ":void Start():4,2\n")
+		{
+			PRINTF("%s\n", printBuffer.c_str());
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
+	// Test GetLineEntryCount and GetLineEntry
+	{
+		asIScriptEngine* engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		CBufferedOutStream bout;
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void func(int x) { \n"
+			"  int y = x * 2 + 3; \n"
+			"  int z = y + 1; \n"
+			"} \n"
+			"class B : A { \n"
+			"  B() { b = 10; } \n"
+			"  int b; \n"
+			"} \n");
+		mod->AddScriptSection("mixin",
+			"mixin class A { \n"
+			"  int a = 5; \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asIScriptFunction* func = mod->GetFunctionByName("func");
+		if (!func)
+			TEST_FAILED;
+		const int count = func->GetLineEntryCount();
+		if (count != 3)
+			TEST_FAILED;
+
+		int row, col;
+		const char* sectionName;
+		const asDWORD* bytecode;
+		r = func->GetLineEntry(0, &row, &col, &sectionName, &bytecode); if (r < 0) TEST_FAILED;
+		if( row != 2 || col != 3 || strcmp(sectionName, "test") != 0 || bytecode - func->GetByteCode() != 0) TEST_FAILED;
+		r = func->GetLineEntry(1, &row, &col, &sectionName, &bytecode); if (r < 0) TEST_FAILED;
+		if (row != 3 || col != 3 || strcmp(sectionName, "test") != 0 || bytecode - func->GetByteCode() != 6) TEST_FAILED;
+		r = func->GetLineEntry(2, &row, &col, &sectionName, &bytecode); if (r < 0) TEST_FAILED;
+		if (row != 4 || col != 2 || strcmp(sectionName, "test") != 0 || bytecode - func->GetByteCode() != 10) TEST_FAILED;
+
+		asITypeInfo *b = mod->GetTypeInfoByDecl("B");
+		asEBehaviours beh;
+		func = b->GetBehaviourByIndex(8, &beh);
+		if (beh != asBEHAVE_CONSTRUCT) TEST_FAILED;
+
+		r = func->GetLineEntry(0, &row, &col, &sectionName, &bytecode); if (r < 0) TEST_FAILED;
+		if (row != 2 || col != 7 || strcmp(sectionName, "mixin") != 0 || bytecode - func->GetByteCode() != 0) TEST_FAILED;
+		r = func->GetLineEntry(1, &row, &col, &sectionName, &bytecode); if (r < 0) TEST_FAILED;
+		if (row != 6 || col != 9 || strcmp(sectionName, "test") != 0 || bytecode - func->GetByteCode() != 5) TEST_FAILED;
+		r = func->GetLineEntry(2, &row, &col, &sectionName, &bytecode); if (r < 0) TEST_FAILED;
+		if (row != 6 || col != 18 || strcmp(sectionName, "test") != 0 || bytecode - func->GetByteCode() != 11) TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test GetAddressOfVar for object variables whose stack position is reused in multiple scopes
 	// Reported by Paril
 	SKIP_ON_MAX_PORT
@@ -406,18 +455,14 @@ void main(bool is_cgame)
 
 		if (printBuffer !=
 			R"out(test:void main(bool):13,5
-test:void main(bool):13,5
 test:void main(bool):14,5
 test:void main(bool):17,9
 test:void main(bool):18,9
 test:void main(bool):21,5
  test:bool Check():9,16
- test:bool Check():9,16
 test:void main(bool):23,9
 test:void main(bool):25,13
 test:void main(bool):26,13
- test:void Test(vec3_t):4,5
- test:void Test(vec3_t):4,5
  test:void Test(vec3_t):6,5
  (in scope) bool is_cgame = {...}
  (no scope) vec3_t test_a = <null>
@@ -619,7 +664,6 @@ test:void main(bool):29,2
 			"Module1:void main():11,2\n"
 			"Module1:void main():12,2\n"
 			" Module1:void print(int):14,19\n"
-			" Module1:void print(int):14,19\n"
 			"Module1:void main():13,2\n"
 			" (no scope) int i = {uninitialized}\n"
 			" (no scope) bool hey = {...}\n"
@@ -692,7 +736,6 @@ test:void main(bool):29,2
 
 		if (printBuffer !=
 			"Module1:void main():3,3\n"
-			"Module1:void main():3,3\n"
 			" (null):array<array<any>@>@ $fact():0,0\n"
 			"Module1:void main():4,3\n"
 			"Module1:void main():4,15\n"
@@ -743,7 +786,6 @@ test:void main(bool):29,2
 			" (in scope) IUnknown@ obj = {...}\n"
 			" (in scope) string name = 'test'\n"
 			" (in scope) foo global = 42\n"
-			" Module1:void Script::addNamedItem(const string&in, IUnknown@, foo):2,71\n"
 			" Module1:void Script::addNamedItem(const string&in, IUnknown@, foo):2,71\n"
 			"Module1:void main():10,59\n"
 			"Module1:void main():10,51\n"
@@ -809,7 +851,6 @@ test:void main(bool):29,2
 
 		if( printBuffer != 
 			"Module1:void main():3,3\n"
-			"Module1:void main():3,3\n"
 			" (null):array<array<any>@>@ $fact():0,0\n"
 			"Module1:void main():4,3\n"
 			"Module1:void main():4,15\n"
@@ -843,7 +884,6 @@ test:void main(bool):29,2
 			" (in scope) IUnknown@ obj = {...}\n"
 			" (in scope) string name = 'test'\n"
 			" (in scope) foo global = 42\n"
-			" Module1:void Script::addNamedItem(const string&in, IUnknown@, foo):2,71\n"
 			" Module1:void Script::addNamedItem(const string&in, IUnknown@, foo):2,71\n"
 			"Module1:void main():6,59\n"
 			"Module1:void main():6,51\n"
@@ -1046,6 +1086,56 @@ test:void main(bool):29,2
 		}
 		ctx->Release();
 		engine->Release();
+
+		static const char* correct =
+			"Module1:void main():5,3\n"
+			"Module1:void main():6,3\n"
+			"Module1:void main():7,3\n"
+			" Module1:c@ c():0,0\n"
+			"  Module1:c::c():0,0\n"
+			"Module1:void main():7,9\n"
+			" Module1:void c::Test1():15,5\n"
+			" Module1:void c::Test1():16,4\n"
+			"Module1:void main():8,3\n"
+			"Module1:void main():9,3\n"
+			" Module2:void Test2():3,3\n"
+			" Module2:void Test2():4,3\n"
+			"  Module2:void Test3():8,3\n"
+			"  Module2:void Test3():9,3\n"
+			"   (null):int[]@ $fact():0,0\n"
+			"  Module2:void Test3():10,3\n"
+			"--- exception ---\n"
+			"desc: Index out of bounds\n"
+			"func: void Test3()\n"
+			"modl: Module2\n"
+			"sect: :2\n"
+			"line: 10,3\n"
+			" (in scope) int c = 3\n"
+			" (in scope) int[] a = {...}\n"
+			"--- call stack ---\n"
+			"Module2:void Test2():4,3\n"
+			" (in scope) int b = 2\n"
+			"Module1:void main():9,3\n"
+			" (in scope) int a = 1\n"
+			" (in scope) string s = 'text'\n"
+			" (in scope) c _c = {...}\n"
+			" (in scope) func_t@ t = {...}\n"
+			"--- exception ---\n"
+			"desc: Index out of bounds\n"
+			"func: void Test3()\n"
+			"modl: Module2\n"
+			"sect: :2\n"
+			"line: 10,3\n"
+			" (in scope) int c = 3\n"
+			" (in scope) int[] a = {...}\n"
+			"--- call stack ---\n"
+			"Module2:void Test2():4,3\n"
+			" (in scope) int b = 2\n"
+			"Module1:void main():9,3\n"
+			" (in scope) int a = 1\n"
+			" (in scope) string s = 'text'\n"
+			" (in scope) c _c = {...}\n"
+			" (in scope) func_t@ t = {...}\n";
 
 		if (printBuffer != correct)
 		{

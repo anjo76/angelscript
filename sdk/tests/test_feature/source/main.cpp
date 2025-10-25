@@ -57,6 +57,7 @@ bool TestOptimize();
 bool TestNotInitialized();
 bool TestVector3();
 
+namespace TestLiteral           { bool Test(); }
 namespace TestForEach           { bool Test(); }
 namespace TestException         { bool Test(); }
 namespace TestCDeclReturn       { bool Test(); }
@@ -251,6 +252,7 @@ int allTests()
 	if( Test_Addon_ScriptSocket::Test()  ) goto failed; else PRINTF("-- Test_Addon_ScriptSocket passed\n");
 #endif
 
+	if (TestLiteral::Test()                     ) goto failed; else PRINTF("-- TestLiteral passed\n");
 	if( TestForEach::Test()                     ) goto failed; else PRINTF("-- TestForEach passed\n");
 	if( TestContext::Test()                     ) goto failed; else PRINTF("-- TestContext passed\n");
 	if( TestComposition::Test()                 ) goto failed; else PRINTF("-- TestComposition passed\n");
@@ -425,7 +427,7 @@ int allTests()
 //succeed:
 	PRINTF("--------------------------------------------\n");
 	PRINTF("All of the tests passed with success.\n\n");
-#if !defined(DONT_WAIT) && !defined(_M_ARM) && (defined(WIN32) || defined(_WIN64))
+#if defined(WAIT_ON_END) && !defined(_M_ARM) && (defined(WIN32) || defined(_WIN64))
 	PRINTF("Press any key to quit.\n");
 	while(!_getch());
 #endif
@@ -434,7 +436,7 @@ int allTests()
 failed:
 	PRINTF("--------------------------------------------\n");
 	PRINTF("One of the tests failed, see details above.\n\n");
-#if !defined(DONT_WAIT) && !defined(_M_ARM) && (defined(WIN32) || defined(_WIN64))
+#if defined(WAIT_ON_END) && !defined(_M_ARM) && (defined(WIN32) || defined(_WIN64))
 	PRINTF("Press any key to quit.\n");
 	while(!_getch());
 #endif

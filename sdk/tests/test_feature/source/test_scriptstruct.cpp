@@ -2362,7 +2362,8 @@ bool Test()
 			"script (13, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 			"script (14, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
 			"script (14, 9) : Info    : Candidates are:\n"
-			"script (14, 9) : Info    : CBar@ CBar(int a)\n")
+			"script (14, 9) : Info    : CBar@ CBar(int a)\n"
+			"script (14, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2418,7 +2419,8 @@ bool Test()
 						   "script (14, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 						   "script (15, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
 						   "script (15, 9) : Info    : Candidates are:\n"
-						   "script (15, 9) : Info    : CBar@ CBar(int a)\n" )
+						   "script (15, 9) : Info    : CBar@ CBar(int a)\n"
+						   "script (15, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2521,6 +2523,7 @@ bool Test()
 			"script (15, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
 			"script (15, 9) : Info    : Candidates are:\n"
 			"script (15, 9) : Info    : CBar@ CBar(int a)\n"
+			"script (15, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n"
 			"script (16, 9) : Error   : Data type can't be 'CBar2'\n"
 			"script (17, 9) : Error   : Data type can't be 'CBar2'\n"
 			"script (18, 8) : Error   : No matching symbol 'a2'\n"

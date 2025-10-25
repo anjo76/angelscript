@@ -362,7 +362,7 @@ asUINT asCEnumType::GetEnumValueCount() const
 }
 
 // interface
-const char *asCEnumType::GetEnumValueByIndex(asUINT index, int *outValue) const
+const char *asCEnumType::GetEnumValueByIndex(asUINT index, asINT64 *outValue) const
 {
 	if (outValue)
 		*outValue = 0;
@@ -374,6 +374,12 @@ const char *asCEnumType::GetEnumValueByIndex(asUINT index, int *outValue) const
 		*outValue = enumValues[index]->value;
 
 	return enumValues[index]->name.AddressOf();
+}
+
+// interface
+int asCEnumType::GetUnderlyingTypeId() const 
+{ 
+	return engine->GetTypeIdFromDataType(enumType); 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -404,10 +410,19 @@ void asCTypedefType::DestroyInternal()
 }
 
 // interface
+int asCTypedefType::GetUnderlyingTypeId() const
+{
+	return engine->GetTypeIdFromDataType(aliasForType);
+}
+
+#ifdef AS_DEPRECATED
+// deprecated since 2025-09-13, 2.39.0
+// interface
 int asCTypedefType::GetTypedefTypeId() const
 {
 	return engine->GetTypeIdFromDataType(aliasForType);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////
 

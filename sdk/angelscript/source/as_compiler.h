@@ -225,6 +225,40 @@ enum EVarGlobOrMem
 	asVGM_MEMBER   = 2
 };
 
+enum asEFailedMatchReason
+{
+	// pre-condition checks
+	asEFM_NOT_ENOUGH_ARGS,
+	asEFM_TOO_MANY_ARGS,
+	
+	// "arg" is set to the argument
+	// that reported the error
+	asEFM_POSITIONAL_MISMATCH, // positional parameter type mismatch
+	asEFM_NAMED_DUPLICATE, // named parameter duplicate
+	asEFM_NAMED_MISMATCH, // named parameter type mismatch
+	
+	// "argName" is set to the named
+	// argument that doesn't exist
+	asEFM_NAMED_MISSING // named parameter missing
+};
+
+struct asSFailedMatch
+{
+	int                  func;
+	asEFailedMatchReason reason;
+	
+	// for asEFM_POSITIONAL_MISMATCH, asEFM_NAMED_DUPLICATE: arg id
+	asUINT               arg;
+	// for asEFM_NAMED_MISSING, asEFM_NAMED_MISMATCH, asEFM_NAMED_DUPLICATE: ptr to argument string
+	const char* argName;
+	
+	asSFailedMatch() {}
+	asSFailedMatch(int func, asEFailedMatchReason reason, asUINT arg = -1) :
+		func(func), reason(reason), arg(arg), argName(NULL) {}
+	asSFailedMatch(int func, asEFailedMatchReason reason, const char* argName) :
+		func(func), reason(reason), arg(asUINT(-1)), argName(argName) { }
+};
+
 class asCCompiler
 {
 public:
@@ -306,7 +340,7 @@ protected:
 	int  ProcessPropertyGetSetAccessor(asCExprContext *ctx, asCExprContext *lctx, asCExprContext *rctx, eTokenType op, asCScriptNode *errNode);
 	int  FindPropertyAccessor(const asCString &name, asCExprContext *ctx, asCScriptNode *node, asSNameSpace *ns, bool isThisAccess = false);
 	int  FindPropertyAccessor(const asCString &name, asCExprContext *ctx, asCExprContext *arg, asCScriptNode *node, asSNameSpace *ns, bool isThisAccess = false);
-	void PrepareTemporaryVariable(asCScriptNode *node, asCExprContext *ctx, bool forceOnHeap = false);
+	void PrepareTemporaryVariable(asCScriptNode *node, asCExprContext *ctx, bool forceOnHeap = false, bool forceValueCopy = false);
 	void PrepareOperand(asCExprContext *ctx, asCScriptNode *node);
 	void PrepareForAssignment(asCDataType *lvalue, asCExprContext *rvalue, asCScriptNode *node, bool toTemporary, asCExprContext *lvalueExpr = 0);
 	int  PerformAssignment(asCExprValue *lvalue, asCExprValue *rvalue, asCByteCode *bc, asCScriptNode *node);
@@ -386,7 +420,7 @@ protected:
 	void Error(const asCString &msg, asCScriptNode *node);
 	void Warning(const asCString &msg, asCScriptNode *node);
 	void Information(const asCString &msg, asCScriptNode *node);
-	void PrintMatchingFuncs(asCArray<int> &funcs, asCScriptNode *node, asCObjectType *inType = 0);
+	void PrintMatchingFuncs(asCArray<int> &funcs, asCScriptNode *node, asCObjectType *inType = 0, asCArray<asSFailedMatch>* failedReasons = NULL);
 	void AddVariableScope(bool isBreakScope = false, bool isContinueScope = false);
 	void RemoveVariableScope();
 	void FinalizeFunction();

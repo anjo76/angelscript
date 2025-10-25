@@ -171,6 +171,13 @@ static void BigInt__BigInt_u32(BigInt* _ptr, asUINT value)
 	new(_ptr) BigInt(value);
 }
 
+std::string printBuf = "";
+static void Print(asIScriptGeneric* gen)
+{
+	const std::string& i = *(const std::string*)gen->GetArgAddress(0);
+	printBuf += i;
+}
+
 bool Test()
 {
 	RET_ON_MAX_PORT
@@ -182,6 +189,138 @@ bool Test()
 
 	CBufferedOutStream bout;
 	COutStream out;
+
+	// Test implicit conv on member with opImplConv
+	// Reported by Sam Tupy
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void print(const string &in)", asFUNCTION(Print), asCALL_GENERIC);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"class special_property { \n"
+			"	int some_id; \n"
+			"	string col; \n"
+			"	bool modified = false; \n"
+			"	int number = 10; \n"
+			"	special_property(const string&in col) { \n"
+			"		some_id = 1; \n"
+			"		number = 11; \n"
+			"		this.col = col; \n"
+			"	} \n"
+			"	special_property(special_property@ other) { \n"
+			"		some_id = other.some_id; \n"
+			"		col = other.col; \n"
+			"	} \n"
+			"} \n"
+			"class special_string : special_property { \n"
+			"	private string val; \n"
+			"	special_string(const string&in col, const string&in val) { \n"
+			"		super(col); \n"
+			"		this.val = val; \n"
+			"	} \n"
+			"	special_string(special_string@ other) { \n"
+			"		super(cast < special_property@ > (other)); \n"
+			"		val = other.val; \n"
+			"	} \n"
+			"	string opAssign(string v) { \n"
+			"		modified = true; \n"
+			"		number = v.length(); \n"
+			"		return val = v; \n"
+			"	} \n"
+			"	string opAssign(special_string@ other) { \n"
+			"		modified = true; \n"
+			"		return val = other.val; \n"
+			"	} \n"
+			"	void test() { \n"
+			"		print('from test: s.s.modified=' + this.modified + '\\n'); \n"
+			"	} \n"
+			"	string opImplConv() { \n"
+			"		test(); \n"
+			"		if(!modified) print('not modified! and ' + number + '\\n'); \n"
+			"		return val; \n"
+			"	} \n"
+			"} \n"
+			"class storage { \n"
+			"	special_string s('unneeded', 'this is a test'); \n"
+			"} \n"
+			"void main() { \n"
+			"	storage s; \n"
+			"	s.s = 'hello there'; \n"
+			"	print('from main: s.s.modified=' + s.s.modified + '\\n'); \n" 
+			"	print(s.s); \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		printBuf = "";
+		r = ExecuteString(engine, "main()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		if (printBuf != "from main: s.s.modified=true\n"
+						"from test: s.s.modified=true\n"
+						"hello there")
+		{
+			PRINTF("%s\n", printBuf.c_str());
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test opImplCast doesn't allow returning object by value
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void print(const string &in)", asFUNCTION(Print), asCALL_GENERIC);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"class special_string { \n"
+			"	private string val; \n"
+			"	special_string(const string&in col, const string&in val) { \n"
+			"		this.val = val; \n"
+			"	} \n"
+			// This should not be allowed as it returns object by value
+			"	string opImplCast() { \n"
+			"		return val; \n"
+			"	} \n"
+			"} \n"
+			"class storage { \n"
+			"	special_string s('unneeded', 'this is a test'); \n"
+			"} \n"
+			"void main() { \n"
+			"	storage s; \n"
+			"	print(s.s); \n"
+			"} \n");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "test (13, 1) : Info    : Compiling void main()\n"
+						   "test (15, 8) : Error   : Illegal return by value for 'string special_string::opImplCast()' in type cast\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test opImplConv to bool in conditions for value types
 	// https://www.gamedev.net/forums/topic/713122-opimplconv-to-bool-doesnt-work-in-a-ternary-operator-condition/
@@ -724,7 +863,7 @@ bool Test()
 		asIScriptFunction *func = mod->GetFunctionByDecl("void func()");
 		asBYTE expect[] = 
 			{
-				asBC_SUSPEND, asBC_PSF, asBC_CALLSYS, 
+				asBC_PSF, asBC_CALLSYS,
 				// TODO: optimize: The string object should be constructed before asBC_TYPEID, thus allow asBC_VAR and asBC_GETREF to be optimized to asBC_PSF
 				asBC_SUSPEND, asBC_TYPEID, asBC_VAR, asBC_PSF, asBC_PSF, asBC_CALLSYS, asBC_GETREF, asBC_CALLSYS, asBC_PSF, asBC_CALLSYS, 
 				asBC_SUSPEND, asBC_RET

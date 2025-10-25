@@ -277,7 +277,7 @@ bool Test()
 		asIScriptFunction *func = mod->GetTypeInfoByName("TestClass")->GetMethodByName("TestAccessToMemberOfMember", false);
 		asBYTE expect[] =
 		{
-			asBC_SUSPEND,asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_Thiscall1,asBC_RDR4,asBC_CpyVtoV4,
+			asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_Thiscall1,asBC_RDR4,asBC_CpyVtoV4,
 			asBC_SUSPEND,asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_RefCpyV,asBC_Thiscall1,asBC_RDR4,asBC_ADDi,asBC_FREE,
 			asBC_SUSPEND,asBC_RET
 		};
@@ -287,7 +287,7 @@ bool Test()
 		func = mod->GetFunctionByName("TestGlobalAccessToMemberOfMember");
 		asBYTE expect2[] =
 		{
-			asBC_SUSPEND,asBC_CALL,asBC_STOREOBJ,
+			asBC_CALL,asBC_STOREOBJ,
 			asBC_SUSPEND,asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_Thiscall1,asBC_RDR4,asBC_CpyVtoV4,
 			asBC_SUSPEND,asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_RefCpyV,asBC_Thiscall1,asBC_RDR4,asBC_ADDi,asBC_FREE,
 			asBC_SUSPEND,asBC_FREE,asBC_RET
@@ -298,7 +298,7 @@ bool Test()
 		func = mod->GetFunctionByName("TestHandleAccessToMemberOfMember");
 		asBYTE expect3[] =
 		{
-			asBC_SUSPEND,asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_RefCpyV,asBC_Thiscall1,asBC_RDR4,asBC_CpyVtoV4,asBC_FREE,
+			asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_RefCpyV,asBC_Thiscall1,asBC_RDR4,asBC_CpyVtoV4,asBC_FREE,
 			asBC_SUSPEND,asBC_PshC4,asBC_PshVPtr,asBC_ADDSi,asBC_RDSPtr,asBC_RefCpyV,asBC_Thiscall1,asBC_RDR4,asBC_ADDi,asBC_FREE,
 			asBC_SUSPEND,asBC_FREE,asBC_RET
 		};

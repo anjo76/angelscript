@@ -774,10 +774,9 @@ int asCContext::Prepare(asIScriptFunction *func)
 
 	// Reset state
 	// Most of the time the previous state will be asEXECUTION_FINISHED, in which case the values are already initialized
+	ClearException();
 	if( m_status != asEXECUTION_FINISHED )
 	{
-		m_exceptionLine           = -1;
-		m_exceptionFunction       = 0;
 		m_doAbort                 = false;
 		m_doSuspend               = false;
 		m_regs.doProcessSuspend   = m_lineCallback;
@@ -808,7 +807,17 @@ int asCContext::Prepare(asIScriptFunction *func)
 	return asSUCCESS;
 }
 
-// Free all resources
+// internal
+void asCContext::ClearException()
+{
+	m_exceptionString = "";
+	m_exceptionFunction = 0;
+	m_exceptionLine = -1;
+	m_exceptionColumn = -1;
+	m_exceptionSectionIdx = 0;
+}
+
+// interface
 int asCContext::Unprepare()
 {
 	if( m_status == asEXECUTION_ACTIVE || m_status == asEXECUTION_SUSPENDED )
@@ -853,9 +862,9 @@ int asCContext::Unprepare()
 	}
 
 	// Clear function pointers
+	ClearException();
 	m_initialFunction = 0;
 	m_currentFunction = 0;
-	m_exceptionFunction = 0;
 	m_regs.programPointer = 0;
 
 	// Reset status
@@ -4941,12 +4950,12 @@ static const void *const dispatch_table[256] = {
 	INSTRUCTION(255): l_bc = (asDWORD*)255; goto case_FAULT;
 #endif
 
-#ifdef AS_DEBUG
+#if defined(AS_DEBUG) && !defined(AS_USE_COMPUTED_GOTOS)
 	default:
 		asASSERT(false);
 		SetInternalException(TXT_UNRECOGNIZED_BYTE_CODE);
 #endif
-#if defined(_MSC_VER) && !defined(AS_DEBUG)
+#if defined(_MSC_VER) && !defined(AS_DEBUG) && !defined(AS_USE_COMPUTED_GOTOS)
 	default:
 		// This Microsoft specific code allows the
 		// compiler to optimize the switch case as

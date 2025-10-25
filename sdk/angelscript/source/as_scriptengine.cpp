@@ -3317,7 +3317,9 @@ asIScriptFunction *asCScriptEngine::GetGlobalFunctionByDecl(const char *decl) co
 	if( r < 0 )
 		return 0;
 
-	asSNameSpace *ns = defaultNamespace;
+	// If the declaration gave an explicit namespace, use it
+	asSNameSpace *ns = func.nameSpace;
+
 	// Search script functions for matching interface
 	while( ns )
 	{
@@ -6293,62 +6295,73 @@ asITypeInfo *asCScriptEngine::GetTypedefByIndex(asUINT index) const
 }
 
 // interface
-int asCScriptEngine::RegisterEnum(const char *name)
+int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingType)
 {
 	//	Check the name
-	if( NULL == name )
-		return ConfigError(asINVALID_NAME, "RegisterEnum", name, 0);
+	if( NULL == typeName )
+		return ConfigError(asINVALID_NAME, "RegisterEnum", typeName, 0);
+	//  and the type
+	if (NULL == underlyingType)
+		return ConfigError(asINVALID_NAME, "RegisterEnum", underlyingType, 0);
+
+	// make sure the type is valid
+	size_t tokenLen;
+	eTokenType token = tok.GetToken(underlyingType, strlen(underlyingType), &tokenLen);
+	
+	if (!(token >= ttUInt && token <= ttUInt64) && !(token >= ttInt && token <= ttInt64))
+		return ConfigError(asINVALID_NAME, "RegisterEnum", underlyingType, 0);
+	
+	asCDataType dataType = asCDataType::CreatePrimitive(token, true);
 
 	// Verify if the name has been registered as a type already
-	if( GetRegisteredType(name, defaultNamespace) )
+	if( GetRegisteredType(typeName, defaultNamespace) )
 		return asALREADY_REGISTERED;
 
 	// Use builder to parse the datatype
 	asCDataType dt;
 	asCBuilder bld(this, 0);
 	bool oldMsgCallback = msgCallback; msgCallback = false;
-	int r = bld.ParseDataType(name, &dt, defaultNamespace);
+	int r = bld.ParseDataType(typeName, &dt, defaultNamespace);
 	msgCallback = oldMsgCallback;
 	if( r >= 0 )
 	{
 		// If it is not in the defaultNamespace then the type was successfully parsed because
 		// it is declared in a parent namespace which shouldn't be treated as an error
 		if( dt.GetTypeInfo() && dt.GetTypeInfo()->nameSpace == defaultNamespace )
-			return ConfigError(asERROR, "RegisterEnum", name, 0);
+			return ConfigError(asERROR, "RegisterEnum", typeName, 0);
 	}
 
 	// Make sure the name is not a reserved keyword
-	size_t tokenLen;
-	int token = tok.GetToken(name, strlen(name), &tokenLen);
-	if( token != ttIdentifier || strlen(name) != tokenLen )
-		return ConfigError(asINVALID_NAME, "RegisterEnum", name, 0);
+	token = tok.GetToken(typeName, strlen(typeName), &tokenLen);
+	if( token != ttIdentifier || strlen(typeName) != tokenLen )
+		return ConfigError(asINVALID_NAME, "RegisterEnum", typeName, 0);
 
-	r = bld.CheckNameConflict(name, 0, 0, defaultNamespace, true, false, false);
+	r = bld.CheckNameConflict(typeName, 0, 0, defaultNamespace, true, false, false);
 	if( r < 0 )
-		return ConfigError(asNAME_TAKEN, "RegisterEnum", name, 0);
+		return ConfigError(asNAME_TAKEN, "RegisterEnum", typeName, 0);
 
 	asCEnumType *st = asNEW(asCEnumType)(this);
 	if( st == 0 )
-		return ConfigError(asOUT_OF_MEMORY, "RegisterEnum", name, 0);
+		return ConfigError(asOUT_OF_MEMORY, "RegisterEnum", typeName, 0);
 
-	asCDataType dataType;
 	dataType.CreatePrimitive(ttInt, false);
 
 	st->flags = asOBJ_ENUM | asOBJ_SHARED;
-	st->size = 4;
-	st->name = name;
+	st->size = dataType.GetSizeInMemoryBytes();
+	st->name = typeName;
 	st->nameSpace = defaultNamespace;
+	st->enumType = dataType;
 
 	allRegisteredTypes.Insert(asSNameSpaceNamePair(st->nameSpace, st->name), st);
 	registeredEnums.PushLast(st);
 
 	currentGroup->types.PushLast(st);
 
-	return GetTypeIdByDecl(name);
+	return GetTypeIdByDecl(typeName);
 }
 
 // interface
-int asCScriptEngine::RegisterEnumValue(const char *typeName, const char *valueName, int value)
+int asCScriptEngine::RegisterEnumValue(const char *typeName, const char *valueName, asINT64 value)
 {
 	// Verify that the correct config group is used
 	if( currentGroup->FindType(typeName) == 0 )

@@ -1225,6 +1225,7 @@ bool Test()
 						   "test (7, 3) : Error   : No matching signatures to 'func({...})'\n"
 						   "test (7, 3) : Info    : Candidates are:\n"
 						   "test (7, 3) : Info    : void func(int a)\n"
+						   "test (7, 3) : Info    : Rejected due to type mismatch on parameter 'a'\n"
 						   "test (8, 3) : Error   : Multiple matching signatures to 'func2({...})'\n"
 						   "test (8, 3) : Info    : void func2(array<int>@ a)\n"
 						   "test (8, 3) : Info    : void func2(dictionary@ d)\n"
@@ -1279,7 +1280,6 @@ bool Test()
 		asIScriptFunction *func = mod->GetFunctionByName("func");
 		asBYTE expect[] =
 		{
-			asBC_SUSPEND,
 			asBC_PshVPtr,
 			asBC_RefCpyV, // The refcpy here is required because the function expects a ref to a handle
 			asBC_PopPtr,

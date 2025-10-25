@@ -531,7 +531,7 @@ bool TestCondition()
 		asIScriptFunction *func = mod->GetFunctionByName("func");
 		asBYTE expect[] =
 		{
-			asBC_SUSPEND,asBC_FREE,asBC_RET
+			asBC_FREE,asBC_RET
 		};
 		if (!ValidateByteCode(func, expect))
 			TEST_FAILED;

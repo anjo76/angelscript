@@ -173,7 +173,8 @@ bool Test()
 		if (bout.buffer != 
 			"ExecuteString (1, 13) : Error   : No matching signatures to 'func(TestConv&)'\n"
 			"ExecuteString (1, 13) : Info    : Candidates are:\n"
-			"ExecuteString (1, 13) : Info    : void func(bool arg)\n")
+			"ExecuteString (1, 13) : Info    : void func(bool arg)\n"
+			"ExecuteString (1, 13) : Info    : Rejected due to type mismatch on parameter 'arg'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

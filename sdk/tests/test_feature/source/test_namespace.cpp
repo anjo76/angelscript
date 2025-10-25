@@ -13,6 +13,37 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test GetGlobalFunctionByDecl and namespace
+	// https://www.gamedev.net/forums/topic/718946-getglobalfunctionbydecl-ignores-namespace/5471124/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->SetDefaultNamespace("Foo");
+		engine->RegisterGlobalFunction("void Bar()", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterObjectType("Type", 0, asOBJ_REF);
+
+		engine->SetDefaultNamespace("");
+
+		asIScriptFunction* func = engine->GetGlobalFunctionByDecl("void Foo::Bar()");
+		if (func == 0)
+			TEST_FAILED;
+
+		engine->SetDefaultNamespace("Foo");
+		func = engine->GetGlobalFunctionByDecl("void Bar()");
+		if (func == 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test using namespace with nested namespaces
 	// https://github.com/anjo76/angelscript/issues/1
 	{

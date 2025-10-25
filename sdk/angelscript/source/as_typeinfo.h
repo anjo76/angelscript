@@ -86,6 +86,7 @@ public:
 	int              GetSubTypeId(asUINT subtypeIndex = 0) const { UNUSED_VAR(subtypeIndex); return -1; }
 	asITypeInfo     *GetSubType(asUINT subtypeIndex = 0) const { UNUSED_VAR(subtypeIndex); return 0; }
 	asUINT           GetSubTypeCount() const { return 0; }
+	int	             GetUnderlyingTypeId() const { return asERROR; }
 
 	// Interfaces
 	asUINT           GetInterfaceCount() const { return 0; }
@@ -118,14 +119,17 @@ public:
 	asITypeInfo *GetParentType() const { return 0; }
 
 	// Enums
-	virtual asUINT      GetEnumValueCount() const { return 0; }
-	virtual const char *GetEnumValueByIndex(asUINT index, int *outValue) const { UNUSED_VAR(index); if (outValue) *outValue = 0; return 0; }
+	asUINT      GetEnumValueCount() const { return 0; }
+	const char *GetEnumValueByIndex(asUINT index, asINT64 *outValue) const { UNUSED_VAR(index); if (outValue) *outValue = 0; return 0; }
 
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-09-13, 2.39.0
 	// Typedef
-	virtual int GetTypedefTypeId() const { return asERROR; }
+	int GetTypedefTypeId() const { return asERROR; }
+#endif
 
 	// Funcdef
-	virtual asIScriptFunction *GetFuncdefSignature() const { return 0; }
+	asIScriptFunction *GetFuncdefSignature() const { return 0; }
 
 	// User data
 	void *SetUserData(void *data, asPWORD type);
@@ -186,7 +190,7 @@ protected:
 struct asSEnumValue
 {
 	asCString name;
-	int       value;
+	asINT64   value = 0;
 };
 
 class asCEnumType : public asCTypeInfo
@@ -196,9 +200,12 @@ public:
 	~asCEnumType();
 
 	asCArray<asSEnumValue*> enumValues;
+	asCDataType enumType;
 
 	asUINT      GetEnumValueCount() const;
-	const char *GetEnumValueByIndex(asUINT index, int *outValue) const;
+	const char *GetEnumValueByIndex(asUINT index, asINT64 *outValue) const;
+
+	int GetUnderlyingTypeId() const;
 
 protected:
 	asCEnumType() : asCTypeInfo() {}
@@ -214,7 +221,11 @@ public:
 
 	asCDataType aliasForType; // increase refCount for typeinfo inside datatype
 
+	int GetUnderlyingTypeId() const;
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-09-13, 2.39.0
 	int GetTypedefTypeId() const;
+#endif
 
 protected:
 	asCTypedefType() : asCTypeInfo() {}

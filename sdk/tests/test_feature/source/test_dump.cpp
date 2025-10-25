@@ -186,7 +186,7 @@ void DumpModule(asIScriptModule *mod)
 		// List enum values
 		for( asUINT e = 0; e < ti->GetEnumValueCount(); e++ )
 		{
-			int value;
+			asINT64 value;
 			const char *name = ti->GetEnumValueByIndex(e, &value);
 			s << " " << name << " = " << value << endl;
 		}
@@ -198,7 +198,7 @@ void DumpModule(asIScriptModule *mod)
 	{
 		asITypeInfo *ti = mod->GetTypedefByIndex(n);
 
-		s << "typedef: " << ti->GetName() << " => " << engine->GetTypeDeclaration(ti->GetTypedefTypeId(), true) << endl;
+		s << "typedef: " << ti->GetName() << " => " << engine->GetTypeDeclaration(ti->GetUnderlyingTypeId(), true) << endl;
 	}
 
 	// Enumerate imported functions
@@ -231,7 +231,7 @@ void DumpModule(asIScriptModule *mod)
 	for( n = 0; n < c; n++ )
 	{
 		asITypeInfo *ti = engine->GetTypedefByIndex(n);
-		s << "reg typedef: " << ti->GetName() << " => " << engine->GetTypeDeclaration(ti->GetTypedefTypeId(), true) << endl;
+		s << "reg typedef: " << ti->GetName() << " => " << engine->GetTypeDeclaration(ti->GetUnderlyingTypeId(), true) << endl;
 	}
 
 	// Enumerate registered global functions
@@ -255,7 +255,7 @@ void DumpModule(asIScriptModule *mod)
 		// List enum values
 		for( asUINT e = 0; e < ti->GetEnumValueCount(); e++ )
 		{
-			int value;
+			asINT64 value;
 			const char *name = ti->GetEnumValueByIndex(e, &value);
 			s << " " << name << " = " << value << endl;
 		}

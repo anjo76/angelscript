@@ -288,5 +288,8 @@
     <None Include="..\..\source\as_callfunc_e2k.S">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="..\..\source\as_callfunc_x64_msvc_clang.S">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

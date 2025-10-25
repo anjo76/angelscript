@@ -1148,25 +1148,21 @@ void asCReader::ReadFunctionSignature(asCScriptFunction *func, asCObjectType **p
 		func->nameSpace = func->objectType->nameSpace;
 	}
 
-	// Only read the function traits if it is a class method, or could potentially be a global virtual property
-	if (func->objectType || func->name.SubString(0, 4) == "get_" || func->name.SubString(0, 4) == "set_")
-	{
-		asBYTE b;
-		ReadData(&b, 1);
-		func->SetReadOnly((b & 1) ? true : false);
-		func->SetPrivate((b & 2) ? true : false);
-		func->SetProtected((b & 4) ? true : false);
-		func->SetFinal((b & 8) ? true : false);
-		func->SetOverride((b & 16) ? true : false);
-		func->SetExplicit((b & 32) ? true : false);
-		func->SetProperty((b & 64) ? true : false);
-	}
+	asBYTE b;
+	ReadData(&b, 1);
+	func->SetReadOnly((b & 1) ? true : false);
+	func->SetPrivate((b & 2) ? true : false);
+	func->SetProtected((b & 4) ? true : false);
+	func->SetFinal((b & 8) ? true : false);
+	func->SetOverride((b & 16) ? true : false);
+	func->SetExplicit((b & 32) ? true : false);
+	func->SetProperty((b & 64) ? true : false);
+	func->SetVariadic((b & 128) ? true : false);
 
 	if (!func->objectType)
 	{
 		if (func->funcType == asFUNC_FUNCDEF)
 		{
-			asBYTE b;
 			ReadData(&b, 1);
 			if (b == 'n')
 			{
@@ -1198,7 +1194,11 @@ void asCReader::ReadFunctionSignature(asCScriptFunction *func, asCObjectType **p
 		count = ReadEncodedUInt();
 		func->templateSubTypes.SetLength(count);
 		for (asUINT n = 0; n < count; n++)
+		{
 			ReadDataType(&func->templateSubTypes[n]);
+			if(func->templateSubTypes[n].GetTypeInfo())
+				func->templateSubTypes[n].GetTypeInfo()->AddRefInternal();
+		}
 	}
 }
 
@@ -1658,6 +1658,16 @@ void asCReader::ReadTypeDeclaration(asCTypeInfo *type, int phase, bool *isExtern
 		if( type->flags & asOBJ_ENUM )
 		{
 			asCEnumType *t = CastToEnumType(type);
+			eTokenType tt = (eTokenType)ReadEncodedUInt();
+			if( !((tt >= ttInt && tt <= ttInt64) ||
+				  (tt >= ttUInt && tt <= ttUInt64)) )
+			{
+				// Only 32 bit enums are supported
+				Error(TXT_INVALID_BYTECODE_d);
+				return;
+			}
+			t->enumType = asCDataType::CreatePrimitive(tt, false);
+
 			int count = SanityCheck(ReadEncodedUInt(), 1000000);
 			bool sharedExists = existingShared.MoveTo(0, type);
 			if( !sharedExists )
@@ -1673,7 +1683,7 @@ void asCReader::ReadTypeDeclaration(asCTypeInfo *type, int phase, bool *isExtern
 						return;
 					}
 					ReadString(&e->name);
-					ReadData(&e->value, 4); // TODO: Should be encoded
+					ReadData(&e->value, t->GetSize()); // TODO: Should be encoded
 					t->enumValues.PushLast(e);
 				}
 			}
@@ -1685,7 +1695,7 @@ void asCReader::ReadTypeDeclaration(asCTypeInfo *type, int phase, bool *isExtern
 				for( int n = 0; n < count; n++ )
 				{
 					ReadString(&name);
-					ReadData(&value, 4); // TODO: Should be encoded
+					ReadData(&value, t->GetSize()); // TODO: Should be encoded
 					bool found = false;
 					for( asUINT e = 0; e < t->enumValues.GetLength(); e++ )
 					{
@@ -2523,8 +2533,10 @@ void asCReader::ReadByteCode(asCScriptFunction *func)
 		asUINT newSize = asUINT(func->scriptData->byteCode.GetLength()) + len;
 		if( func->scriptData->byteCode.GetCapacity() < newSize )
 		{
+			asUINT size = newSize;
 			// Determine the average size of the loaded instructions and re-estimate the final size
-			asUINT size = asUINT(float(newSize) / (total - numInstructions) * total) + 1;
+			if (total != numInstructions)
+				size = asUINT(float(newSize) / (total - numInstructions) * total) + 1;
 			func->scriptData->byteCode.AllocateNoConstruct(size, true);
 		}
 		if( !func->scriptData->byteCode.SetLengthNoConstruct(newSize) )
@@ -4255,19 +4267,19 @@ void asCWriter::WriteFunctionSignature(asCScriptFunction *func)
 
 	WriteTypeInfo(func->objectType);
 
-	// Only write function traits for methods and global functions that can potentially be virtual properties
-	if (func->objectType || func->name.SubString(0, 4) == "get_" || func->name.SubString(0, 4) == "set_")
-	{
-		asBYTE b = 0;
-		b += func->IsReadOnly() ? 1 : 0;
-		b += func->IsPrivate() ? 2 : 0;
-		b += func->IsProtected() ? 4 : 0;
-		b += func->IsFinal() ? 8 : 0;
-		b += func->IsOverride() ? 16 : 0;
-		b += func->IsExplicit() ? 32 : 0;
-		b += func->IsProperty() ? 64 : 0;
-		WriteData(&b, 1);
-	}
+	// TODO: Only the Variadic trait must be saved for all 
+	// function types. Can we store that bit somewhere else so it 
+	// is possible to save 1 byte for other types of functions/methods?
+	asBYTE b = 0;
+	b += func->IsReadOnly() ? 1 : 0;
+	b += func->IsPrivate() ? 2 : 0;
+	b += func->IsProtected() ? 4 : 0;
+	b += func->IsFinal() ? 8 : 0;
+	b += func->IsOverride() ? 16 : 0;
+	b += func->IsExplicit() ? 32 : 0;
+	b += func->IsProperty() ? 64 : 0;
+	b += func->IsVariadic() ? 128 : 0;
+	WriteData(&b, 1);
 
 	if (!func->objectType)
 	{
@@ -4276,14 +4288,14 @@ void asCWriter::WriteFunctionSignature(asCScriptFunction *func)
 			if (func->nameSpace)
 			{
 				// This funcdef was declared as global entity
-				asBYTE b = 'n';
+				b = 'n';
 				WriteData(&b, 1);
 				WriteString(&func->nameSpace->name);
 			}
 			else
 			{
 				// This funcdef was declared as class member
-				asBYTE b = 'o';
+				b = 'o';
 				WriteData(&b, 1);
 				WriteTypeInfo(func->funcdefType->parentClass);
 			}
@@ -4530,15 +4542,18 @@ void asCWriter::WriteTypeDeclaration(asCTypeInfo *type, int phase)
 
 		if(type->flags & asOBJ_ENUM )
 		{
+			// underlying type
+			asCEnumType* t = CastToEnumType(type);
+			WriteEncodedInt64(t->enumType.GetTokenType());
+
 			// enumValues[]
-			asCEnumType *t = CastToEnumType(type);
 			int size = (int)t->enumValues.GetLength();
 			WriteEncodedInt64(size);
 
 			for( int n = 0; n < size; n++ )
 			{
 				WriteString(&t->enumValues[n]->name);
-				WriteData(&t->enumValues[n]->value, 4);
+				WriteData(&t->enumValues[n]->value, t->GetSize());
 			}
 		}
 		else if(type->flags & asOBJ_TYPEDEF )

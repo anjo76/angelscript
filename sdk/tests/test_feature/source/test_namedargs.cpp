@@ -94,7 +94,8 @@ bool Test()
 		if (bout.buffer != "test (3, 1) : Info    : Compiling void test()\n"
 						   "test (3, 16) : Error   : No matching signatures to 'func(b: const int)'\n"
 						   "test (3, 16) : Info    : Candidates are:\n"
-						   "test (3, 16) : Info    : void func(int a)\n")
+						   "test (3, 16) : Info    : void func(int a)\n"
+						   "test (3, 16) : Info    : Rejected due to named parameter 'b' missing\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -372,7 +373,8 @@ bool Test()
 						   "test (5, 16) : Error   : No matching signatures to 'func(const int, a: const int)'\n"
 						   "test (5, 16) : Info    : Candidates are:\n"
 						   "test (5, 16) : Info    : bool func(int a, int b, int c)\n"
-						   )
+						   "test (5, 16) : Info    : Rejected due to not enough parameters\n"
+		  )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -402,7 +404,7 @@ bool Test()
 			TEST_FAILED;
 
 		if( bout.buffer != "test (5, 1) : Info    : Compiling void test()\n"
-						   "test (5, 23) : Error   : Duplicate named argument\n"
+						   "test (5, 23) : Error   : Duplicate named argument 'a'\n"
 						   )
 		{
 			PRINTF("%s", bout.buffer.c_str());

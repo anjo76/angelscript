@@ -431,7 +431,8 @@ bool Test()
 		if (bout.buffer != "TestScriptString (1, 1) : Info    : Compiling void Main()\n"
 						   "TestScriptString (4, 4) : Error   : No matching signatures to 'test(const string@&)'\n"
 						   "TestScriptString (4, 4) : Info    : Candidates are:\n"
-						   "TestScriptString (4, 4) : Info    : void test(string@ s)\n")
+						   "TestScriptString (4, 4) : Info    : void test(string@ s)\n"
+						   "TestScriptString (4, 4) : Info    : Rejected due to type mismatch on parameter 's'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

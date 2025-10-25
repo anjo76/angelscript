@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2024 Andreas Jonsson
+   Copyright (c) 2003-2025 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied 
    warranty. In no event will the authors be held liable for any 
@@ -267,6 +267,18 @@ bool asCTokenizer::IsComment(const char *source, size_t sourceLength, size_t &to
 	return false;
 }
 
+bool asCTokenizer::IsValidSeparatorDigitInRadix(const char* source, size_t sourceLength, size_t n, int radix) const
+{
+	if (source[n] != '\'')
+		return false;
+	if ((n + 1) >= sourceLength || n == 0)
+		return false;
+	else if (!IsDigitInRadix(source[n + 1], radix) || !IsDigitInRadix(source[n - 1], radix))
+		return false;
+
+	return true;
+}
+
 bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &tokenLength, eTokenType &tokenType) const
 {
 	// Starting with number
@@ -289,7 +301,7 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 			{
 				size_t n;
 				for( n = 2; n < sourceLength; n++ )
-					if( !IsDigitInRadix(source[n], radix) )
+					if( !IsDigitInRadix(source[n], radix) && !IsValidSeparatorDigitInRadix(source, sourceLength, n, radix) )
 						break;
 
 				tokenType   = ttBitsConstant;
@@ -301,7 +313,7 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 		size_t n;
 		for( n = 0; n < sourceLength; n++ )
 		{
-			if( source[n] < '0' || source[n] > '9' )
+			if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, sourceLength, n, 10) )
 				break;
 		}
 
@@ -312,7 +324,7 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 				n++;
 				for( ; n < sourceLength; n++ )
 				{
-					if( source[n] < '0' || source[n] > '9' )
+					if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, sourceLength, n, 10) )
 						break;
 				}
 			}
@@ -325,7 +337,7 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 
 				for( ; n < sourceLength; n++ )
 				{
-					if( source[n] < '0' || source[n] > '9' )
+					if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, sourceLength, n, 10) )
 						break;
 				}
 			}

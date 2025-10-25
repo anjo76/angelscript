@@ -7,29 +7,122 @@ on:
     branches: [ "master" ]
 
 jobs:
-  Linux-x86-64:
-
+  Linux_x86-64_GCC:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-    
     - name: build angelscript
       run: |
         cd $GITHUB_WORKSPACE/sdk/angelscript/projects/gnuc
+        export "CXXFLAGS=-O2"
         make
-
     - name: build test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/gnuc
         make
-
     - name: run test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
-        ./testgnuc > result.txt
-        cat result.txt
-        grep "All of the tests passed with success." result.txt
+        ./testgnuc
+
+  Linux_x86-64_GCC_AS_DEBUG:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: build angelscript
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/angelscript/projects/gnuc
+        export "CXXFLAGS=-DAS_DEBUG -O0"
+        make
+    - name: build test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/gnuc
+        make
+    - name: run test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./testgnuc
+
+  Linux_arm64_Clang_AS_USE_NAMESPACE:
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v4
+    - name: build angelscript & test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
+        cmake . -DCMAKE_CXX_FLAGS='-DAS_USE_NAMESPACE'
+        cmake --build .
+    - name: run test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./test_feature
         
+  Windows_x86-64_Clang:      
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: set up Clang
+      uses: egor-tensin/setup-clang@v1
+      with:
+       version: latest
+       platform: x64
+       cc: 1
+    - name: build angelscript & test_feature
+      shell: powershell
+      run: |
+        cd $env:GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
+        cmake . -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        cmake --build . --config Release
+    - name: run test_feature
+      shell: powershell
+      run: |
+        cd $env:GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./test_feature.exe
+
+  Windows_x86-64_Clang-Cl:      
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: set up Clang
+      uses: ilammy/msvc-dev-cmd@v1
+    - name: build angelscript & test_feature
+      run: |
+        cd ${{github.workspace}}/sdk/tests/test_feature/projects/cmake
+        cmake . -G Ninja -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_BUILD_TYPE=Release
+        cmake --build . --config Release
+    - name: run test_feature
+      run: |
+        cd ${{github.workspace}}/sdk/tests/test_feature/bin
+        ./test_feature.exe
+
+  MacOS_arm64_Clang:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: build angelscript & test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
+        cmake .
+        cmake --build .
+    - name: run test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./test_feature
+
+  MacOS_x86-64_Clang:
+    runs-on: macos-15-intel
+    steps:
+    - uses: actions/checkout@v4
+    - name: build angelscript & test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
+        cmake .
+        cmake --build .
+    - name: run test_feature
+      run: |
+        cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
+        ./test_feature        
         
-    
+
+
+        

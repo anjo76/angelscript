@@ -319,7 +319,7 @@ bool Test()
 		if( r != asEXECUTION_FINISHED )
 			TEST_FAILED;
 
-		if( debug.output != "ExecuteString:1; void ExecuteString()\n"
+		if( debug.output !=	"type t = <null>\n" // The variable is declared, but not yet initialized
 							"ExecuteString:1; void ExecuteString()\n"
 							"string glob = (len=4) \"test\"\n"
 							"script:0; type@ type()\n"
@@ -334,15 +334,7 @@ bool Test()
 							"type@ e = {XXXXXXXX}\n"
 							"type& f = {XXXXXXXX}\n"
 							"type@& g = {XXXXXXXX}\n"
-							"string glob = (len=4) \"test\"\n"
-							"script:3; void func(int, const int&in, string, const string&in, type@, type&inout, type@&in)\n"
-							"int a = 1\n"
-							"const int& b = 2\n"
-							"string c = (len=1) \"c\"\n"
-							"const string& d = (len=1) \"d\"\n"
-							"type@ e = {XXXXXXXX}\n"
-							"type& f = {XXXXXXXX}\n"
-							"type@& g = {XXXXXXXX}\n"
+							"int[] arr = <null>\n" // The variable is declared, but not yet initialized
 							"string glob = (len=4) \"test\"\n"
 							"script:3; void func(int, const int&in, string, const string&in, type@, type&inout, type@&in)\n"
 							"{unnamed}:0; int[]@ $list(int&in) { repeat int }\n"
@@ -412,9 +404,8 @@ bool Test()
 		if( ctx->GetAddressOfVar(0) )
 			TEST_FAILED;
 
-		// It will break twice on line 8. Once when setting up the function stack frame, and then on the first line that is executed
-		// TODO: The first SUSPEND in the bytecode should be optimized away as it is unnecessary
-		for( int n = 0; n < 2; n++ )
+		// It will no longer break twice on entry
+		for( int n = 0; n < 1; n++ )
 		{
 			r = ctx->Execute();
 			if( r != asEXECUTION_SUSPENDED )
@@ -459,9 +450,6 @@ bool Test()
 
 		if( debug.output != "Setting break point in file 'test' at line 9\n"
 							"Setting break point in file 'test' at line 10\n"
-							"Reached break point 0 in file 'test' at line 9\n"
-							"test:9; void Func()\n"
-							"24\n"
 							"Reached break point 0 in file 'test' at line 9\n"
 							"test:9; void Func()\n"
 							"24\n"

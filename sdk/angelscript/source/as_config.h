@@ -52,6 +52,9 @@
 // AS_WINDOWS_THREADS
 // If the library should be compiled using windows threads.
 
+// AS_WINDOWS_USEFLS
+// If the library should use Fiber Local Storage on Windows, instead of Thread Local Storage.
+
 // AS_POSIX_THREADS
 // If the library should be compiled using posix threads.
 
@@ -858,6 +861,10 @@
 			#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 			#define AS_LARGE_OBJS_PASSED_BY_REF
 			#define AS_LARGE_OBJ_MIN_SIZE 5
+			#ifdef __clang__
+				// On X64 the stack unwind is currently not working for exceptions
+				#define AS_NO_EXCEPTIONS
+			#endif
 			// STDCALL is not available on 64bit Mac
 			#undef STDCALL
 			#define STDCALL
