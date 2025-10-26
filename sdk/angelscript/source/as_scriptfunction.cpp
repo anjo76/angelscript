@@ -351,7 +351,7 @@ int asCScriptFunction::RegisterLiteralPattern(const char* decl, asCScriptNode* l
 	if (outLiteral)
 		(void)outLiteral;
 	if(outIsPrefix)
-		outIsPrefix = false;
+		*outIsPrefix = false;
 
 	return 0;
 }
