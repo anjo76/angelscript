@@ -45,6 +45,9 @@
 #include "as_array.h"
 #include "as_datatype.h"
 #include "as_atomic.h"
+#ifdef AS_CAN_USE_CPP11
+#include <utility> // std::move
+#endif
 
 BEGIN_AS_NAMESPACE
 
@@ -101,7 +104,13 @@ enum asELiteralPatternParamType
 struct asSLiteralPatternNode
 {
 	asSLiteralPatternNode(asCString name, asELiteralPatternParamType t, bool isPrefix) 
-		: patternName(std::move(name)), paramType(t), prefix(isPrefix) {}
+		: 
+#ifdef AS_CAN_USE_CPP11
+		patternName(std::move(name))
+#else
+		patternName(name)
+#endif
+		, paramType(t), prefix(isPrefix) {}
 	asCString patternName;
 	asELiteralPatternParamType paramType;
 	bool prefix; // otherwise the pattern is a suffix
