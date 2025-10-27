@@ -5806,6 +5806,19 @@ int asCBuilder::RegisterVirtualProperty(asCScriptNode *node, asCScriptCode *file
 				paramTypes.PushLast(emulatedType);
 				defaultArgs.PushLast(0);
 				name = "set_" + emulatedName;
+
+				if (emulatedType.IsReference())
+				{
+					paramModifiers[0] = asTM_INOUTREF;
+
+					if (!engine->ep.allowUnsafeReferences )
+					{
+						// Verify that the base type support &inout parameter types
+						if (!emulatedType.IsObject() || emulatedType.IsObjectHandle() ||
+							!((emulatedType.GetTypeInfo()->flags & asOBJ_NOCOUNT) || (CastToObjectType(emulatedType.GetTypeInfo())->beh.addref && CastToObjectType(emulatedType.GetTypeInfo())->beh.release)))
+							WriteError(TXT_ONLY_OBJECTS_MAY_USE_REF_INOUT, file, node->firstChild);
+					}
+				}
 			}
 		}
 

@@ -109,6 +109,109 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptEngine *engine;
 
+	// Test getset with string& (not allowed without unsafe references, but allowed with unsafe references)
+	// https://github.com/anjo76/angelscript/issues/23
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		RegisterStdString(engine);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE); assert(mod != NULL);
+		mod->AddScriptSection("test",
+			"class A \n"
+			"{ \n"
+			"	private string m_Name; \n"
+			"	string& Name \n"
+			"	{ \n"
+			"		get \n"
+			"		{ \n"
+			"			return this.m_Name; \n"
+			"		} \n"
+			"		set \n" // without unsafe references this is not allowed, since it would be 'void set_Name(string&inout value)'
+			"		{ \n"
+			"			this.m_Name = value; \n"
+			"		} \n"
+			"	} \n"
+			"	A() \n"
+			"	{ \n"
+			"		m_Name = 'a'; \n"
+			"	} \n"
+			"} \n");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+		if (bout.buffer != "test (10, 3) : Error   : Only object types that support object handles can use &inout. Use &in or &out instead\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+		bout.buffer = "";
+
+		// Now enable unsafe references and try again
+		engine->SetEngineProperty(asEP_ALLOW_UNSAFE_REFERENCES, true);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE); assert(mod != NULL);
+		mod->AddScriptSection("test",
+			"class A \n"
+			"{ \n"
+			"	private string m_Name; \n"
+			"	string& Name \n"
+			"	{ \n"
+			"		get \n"
+			"		{ \n"
+			"			return this.m_Name; \n"
+			"		} \n"
+			"		set \n" // now it is allowed
+			"		{ \n"
+			"			this.m_Name = value; \n"
+			"		} \n"
+			"	} \n"
+			"	A() \n"
+			"	{ \n"
+			"		m_Name = 'a'; \n"
+			"	} \n"
+			"} \n"
+			"void MapInit() \n"
+			"{ \n"
+			"	A@ a = A(); \n"
+			"	assert( a.Name == 'a' ); \n"
+
+			"   string t = 'New Name'; \n"
+			"   a.set_Name(t); \n" // work because the local variable is a valid reference
+			"   a.Name = t; \n" // work because the local variable is a valid reference
+			"	assert( a.Name == 'New Name' ); \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "MapInit()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		r = mod->CompileFunction("test", 
+			"void Test() \n"
+			"{ \n"
+			"	A@ a = A(); \n"
+			"	a.Name = 'New Name'; \n" // doesn't work because the literal string constant is not a valid reference
+			"   a.set_Name('New Name'); \n" // doesn't work because the literal string constant is not a valid reference
+			"} \n", 0, 0, 0);
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "test (4, 11) : Error   : Not a valid reference\n"
+						   "test (5, 15) : Error   : Not a valid reference\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test compound assignment with getset and unsafe references
 	// Problem reported by Sam Tupy
 	{
