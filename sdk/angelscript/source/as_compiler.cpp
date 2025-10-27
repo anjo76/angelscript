@@ -7156,6 +7156,7 @@ bool asCCompiler::CompileRefCast(asCExprContext *ctx, const asCDataType &to, boo
 
 					// Place the object pointer on the stack
 					ctx->bc.InstrSHORT(asBC_PSF, (short)tmp.type.stackOffset);
+					ctx->type.dataType.MakeReference(true);
 				}
 
 				// Allocate a temporary variable of the requested handle type

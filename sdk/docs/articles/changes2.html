@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2025/10/26</h2>
+<h2>Version 2.39.0 WIP - 2025/10/27</h2>
 
 <ul>
 <li>Bug fixes
@@ -40,6 +40,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>asIJITCompilerV2::CleanFunction is now called for all script functions regardless if the JIT function was compiled or not (Thanks Asu)
 <li>Fixed crash on CompilerGlobalVar when attempting to clean up after a name conflict (Thanks Wing-summer)
 <li>Included error message when declaring virtual set property with &amp; for types that do not support it (Thanks Mikk155)
+<li>Fixed crash with multiple chained opCast(?&amp;out) in the same expression (Thanks codecat)
 </ul>
 <li>Library
 <ul>
