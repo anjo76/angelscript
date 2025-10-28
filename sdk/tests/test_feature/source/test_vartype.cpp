@@ -215,9 +215,23 @@ bool Test()
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
 		bout.buffer = "";
 
-		r = engine->RegisterGlobalFunction("void fn(int, const ?&in ...)", asFUNCTION(0), asCALL_GENERIC);
-		r = engine->RegisterGlobalFunction("void fn(int, const ?&in a)", asFUNCTION(0), asCALL_GENERIC);
-		if( r < 0 )
+		int fn1 = engine->RegisterGlobalFunction("void fn(int, const ?&in ...)", asFUNCTION(func1), asCALL_GENERIC);
+		int fn2 = engine->RegisterGlobalFunction("void fn(int, const ?&in a)", asFUNCTION(func1), asCALL_GENERIC);
+		if( fn2 < 0 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "fn(1, 2);");
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		if( calledFunc == 0 || calledFunc->GetId() != fn2 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "fn(1, 2, 3);");
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		if (calledFunc == 0 || calledFunc->GetId() != fn1)
 			TEST_FAILED;
 
 		engine->ShutDownAndRelease();

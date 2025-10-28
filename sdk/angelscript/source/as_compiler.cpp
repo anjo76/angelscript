@@ -2962,6 +2962,38 @@ asUINT asCCompiler::MatchFunctions(asCArray<int> &funcs, asCArray<asCExprContext
 	if( !isConstMethod )
 		FilterConst(funcs);
 
+	// If there is more than one function left, and only some of them are variadic, then remove the variadic ones as they are less specific
+	if( funcs.GetLength() > 1 )
+	{
+		bool hasNonVariadic = false;
+		for( n = 0; n < funcs.GetLength(); n++ )
+		{
+			asCScriptFunction *desc = builder->GetFunctionDescription(funcs[n]);
+			if( !desc->IsVariadic() )
+			{
+				hasNonVariadic = true;
+				break;
+			}
+		}
+		if( hasNonVariadic )
+		{
+			for( n = 0; n < funcs.GetLength(); n++ )
+			{
+				asCScriptFunction *desc = builder->GetFunctionDescription(funcs[n]);
+				if( desc->IsVariadic() )
+				{
+					// remove it from the list
+					if( n == funcs.GetLength()-1 )
+						funcs.PopLast();
+					else
+						funcs[n] = funcs.PopLast();
+					n--;
+				}
+			}
+		}
+	}
+
+	// If there are still multiple functions left, then report an error
 	if( funcs.GetLength() != 1 && !silent )
 	{
 		// Build a readable string of the function with parameter types

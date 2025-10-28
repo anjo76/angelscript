@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2025/10/27</h2>
+<h2>Version 2.39.0 WIP - 2025/10/28</h2>
 
 <ul>
 <li>Bug fixes
@@ -37,7 +37,6 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed compiler error for Android NDK (Thanks luadebug)
 <li>Added AS_NO_EXCEPTIONS for MacOS x64 with Clang as the stack unwind is currently not working
 <li>Fixed problem with calling constructor that has only default arguments (Thanks jit-zs)
-<li>asIJITCompilerV2::CleanFunction is now called for all script functions regardless if the JIT function was compiled or not (Thanks Asu)
 <li>Fixed crash on CompilerGlobalVar when attempting to clean up after a name conflict (Thanks Wing-summer)
 <li>Included error message when declaring virtual set property with &amp; for types that do not support it (Thanks Mikk155)
 <li>Fixed crash with multiple chained opCast(?&amp;out) in the same expression (Thanks codecat)
@@ -47,6 +46,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Removed the first SUSPEND instruction in all compiled functions (Thanks OriolCS2)
 <li>Added support for Fiber Local Storage on Windows (Thanks Roel Binnendijk)
 <li>Improved error messages for function matching to indicate the reason a match failed (Thanks Paril)
+<li>asIJITCompilerV2::CleanFunction is now called for all script functions regardless if the JIT function was compiled or not (Thanks Asu)
 </ul>
 <li>Library interface
 <ul>
@@ -59,6 +59,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <ul>
 <li>Added support for number separators, e.g. 1'000'000 (Thanks Paril)
 <li>Enums can now be declared with underlying type to define the size of the enum (Thanks Paril)
+<li>Variadic functions are no longer matching if there is a more specialized matching function for a call (Thanks oktonion)
 </ul>
 <li>Project
 <ul>
