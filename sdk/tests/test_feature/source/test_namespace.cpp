@@ -13,6 +13,35 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test default namespace in opCast
+	// https://www.gamedev.net/forums/topic/719264-default-namespaces-in-opcast/5472016/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		r = engine->RegisterObjectType("io_channel", 0, asOBJ_REF);
+		r = engine->SetDefaultNamespace("visa");
+		r = engine->RegisterObjectType("connection", 0, asOBJ_REF);
+		r = engine->RegisterObjectMethod("connection", "connection @opCast(io_channel @)", asFUNCTION(0), asCALL_GENERIC);
+		if( r < 0 )
+			TEST_FAILED;
+
+		asIScriptFunction *func = engine->GetFunctionById(r);
+		if( func == 0 )
+			TEST_FAILED;
+		else if( string(func->GetDeclaration(true, true, false)) != "visa::connection@ visa::connection::opCast(io_channel@)" )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test GetGlobalFunctionByDecl and namespace
 	// https://www.gamedev.net/forums/topic/718946-getglobalfunctionbydecl-ignores-namespace/5471124/
 	{
