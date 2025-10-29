@@ -1310,12 +1310,14 @@ asCGlobalProperty *asCBuilder::GetGlobalProperty(const char *prop, asSNameSpace 
 	return 0;
 }
 
-int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *decl, asCScriptFunction *func, bool isSystemFunction, asCArray<bool> *paramAutoHandles, bool *returnAutoHandle, asSNameSpace *ns, asCScriptNode **listPattern, asCObjectType **outParentClass)
+int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *decl, asCScriptFunction *func, bool isSystemFunction, asCArray<bool> *paramAutoHandles, bool *returnAutoHandle, asSNameSpace *ns, asCScriptNode **listPattern, asCScriptNode **literalPattern, asCObjectType **outParentClass)
 {
 	asASSERT( objType || ns );
 
 	if (listPattern)
 		*listPattern = 0;
+	if (literalPattern)
+		*literalPattern = 0;
 	if (outParentClass)
 		*outParentClass = 0;
 
@@ -1327,7 +1329,7 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 	source.SetCode(TXT_SYSTEM_FUNCTION, decl, true);
 
 	asCParser parser(this);
-	int r = parser.ParseFunctionDefinition(&source, listPattern != 0);
+	int r = parser.ParseFunctionDefinition(&source, listPattern != 0, literalPattern != 0);
 	if( r < 0 )
 		return asINVALID_DECLARATION;
 
@@ -1499,7 +1501,7 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 		n = n->next;
 	}
 
-	// If the caller expects a list pattern, check for the existence, else report an error if not
+	// If the caller expects a list or literal pattern, check for the existence, else report an error if not
 	if( listPattern )
 	{
 		if( n == 0 || n->nodeType != snListPattern )
@@ -1507,6 +1509,16 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 		else
 		{
 			*listPattern = n;
+			n->DisconnectParent();
+		}
+	}
+	else if( literalPattern )
+	{
+		if( n == 0 || n->nodeType != snLiteralPattern )
+			return asINVALID_DECLARATION;
+		else
+		{
+			*literalPattern = n;
 			n->DisconnectParent();
 		}
 	}
