@@ -3563,8 +3563,17 @@ static const void *const dispatch_table[256] = {
 		NEXT_INSTRUCTION();
 
 	INSTRUCTION(asBC_fTOu):
-		// We must cast to int first, because on some compilers the cast of a negative float value to uint result in 0
-		*(l_fp - asBC_SWORDARG0(l_bc)) = asUINT(int(*(float*)(l_fp - asBC_SWORDARG0(l_bc))));
+		{
+			float f = *(float*)(l_fp - asBC_SWORDARG0(l_bc));
+			if (f < 0)
+			{
+				// For consistency across compilers and target systems we must cast to int first, 
+				// because on some compilers the cast of a negative float value to uint result in 0
+				*(l_fp - asBC_SWORDARG0(l_bc)) = asUINT(int(f));
+			}
+			else
+				*(l_fp - asBC_SWORDARG0(l_bc)) = asUINT(f);
+		}
 		l_bc++;
 		NEXT_INSTRUCTION();
 
@@ -3598,8 +3607,17 @@ static const void *const dispatch_table[256] = {
 		NEXT_INSTRUCTION();
 
 	INSTRUCTION(asBC_dTOu):
-		// We must cast to int first, because on some compilers the cast of a negative float value to uint result in 0
-		*(l_fp - asBC_SWORDARG0(l_bc)) = asUINT(int(*(double*)(l_fp - asBC_SWORDARG1(l_bc))));
+		{
+			double d = *(double*)(l_fp - asBC_SWORDARG1(l_bc));
+			if (d < 0)
+			{
+				// For consistency across compilers and target systems we must cast to int first, 
+				// because on some compilers the cast of a negative float value to uint result in 0
+				*(l_fp - asBC_SWORDARG0(l_bc)) = asUINT(int(d));
+			}
+			else
+				*(l_fp - asBC_SWORDARG0(l_bc)) = asUINT(d);
+		}
 		l_bc += 2;
 		NEXT_INSTRUCTION();
 
@@ -4029,12 +4047,32 @@ static const void *const dispatch_table[256] = {
 		NEXT_INSTRUCTION();
 
 	INSTRUCTION(asBC_fTOu64):
-		*(asQWORD*)(l_fp - asBC_SWORDARG0(l_bc)) = asQWORD(asINT64(*(float*)(l_fp - asBC_SWORDARG1(l_bc))));
+		{
+			float f = *(float*)(l_fp - asBC_SWORDARG1(l_bc));
+			if (f < 0)
+			{
+				// For consistency across compilers and target systems we must cast to int first, 
+				// because on some compilers the cast of a negative float value to uint result in 0
+				*(asQWORD*)(l_fp - asBC_SWORDARG0(l_bc)) = asQWORD(asINT64(f));
+			}
+			else
+				*(asQWORD*)(l_fp - asBC_SWORDARG0(l_bc)) = asQWORD(f);
+		}
 		l_bc += 2;
 		NEXT_INSTRUCTION();
 
 	INSTRUCTION(asBC_dTOu64):
-		*(asQWORD*)(l_fp - asBC_SWORDARG0(l_bc)) = asQWORD(asINT64(*(double*)(l_fp - asBC_SWORDARG0(l_bc))));
+		{
+			double d = *(double*)(l_fp - asBC_SWORDARG0(l_bc));
+			if (d < 0)
+			{
+				// For consistency across compilers and target systems we must cast to int first, 
+				// because on some compilers the cast of a negative float value to uint result in 0
+				*(asQWORD*)(l_fp - asBC_SWORDARG0(l_bc)) = asQWORD(asINT64(d));
+			}
+			else
+				*(asQWORD*)(l_fp - asBC_SWORDARG0(l_bc)) = asQWORD(d);
+		}
 		l_bc++;
 		NEXT_INSTRUCTION();
 

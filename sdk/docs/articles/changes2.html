@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2025/10/28</h2>
+<h2>Version 2.39.0 WIP - 2025/10/31</h2>
 
 <ul>
 <li>Bug fixes
@@ -40,6 +40,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed crash on CompilerGlobalVar when attempting to clean up after a name conflict (Thanks Wing-summer)
 <li>Included error message when declaring virtual set property with &amp; for types that do not support it (Thanks Mikk155)
 <li>Fixed crash with multiple chained opCast(?&amp;out) in the same expression (Thanks codecat)
+<li>Fixed dTOu (and variants) in the VM to correctly convert large positive values that use the highest bit in target unsigned integer (Thanks Aaron Baker)
 </ul>
 <li>Library
 <ul>
