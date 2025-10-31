@@ -190,7 +190,9 @@ protected:
 struct asSEnumValue
 {
 	asCString name;
-	asINT64   value = 0;
+	asINT64   value;
+
+	asSEnumValue() : value() {}
 };
 
 class asCEnumType : public asCTypeInfo
