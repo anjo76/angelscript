@@ -45,6 +45,9 @@
 #include "as_array.h"
 #include "as_datatype.h"
 #include "as_atomic.h"
+#ifdef AS_CAN_USE_CPP11
+#include <utility> // std::move
+#endif
 
 BEGIN_AS_NAMESPACE
 
@@ -88,6 +91,29 @@ struct asSListPatternDataTypeNode : public asSListPatternNode
 	asSListPatternDataTypeNode(const asCDataType &dt) : asSListPatternNode(asLPT_TYPE), dataType(dt) {}
 	asSListPatternNode *Duplicate() { return asNEW(asSListPatternDataTypeNode)(dataType); }
 	asCDataType dataType;
+};
+
+enum asELiteralPatternParamType
+{
+	asLPPT_UINT64, // f(uint64)
+	asLPPT_DOUBLE, // f(double)
+	asLPPT_STRING, // f(const string&in)
+	asLPPT_USER    // f(int&in, uint)
+};
+
+struct asSLiteralPatternNode
+{
+	asSLiteralPatternNode(asCString name, asELiteralPatternParamType t, bool isPrefix) 
+		: 
+#ifdef AS_CAN_USE_CPP11
+		patternName(std::move(name))
+#else
+		patternName(name)
+#endif
+		, paramType(t), prefix(isPrefix) {}
+	asCString patternName;
+	asELiteralPatternParamType paramType;
+	bool prefix; // otherwise the pattern is a suffix
 };
 
 enum asEObjVarInfoOption
@@ -276,6 +302,9 @@ public:
 
 	int       RegisterListPattern(const char *decl, asCScriptNode *listPattern);
 	int       ParseListPattern(asSListPatternNode *&target, const char *decl, asCScriptNode *listPattern);
+
+	int       RegisterLiteralPattern(const char *decl, asCScriptNode *literalPattern, asCString* outLiteral = 0, bool *outIsPrefix = 0);
+	int       ParseLiteralPattern();
 
 	bool      DoesReturnOnStack() const;
 
