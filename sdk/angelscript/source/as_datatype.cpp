@@ -225,7 +225,10 @@ asCString asCDataType::Format(asSNameSpace *currNs, bool includeNamespace) const
 	}
 	else if(typeInfo)
 	{
-		str += typeInfo->name;
+		if (typeInfo->name == "$func")
+			str += "<function>"; // use a more friendly name for funcdefs and lambdas
+		else
+			str += typeInfo->name;
 		asCObjectType *ot = CastToObjectType(typeInfo);
 		if( ot && ot->templateSubTypes.GetLength() > 0 )
 		{

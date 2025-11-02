@@ -2263,7 +2263,10 @@ int asCCompiler::PrepareArgument(asCDataType *paramType, asCExprContext *ctx, as
 			if( !ctx->type.dataType.IsEqualExceptRef(dt) )
 			{
 				asCString str;
-				str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, ctx->type.dataType.Format(outFunc->nameSpace).AddressOf(), dt.Format(outFunc->nameSpace).AddressOf());
+				if (ctx->IsLambda())
+					str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, BuildLambdaSignature(ctx->exprNode).AddressOf(), dt.Format(outFunc->nameSpace).AddressOf());
+				else
+					str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, ctx->type.dataType.Format(outFunc->nameSpace).AddressOf(), dt.Format(outFunc->nameSpace).AddressOf());
 				Error(str, node);
 
 				ctx->type.Set(dt);
@@ -3020,6 +3023,10 @@ asUINT asCCompiler::MatchFunctions(asCArray<int> &funcs, asCArray<asCExprContext
 			else if (args[n]->IsAnonymousInitList())
 			{
 				str += "{...}";
+			}
+			else if (args[n]->IsLambda())
+			{
+				str += BuildLambdaSignature(args[n]->exprNode);
 			}
 			else
 				str += args[n]->type.dataType.Format(outFunc->nameSpace);
@@ -6791,7 +6798,10 @@ void asCCompiler::PrepareForAssignment(asCDataType *lvalue, asCExprContext *rctx
 		if( !lvalue->IsEqualExceptRefAndConst(rctx->type.dataType) )
 		{
 			asCString str;
-			str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, rctx->type.dataType.Format(outFunc->nameSpace).AddressOf(), lvalue->Format(outFunc->nameSpace).AddressOf());
+			if (rctx->IsLambda())
+				str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, BuildLambdaSignature(rctx->exprNode).AddressOf(), lvalue->Format(outFunc->nameSpace).AddressOf());
+			else
+				str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, rctx->type.dataType.Format(outFunc->nameSpace).AddressOf(), lvalue->Format(outFunc->nameSpace).AddressOf());
 			Error(str, node);
 
 			rctx->type.SetDummy();
@@ -6827,7 +6837,10 @@ void asCCompiler::PrepareForAssignment(asCDataType *lvalue, asCExprContext *rctx
 		if( !lvalue->IsEqualExceptRefAndConst(rctx->type.dataType) )
 		{
 			asCString str;
-			str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, rctx->type.dataType.Format(outFunc->nameSpace).AddressOf(), lvalue->Format(outFunc->nameSpace).AddressOf());
+			if (rctx->IsLambda())
+				str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, BuildLambdaSignature(rctx->exprNode).AddressOf(), lvalue->Format(outFunc->nameSpace).AddressOf());
+			else
+				str.Format(TXT_CANT_IMPLICITLY_CONVERT_s_TO_s, rctx->type.dataType.Format(outFunc->nameSpace).AddressOf(), lvalue->Format(outFunc->nameSpace).AddressOf());
 			Error(str, node);
 		}
 		else
@@ -7737,6 +7750,53 @@ asUINT asCCompiler::ImplicitConvPrimitiveToPrimitive(asCExprContext *ctx, const 
 	// Primitive types on the stack, can be const or non-const
 	ctx->type.dataType.MakeReadOnly(to.IsReadOnly());
 	return cost;
+}
+
+asCString asCCompiler::BuildLambdaSignature(asCScriptNode* node)
+{
+	asUINT count = 0;
+	asCScriptNode* argNode = node->firstChild;
+
+	asCArray<asCDataType> lambdaParamTypes;
+	asCArray<asETypeModifiers> lambdaInOutFlags;
+	while (argNode->nodeType != snStatementBlock)
+	{
+		// There will be one node for each parameter. There will be 0, 1, or 2 children in the node with datatype and/or name
+		if (argNode->nodeType == snUndefined)
+		{
+			asCScriptNode* typeNode = argNode->firstChild;
+
+			// Check if the specified parameter types match the funcdef
+			if (typeNode->nodeType == snDataType)
+			{
+				asCDataType dt = builder->CreateDataTypeFromNode(typeNode, script, outFunc->nameSpace, false, outFunc->objectType, true, 0, 0, &m_namespaceVisibility);
+				asETypeModifiers inOutFlag;
+				dt = builder->ModifyDataTypeFromNode(dt, typeNode->next, script, &inOutFlag, 0);
+
+				lambdaParamTypes.PushLast(dt);
+				lambdaInOutFlags.PushLast(inOutFlag);
+			}
+			else
+			{
+				lambdaParamTypes.PushLast(asCDataType::CreateAuto(false));
+				lambdaInOutFlags.PushLast(asTM_NONE);
+			}
+
+			count++;
+		}
+		argNode = argNode->next;
+	}
+
+	// build the lambda function declaration for the error message
+	asCString decl = "<auto> lambda(";
+	for (asUINT n = 0; n < lambdaParamTypes.GetLength(); n++)
+	{
+		if (n > 0) decl += ", ";
+		decl += lambdaParamTypes[n].Format(outFunc->nameSpace);
+	}
+	decl += ")";
+	
+	return decl;
 }
 
 asUINT asCCompiler::ImplicitConvLambdaToFunc(asCExprContext *ctx, const asCDataType &to, asCScriptNode * /*node*/, EImplicitConv /*convType*/, bool generateCode)

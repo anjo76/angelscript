@@ -86,6 +86,61 @@ bool Test()
 	asIScriptContext *ctx;
 	CBufferedOutStream bout;
 
+	// Test anon function taking a parameter with the same name as a type
+	// Reported by Aaron Baker
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test", R"(
+			class person
+			{
+
+			}
+			funcdef void callback_type(string);
+
+			// This works correctly:
+			/*
+			void callback_no_error()
+			{
+				callback_type@ callback;
+				@callback=function(p)
+				{
+//					alert("Name", "My name is "+p);
+				};
+
+				callback("Henry");
+			}
+			*/
+			// But this compile errors:
+			void callback_error()
+			{
+				callback_type@ callback;
+				@callback=function(person)
+				{
+//					alert("Name", "My name is "+person);
+				};
+
+				callback("Henry");
+			} )");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "test (22, 4) : Info    : Compiling void callback_error()\n"
+						   "test (26, 5) : Error   : Can't implicitly convert from '<auto> lambda(person)' to 'callback_type@'.\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test declaring a function to take funcdef by value must give error
 	// Reported by Sam Tupy
 	{
@@ -335,11 +390,11 @@ void test()
 
 		if (bout.buffer != 
 			"test (7, 1) : Info    : Compiling void func()\n"
-			"test (9, 3) : Error   : No matching signatures to 'GUI::OnMouseButton($func@const)'\n" // TODO: Show the signature of the lambda function in the error message
+			"test (9, 3) : Error   : No matching signatures to 'GUI::OnMouseButton(<auto> lambda(GUI::CallbackContext@, UI::MouseEvent&))'\n"
 			"test (9, 3) : Info    : Candidates are:\n"
 			"test (9, 3) : Info    : void GUI::OnMouseButton(GUI::boolMouseEventCallback@)\n"
 			"test (9, 3) : Info    : Rejected due to type mismatch at positional parameter 1\n"
-			"test (10, 3) : Error   : No matching signatures to 'GUI::OnMouseButton($func@const)'\n" // TODO: Show the signature of the lambda function in the error message
+			"test (10, 3) : Error   : No matching signatures to 'GUI::OnMouseButton(<auto> lambda(GUI::CallbackContext@, UI::MouseEvent))'\n"
 			"test (10, 3) : Info    : Candidates are:\n"
 			"test (10, 3) : Info    : void GUI::OnMouseButton(GUI::boolMouseEventCallback@)\n"
 			"test (10, 3) : Info    : Rejected due to type mismatch at positional parameter 1\n")
@@ -1595,7 +1650,7 @@ void test()
 			TEST_FAILED;
 		if (bout.buffer != "glob (1, 1) : Error   : Identifier 'NotDeclared' is not a data type in global namespace\n"
 						   "glob (1, 14) : Info    : Compiling int nd\n"
-						   "glob (1, 31) : Error   : Can't implicitly convert from '$func@const' to 'int&'.\n")
+						   "glob (1, 31) : Error   : Can't implicitly convert from '<auto> lambda(<auto>)' to 'int&'.\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1643,10 +1698,9 @@ void test()
 		r = mod->Build();
 		if( r >= 0 )
 			TEST_FAILED;
-		// TODO: The error messages should be more more explicit
 		if( bout.buffer != "name (2, 1) : Info    : Compiling void func()\n"
-						   "name (3, 23) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
-						   "name (4, 26) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
+						   "name (3, 23) : Error   : Can't implicitly convert from '<auto> lambda()' to 'CB1@&'.\n"
+						   "name (4, 26) : Error   : Can't implicitly convert from '<auto> lambda(<auto>, <auto>)' to 'CB1@&'.\n"
 						   "name (5, 15) : Error   : No matching signatures to '$func::opCall()'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
@@ -1670,7 +1724,7 @@ void test()
 		if (r >= 0)
 			TEST_FAILED;
 		if (bout.buffer != "name (5, 1) : Info    : Compiling void main()\n"
-						   "name (6, 3) : Error   : Multiple matching signatures to 'func($func@const)'\n"
+						   "name (6, 3) : Error   : Multiple matching signatures to 'func(<auto> lambda(<auto>))'\n"
 						   "name (6, 3) : Info    : void func(A@)\n"
 						   "name (6, 3) : Info    : void func(B@)\n")
 		{
