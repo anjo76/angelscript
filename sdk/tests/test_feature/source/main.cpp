@@ -160,6 +160,7 @@ namespace Test_Native_DefaultFunc         { bool Test(); }
 namespace TestFuncOverload                { bool Test(); }
 namespace TestConstructor                 { bool Test(); }
 
+namespace Test_Addon_Autowrapper   { bool Test(); }
 namespace Test_Addon_ScriptArray   { bool Test(); }
 namespace Test_Addon_ScriptHandle  { bool Test(); }
 namespace Test_Addon_Serializer    { bool Test(); }
@@ -233,6 +234,7 @@ int allTests()
 
 	InstallMemoryManager();
 
+	if( Test_Addon_Autowrapper::Test()   ) goto failed; else PRINTF("-- Test_Addon_Autowrapper passed\n");
 	if( Test_Addon_ScriptFile::Test()    ) goto failed; else PRINTF("-- Test_Addon_ScriptFile passed\n");
 	if( Test_Addon_ContextMgr::Test()    ) goto failed; else PRINTF("-- Test_Addon_ContextMgr passed\n");
 	if( Test_Addon_ScriptGrid::Test()    ) goto failed; else PRINTF("-- Test_Addon_ScriptGrid passed\n");
@@ -252,7 +254,7 @@ int allTests()
 	if( Test_Addon_ScriptSocket::Test()  ) goto failed; else PRINTF("-- Test_Addon_ScriptSocket passed\n");
 #endif
 
-	if (TestLiteral::Test()                     ) goto failed; else PRINTF("-- TestLiteral passed\n");
+	if( TestLiteral::Test()                     ) goto failed; else PRINTF("-- TestLiteral passed\n");
 	if( TestForEach::Test()                     ) goto failed; else PRINTF("-- TestForEach passed\n");
 	if( TestContext::Test()                     ) goto failed; else PRINTF("-- TestContext passed\n");
 	if( TestComposition::Test()                 ) goto failed; else PRINTF("-- TestComposition passed\n");

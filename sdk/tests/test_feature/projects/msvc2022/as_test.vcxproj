@@ -557,6 +557,7 @@
     <ClCompile Include="..\..\source\test2modules.cpp" />
     <ClCompile Include="..\..\source\teststdstring.cpp" />
     <ClCompile Include="..\..\source\test_2func.cpp" />
+    <ClCompile Include="..\..\source\test_addon_autowrapper.cpp" />
     <ClCompile Include="..\..\source\test_addon_contextmgr.cpp" />
     <ClCompile Include="..\..\source\test_addon_datetime.cpp" />
     <ClCompile Include="..\..\source\test_addon_debugger.cpp" />
