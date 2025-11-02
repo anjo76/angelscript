@@ -50,7 +50,7 @@ jobs:
     - name: build angelscript & test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
-        cmake . -DCMAKE_CXX_FLAGS='-DAS_USE_NAMESPACE'
+        cmake . -DCMAKE_CXX_FLAGS='-DAS_USE_NAMESPACE' -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
         cmake --build .
     - name: run test_feature
       run: |
