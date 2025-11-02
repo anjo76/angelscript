@@ -10,6 +10,7 @@ add_executable(
         ../../source/scriptstring_utils.cpp
         ../../source/test2modules.cpp
         ../../source/test_2func.cpp
+        ../../source/test_addon_autowrapper.cpp
         ../../source/test_addon_contextmgr.cpp
         ../../source/test_addon_datetime.cpp
         ../../source/test_addon_debugger.cpp

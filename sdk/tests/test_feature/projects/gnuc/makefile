@@ -15,6 +15,7 @@ SRCNAMES = \
   bstr.cpp \
   main.cpp \
   test_2func.cpp \
+  test_addon_autowrapper.cpp \
   test_addon_contextmgr.cpp \
   test_addon_datetime.cpp \
   test_addon_scriptarray.cpp \
