@@ -109,6 +109,52 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptEngine *engine;
 
+	// Test get with const string&
+	// https://www.gamedev.net/forums/topic/684375-angelscript-problem-returning-a-const-reference-from-a-class-property/
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		RegisterStdString(engine);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE); assert(mod != NULL);
+		mod->AddScriptSection("test",
+			"class A \n"
+			"{ \n"
+			"	private string m_Name; \n"
+			"	const string& Name \n"
+			"	{ \n"
+			"		get \n"
+			"		{ \n"
+			"			return this.m_Name; \n"
+			"		} \n"
+			"	} \n"
+			"	A() \n"
+			"	{ \n"
+			"		m_Name = 'a'; \n"
+			"	} \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine,
+			"A@ a = A(); \n"
+			"assert( a.Name == 'a' ); \n", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test getset with string& (not allowed without unsafe references, but allowed with unsafe references)
 	// https://github.com/anjo76/angelscript/issues/23
 	{

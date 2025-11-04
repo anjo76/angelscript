@@ -312,9 +312,11 @@ bool Test()
 		engine->SetDefaultNamespace("data");
 		engine->RegisterObjectType("RecipeStep", 0, asOBJ_REF | asOBJ_NOCOUNT);
 		r = engine->RegisterObjectMethod("RecipeStep", "Slice<item::Stack> output()", asFUNCTION(0), asCALL_GENERIC);
-		if (r < 0) TEST_FAILED;
+		if (r < 0 || string(engine->GetFunctionById(r)->GetDeclaration(true, true)) != "Slice<item::Stack> data::RecipeStep::output()") TEST_FAILED;
 		r = engine->RegisterObjectMethod("RecipeStep", "Slice<item::Stack> input()", asFUNCTION(0), asCALL_GENERIC);
-		if (r < 0) TEST_FAILED;
+		if (r < 0 || string(engine->GetFunctionById(r)->GetDeclaration(true, true)) != "Slice<item::Stack> data::RecipeStep::input()") TEST_FAILED;
+		r = engine->RegisterObjectMethod("RecipeStep", "Slice<int> other()", asFUNCTION(0), asCALL_GENERIC);
+		if (r < 0 || string(engine->GetFunctionById(r)->GetDeclaration(true, true)) != "Slice<int> data::RecipeStep::other()") TEST_FAILED;
 
 		engine->ShutDownAndRelease();
 
