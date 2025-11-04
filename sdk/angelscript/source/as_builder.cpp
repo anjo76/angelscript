@@ -6496,8 +6496,9 @@ asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCod
 						}
 						else
 						{
-							if (ti->flags & asOBJ_TEMPLATE)
+							if (ti->flags & asOBJ_TEMPLATE || ti->GetSubTypeCount() )
 							{
+								// For template types, find the template instance. For already instantiated template types, match the subtypes
 								ti = GetTemplateInstanceFromNode(n, file, CastToObjectType(ti), implicitNamespace, currentType, &n);
 								if (ti == 0)
 								{

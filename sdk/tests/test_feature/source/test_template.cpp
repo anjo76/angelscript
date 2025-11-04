@@ -287,6 +287,44 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test template specialization
+	// https://www.gamedev.net/forums/topic/712952-strange-behavior-when-registering-method-with-template-specialization-types/5450698/
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		// Register template
+		engine->RegisterObjectType("Slice<class T>", sizeof(void*), asOBJ_VALUE | asOBJ_TEMPLATE);
+		engine->RegisterObjectBehaviour("Slice<T>", asBEHAVE_CONSTRUCT, "void _(int& in)", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterObjectBehaviour("Slice<T>", asBEHAVE_DESTRUCT, "void _()", asFUNCTION(0), asCALL_GENERIC);
+
+		// Register item type
+		engine->SetDefaultNamespace("item");
+		engine->RegisterObjectType("Stack", sizeof(void*), asOBJ_VALUE | asOBJ_POD);
+
+		// Register specialization
+		engine->SetDefaultNamespace("");
+		r = engine->RegisterObjectType("Slice<item::Stack>", sizeof(void*), asOBJ_VALUE);
+		if (r < 0) TEST_FAILED;
+
+		// Register object methods that return the specialization
+		engine->SetDefaultNamespace("data");
+		engine->RegisterObjectType("RecipeStep", 0, asOBJ_REF | asOBJ_NOCOUNT);
+		r = engine->RegisterObjectMethod("RecipeStep", "Slice<item::Stack> output()", asFUNCTION(0), asCALL_GENERIC);
+		if (r < 0) TEST_FAILED;
+		r = engine->RegisterObjectMethod("RecipeStep", "Slice<item::Stack> input()", asFUNCTION(0), asCALL_GENERIC);
+		if (r < 0) TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test saving bytecode with template functions
 	// https://www.gamedev.net/forums/topic/718083-template-functions-pre-compiled-byte-code/
 	// https://github.com/anjo76/angelscript/pull/13
