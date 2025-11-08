@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2025/11/04</h2>
+<h2>Version 2.39.0 WIP - 2025/11/08</h2>
 
 <ul>
 <li>Bug fixes
@@ -42,6 +42,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed crash with multiple chained opCast(?&amp;out) in the same expression (Thanks codecat)
 <li>Fixed dTOu (and variants) in the VM to correctly convert large positive values that use the highest bit in target unsigned integer (Thanks Aaron Baker)
 <li>Fixed registration of multiple methods referring to template specialized types (Thanks Jackozzo)
+<li>Call to default constructor where constructor has default arguments wouldn't free temporary variables (Thanks Patrick Jeeves)
 </ul>
 <li>Library
 <ul>

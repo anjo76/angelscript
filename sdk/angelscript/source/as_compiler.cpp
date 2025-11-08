@@ -1287,12 +1287,7 @@ int asCCompiler::CallDefaultConstructor(const asCDataType &type, int offset, boo
 					}
 				}
 				else
-				{
 					asASSERT( false );
-				}
-
-				ProcessDeferredParams(&ctx);
-				bc->AddCode(&ctx.bc);
 			}
 			else
 			{
@@ -1307,32 +1302,12 @@ int asCCompiler::CallDefaultConstructor(const asCDataType &type, int offset, boo
 					bc->InstrSHORT_DW(asBC_ADDSi, (short)offset, engine->GetTypeIdFromDataType(asCDataType::CreateType(outFunc->objectType, false)));
 				}
 
-				if( (type.GetTypeInfo()->flags & asOBJ_TEMPLATE) )
-				{
-					asCScriptFunction *descr = engine->scriptFunctions[func];
-					asASSERT( descr->funcType == asFUNC_SCRIPT );
-
-					// Find the id of the real constructor and not the generated stub
-					asUINT id = 0;
-					asDWORD *funcBc = descr->scriptData->byteCode.AddressOf();
-					while( funcBc )
-					{
-						if( (*(asBYTE*)funcBc) == asBC_CALLSYS )
-						{
-							id = asBC_INTARG(funcBc);
-							break;
-						}
-						funcBc += asBCTypeSize[asBCInfo[*(asBYTE*)funcBc].type];
-					}
-
-					asASSERT( id );
-
-					bc->InstrPTR(asBC_OBJTYPE, type.GetTypeInfo());
-					bc->Alloc(asBC_ALLOC, type.GetTypeInfo(), id, AS_PTR_SIZE + AS_PTR_SIZE);
-				}
-				else
-					bc->Alloc(asBC_ALLOC, type.GetTypeInfo(), func, AS_PTR_SIZE);
+				PerformFunctionCall(func, &ctx, true, &args, CastToObjectType(type.GetTypeInfo()));
+				bc->AddCode(&ctx.bc);
 			}
+
+			ProcessDeferredParams(&ctx);
+			bc->AddCode(&ctx.bc);
 
 			// Cleanup
 			for( asUINT n = 0; n < args.GetLength(); n++ )
@@ -17656,132 +17631,137 @@ void asCCompiler::PerformFunctionCall(int funcId, asCExprContext *ctx, bool isCo
 {
 	asCScriptFunction *descr = builder->GetFunctionDescription(funcId);
 
-	// A shared object may not call non-shared functions
-	if( outFunc->IsShared() && !descr->IsShared() )
+	// A constructor for POD value type doesn't require a function, as it will only allocate the memory in this case
+	int argSize = 0;
+	if (descr)
 	{
-		asCString msg;
-		msg.Format(TXT_SHARED_CANNOT_CALL_NON_SHARED_FUNC_s, descr->GetDeclarationStr().AddressOf());
-		Error(msg, ctx->exprNode);
-	}
-
-	// Check if the function is private or protected
-	if (descr->IsPrivate())
-	{
-		asCObjectType *type = descr->objectType;
-		if (type == 0 && descr->traits.GetTrait(asTRAIT_CONSTRUCTOR))
-			type = CastToObjectType(descr->returnType.GetTypeInfo());
-
-		asASSERT(type);
-
-		if( (type != outFunc->GetObjectType()) )
+		// A shared object may not call non-shared functions
+		if (outFunc->IsShared() && !descr->IsShared())
 		{
 			asCString msg;
-			msg.Format(TXT_PRIVATE_METHOD_CALL_s, descr->GetDeclarationStr().AddressOf());
+			msg.Format(TXT_SHARED_CANNOT_CALL_NON_SHARED_FUNC_s, descr->GetDeclarationStr().AddressOf());
 			Error(msg, ctx->exprNode);
 		}
-	}
-	else if (descr->IsProtected())
-	{
-		asCObjectType *type = descr->objectType;
-		if (type == 0 && descr->traits.GetTrait(asTRAIT_CONSTRUCTOR))
-			type = CastToObjectType(descr->returnType.GetTypeInfo());
 
-		asASSERT(type);
-
-		if (!(type == outFunc->objectType || (outFunc->objectType && outFunc->objectType->DerivesFrom(type))))
+		// Check if the function is private or protected
+		if (descr->IsPrivate())
 		{
-			asCString msg;
-			msg.Format(TXT_PROTECTED_METHOD_CALL_s, descr->GetDeclarationStr().AddressOf());
-			Error(msg, ctx->exprNode);
+			asCObjectType* type = descr->objectType;
+			if (type == 0 && descr->traits.GetTrait(asTRAIT_CONSTRUCTOR))
+				type = CastToObjectType(descr->returnType.GetTypeInfo());
+
+			asASSERT(type);
+
+			if ((type != outFunc->GetObjectType()))
+			{
+				asCString msg;
+				msg.Format(TXT_PRIVATE_METHOD_CALL_s, descr->GetDeclarationStr().AddressOf());
+				Error(msg, ctx->exprNode);
+			}
+		}
+		else if (descr->IsProtected())
+		{
+			asCObjectType* type = descr->objectType;
+			if (type == 0 && descr->traits.GetTrait(asTRAIT_CONSTRUCTOR))
+				type = CastToObjectType(descr->returnType.GetTypeInfo());
+
+			asASSERT(type);
+
+			if (!(type == outFunc->objectType || (outFunc->objectType && outFunc->objectType->DerivesFrom(type))))
+			{
+				asCString msg;
+				msg.Format(TXT_PROTECTED_METHOD_CALL_s, descr->GetDeclarationStr().AddressOf());
+				Error(msg, ctx->exprNode);
+			}
+		}
+
+		argSize = descr->GetSpaceNeededForArguments();
+		if (descr->IsVariadic())
+		{
+			// Compute the additional space used for the variadic args
+			asCDataType variadicType = descr->parameterTypes[descr->parameterTypes.GetLength() - 1];
+			int sizeOfVariadicArg = variadicType.GetSizeOnStackDWords();
+
+			// GetSpaceNeededForArguments already added one variadic arg for the ..., but there might not actually be any
+			argSize -= sizeOfVariadicArg;
+
+			// Add 1 for the arg count
+			argSize++;
+
+			// Add the actual space used for the variadic args
+			argSize += sizeOfVariadicArg * (args->GetLength() - descr->parameterTypes.GetLength() + 1);
+		}
+
+		// If we're calling a class method we must make sure the object is guaranteed to stay
+		// alive throughout the call by holding on to a reference in a local variable. This must
+		// be done for any methods that return references, and any calls on script objects.
+		// Application registered objects are assumed to know to keep themselves alive even
+		// if the method doesn't return a reference.
+		if (!ctx->type.isRefSafe &&
+			descr->objectType &&
+			(ctx->type.dataType.IsObjectHandle() || ctx->type.dataType.SupportHandles()) &&
+			(descr->returnType.IsReference() || (ctx->type.dataType.GetTypeInfo()->GetFlags() & asOBJ_SCRIPT_OBJECT)) &&
+			!(ctx->type.isVariable || ctx->type.isTemporary) &&
+			!(ctx->type.dataType.GetTypeInfo()->GetFlags() & asOBJ_SCOPED) &&
+			!(ctx->type.dataType.GetTypeInfo()->GetFlags() & asOBJ_ASHANDLE))
+		{
+			// TODO: runtime optimize: Avoid this for global variables, by storing a reference to the global variable once in a
+			//                         local variable and then refer to the same for each call. An alias for the global variable
+			//                         should be stored in the variable scope so that the compiler can find it. For loops and
+			//                         scopes that will always be executed, i.e. non-if scopes the alias should be stored in the
+			//                         higher scope to increase the probability of re-use.
+
+			int tempRef = AllocateVariable(ctx->type.dataType, true);
+			ctx->bc.InstrSHORT(asBC_PSF, (short)tempRef);
+			ctx->bc.InstrPTR(asBC_REFCPY, ctx->type.dataType.GetTypeInfo());
+
+			// Add the release of this reference as a deferred expression
+			asSDeferredParam deferred;
+			deferred.origExpr = 0;
+			deferred.argInOutFlags = asTM_INREF;
+			deferred.argNode = 0;
+			deferred.argType.SetVariable(ctx->type.dataType, tempRef, true);
+			ctx->deferredParams.PushLast(deferred);
+
+			// Forget the current type
+			ctx->type.SetDummy();
+		}
+
+		// Check if there is a need to add a hidden pointer for when the function returns an object by value
+		if (descr->DoesReturnOnStack() && !useVariable)
+		{
+			useVariable = true;
+			varOffset = AllocateVariable(descr->returnType, true);
+
+			// Push the pointer to the pre-allocated space for the return value
+			ctx->bc.InstrSHORT(asBC_PSF, short(varOffset));
+
+			if (descr->objectType)
+			{
+				// The object pointer is already on the stack, but should be the top
+				// one, so we need to swap the pointers in order to get the correct
+				ctx->bc.Instr(asBC_SwapPtr);
+			}
 		}
 	}
 
-	int argSize = descr->GetSpaceNeededForArguments();
-	if (descr->IsVariadic())
-	{
-		// Compute the additional space used for the variadic args
-		asCDataType variadicType = descr->parameterTypes[descr->parameterTypes.GetLength() - 1];
-		int sizeOfVariadicArg = variadicType.GetSizeOnStackDWords();
-
-		// GetSpaceNeededForArguments already added one variadic arg for the ..., but there might not actually be any
-		argSize -= sizeOfVariadicArg;
-
-		// Add 1 for the arg count
-		argSize++;
-
-		// Add the actual space used for the variadic args
-		argSize += sizeOfVariadicArg * (args->GetLength() - descr->parameterTypes.GetLength() + 1);
-	}
-
-	// If we're calling a class method we must make sure the object is guaranteed to stay
-	// alive throughout the call by holding on to a reference in a local variable. This must
-	// be done for any methods that return references, and any calls on script objects.
-	// Application registered objects are assumed to know to keep themselves alive even
-	// if the method doesn't return a reference.
-	if( !ctx->type.isRefSafe &&
-		descr->objectType &&
-		(ctx->type.dataType.IsObjectHandle() || ctx->type.dataType.SupportHandles()) &&
-		(descr->returnType.IsReference() || (ctx->type.dataType.GetTypeInfo()->GetFlags() & asOBJ_SCRIPT_OBJECT)) &&
-		!(ctx->type.isVariable || ctx->type.isTemporary) &&
-		!(ctx->type.dataType.GetTypeInfo()->GetFlags() & asOBJ_SCOPED) &&
-		!(ctx->type.dataType.GetTypeInfo()->GetFlags() & asOBJ_ASHANDLE) )
-	{
-		// TODO: runtime optimize: Avoid this for global variables, by storing a reference to the global variable once in a
-		//                         local variable and then refer to the same for each call. An alias for the global variable
-		//                         should be stored in the variable scope so that the compiler can find it. For loops and
-		//                         scopes that will always be executed, i.e. non-if scopes the alias should be stored in the
-		//                         higher scope to increase the probability of re-use.
-
-		int tempRef = AllocateVariable(ctx->type.dataType, true);
-		ctx->bc.InstrSHORT(asBC_PSF, (short)tempRef);
-		ctx->bc.InstrPTR(asBC_REFCPY, ctx->type.dataType.GetTypeInfo());
-
-		// Add the release of this reference as a deferred expression
-		asSDeferredParam deferred;
-		deferred.origExpr = 0;
-		deferred.argInOutFlags = asTM_INREF;
-		deferred.argNode = 0;
-		deferred.argType.SetVariable(ctx->type.dataType, tempRef, true);
-		ctx->deferredParams.PushLast(deferred);
-
-		// Forget the current type
-		ctx->type.SetDummy();
-	}
-
-	// Check if there is a need to add a hidden pointer for when the function returns an object by value
-	if( descr->DoesReturnOnStack() && !useVariable )
-	{
-		useVariable = true;
-		varOffset = AllocateVariable(descr->returnType, true);
-
-		// Push the pointer to the pre-allocated space for the return value
-		ctx->bc.InstrSHORT(asBC_PSF, short(varOffset));
-
-		if( descr->objectType )
-		{
-			// The object pointer is already on the stack, but should be the top
-			// one, so we need to swap the pointers in order to get the correct
-			ctx->bc.Instr(asBC_SwapPtr);
-		}
-	}
-
-	if( isConstructor )
+	if (isConstructor)
 	{
 		// Sometimes the value types are allocated on the heap,
 		// which is when this way of constructing them is used.
 
 		asASSERT(useVariable == false);
 
-		if( (objType->flags & asOBJ_TEMPLATE) )
+		if ((objType->flags & asOBJ_TEMPLATE))
 		{
-			asASSERT( descr->funcType == asFUNC_SCRIPT );
+			asASSERT(descr && descr->funcType == asFUNC_SCRIPT);
 
 			// Find the id of the real constructor and not the generated stub
 			asUINT id = 0;
-			asDWORD *bc = descr->scriptData->byteCode.AddressOf();
-			while( bc )
+			asDWORD* bc = descr->scriptData->byteCode.AddressOf();
+			while (bc)
 			{
-				if( (*(asBYTE*)bc) == asBC_CALLSYS )
+				if ((*(asBYTE*)bc) == asBC_CALLSYS)
 				{
 					id = asBC_INTARG(bc);
 					break;
@@ -17789,34 +17769,34 @@ void asCCompiler::PerformFunctionCall(int funcId, asCExprContext *ctx, bool isCo
 				bc += asBCTypeSize[asBCInfo[*(asBYTE*)bc].type];
 			}
 
-			asASSERT( id );
+			asASSERT(id);
 
 			ctx->bc.InstrPTR(asBC_OBJTYPE, objType);
 			ctx->bc.Alloc(asBC_ALLOC, objType, id, argSize + AS_PTR_SIZE + AS_PTR_SIZE);
 		}
 		else
-			ctx->bc.Alloc(asBC_ALLOC, objType, descr->id, argSize+AS_PTR_SIZE);
+			ctx->bc.Alloc(asBC_ALLOC, objType, descr ? descr->id : 0, argSize + AS_PTR_SIZE);
 
 		// The instruction has already moved the returned object to the variable
 		ctx->type.Set(asCDataType::CreatePrimitive(ttVoid, false));
 		ctx->type.isLValue = false;
 
 		// Clean up arguments
-		if( args )
+		if (args)
 			AfterFunctionCall(funcId, *args, ctx, false);
 
 		ProcessDeferredParams(ctx);
 
 		return;
 	}
-	else
+	else if (descr)
 	{
-		if( descr->objectType )
+		if (descr->objectType)
 			argSize += AS_PTR_SIZE;
 
 		// If the function returns an object by value the address of the location
 		// where the value should be stored is passed as an argument too
-		if( descr->DoesReturnOnStack() )
+		if (descr->DoesReturnOnStack())
 			argSize += AS_PTR_SIZE;
 
 		// TODO: runtime optimize: If it is known that a class method cannot be overridden the call
@@ -17826,198 +17806,203 @@ void asCCompiler::PerformFunctionCall(int funcId, asCExprContext *ctx, bool isCo
 		//                         at compile time the true type of the object. The first should be
 		//                         quite easy to determine, but the latter will be quite complex and possibly
 		//                         not worth it.
-		if( descr->funcType == asFUNC_IMPORTED )
-			ctx->bc.Call(asBC_CALLBND , descr->id, argSize);
+		if (descr->funcType == asFUNC_IMPORTED)
+			ctx->bc.Call(asBC_CALLBND, descr->id, argSize);
 		// TODO: Maybe we need two different byte codes
-		else if( descr->funcType == asFUNC_INTERFACE || descr->funcType == asFUNC_VIRTUAL )
+		else if (descr->funcType == asFUNC_INTERFACE || descr->funcType == asFUNC_VIRTUAL)
 			ctx->bc.Call(asBC_CALLINTF, descr->id, argSize);
-		else if( descr->funcType == asFUNC_SCRIPT )
-			ctx->bc.Call(asBC_CALL    , descr->id, argSize);
-		else if( descr->funcType == asFUNC_SYSTEM )
+		else if (descr->funcType == asFUNC_SCRIPT)
+			ctx->bc.Call(asBC_CALL, descr->id, argSize);
+		else if (descr->funcType == asFUNC_SYSTEM)
 		{
 			// Check if we can use the faster asBC_Thiscall1 instruction, i.e. one of
 			//    type &obj::func(int)
 			//    type &obj::func(uint)
-			if( descr->GetObjectType() && descr->returnType.IsReference() &&
+			if (descr->GetObjectType() && descr->returnType.IsReference() &&
 				descr->parameterTypes.GetLength() == 1 &&
 				(descr->parameterTypes[0].IsIntegerType() || descr->parameterTypes[0].IsUnsignedType()) &&
 				descr->parameterTypes[0].GetSizeInMemoryBytes() == 4 &&
-				!descr->parameterTypes[0].IsReference() )
+				!descr->parameterTypes[0].IsReference())
 				ctx->bc.Call(asBC_Thiscall1, descr->id, argSize);
 			else
-				ctx->bc.Call(asBC_CALLSYS , descr->id, argSize);
+				ctx->bc.Call(asBC_CALLSYS, descr->id, argSize);
 		}
-		else if( descr->funcType == asFUNC_FUNCDEF )
+		else if (descr->funcType == asFUNC_FUNCDEF)
 			ctx->bc.CallPtr(asBC_CallPtr, funcPtrVar, argSize);
 	}
-
-	if( (descr->returnType.IsObject() || descr->returnType.IsFuncdef()) && !descr->returnType.IsReference() )
-	{
-		int returnOffset = 0;
-
-		asCExprValue tmpExpr = ctx->type;
-
-		if( descr->DoesReturnOnStack() )
-		{
-			asASSERT( useVariable );
-
-			// The variable was allocated before the function was called
-			returnOffset = varOffset;
-			ctx->type.SetVariable(descr->returnType, returnOffset, true);
-
-			// The variable was initialized by the function, so we need to mark it as initialized here
-			ctx->bc.ObjInfo(varOffset, asOBJ_INIT);
-		}
-		else
-		{
-			if( useVariable )
-			{
-				// Use the given variable
-				returnOffset = varOffset;
-				ctx->type.SetVariable(descr->returnType, returnOffset, false);
-			}
-			else
-			{
-				// Allocate a temporary variable for the returned object
-				// The returned object will actually be allocated on the heap, so
-				// we must force the allocation of the variable to do the same
-				returnOffset = AllocateVariable(descr->returnType, true, !descr->returnType.IsObjectHandle());
-				ctx->type.SetVariable(descr->returnType, returnOffset, true);
-			}
-
-			// Move the pointer from the object register to the temporary variable
-			ctx->bc.InstrSHORT(asBC_STOREOBJ, (short)returnOffset);
-		}
-
-		// If the context holds a variable that needs cleanup and the application uses unsafe
-		// references then store it as a deferred parameter so it will be cleaned up afterwards.
-		if (tmpExpr.isTemporary && engine->ep.allowUnsafeReferences)
-		{
-			asSDeferredParam defer;
-			defer.argNode = 0;
-			defer.argType = tmpExpr;
-			defer.argInOutFlags = asTM_INOUTREF;
-			defer.origExpr = 0;
-			ctx->deferredParams.PushLast(defer);
-		}
-		else
-			ReleaseTemporaryVariable(tmpExpr, &ctx->bc);
-
-		ctx->type.dataType.MakeReference(IsVariableOnHeap(returnOffset));
-		ctx->type.isLValue = false; // It is a reference, but not an lvalue
-
-		// Clean up arguments
-		// If application is using unsafe references, then don't clean up arguments yet because
-		// the returned object might be referencing one of the arguments.
-		if( args )
-			AfterFunctionCall(funcId, *args, ctx, engine->ep.allowUnsafeReferences ? true : false);
-
-		if (!engine->ep.allowUnsafeReferences)
-			ProcessDeferredParams(ctx);
-
-		ctx->bc.InstrSHORT(asBC_PSF, (short)returnOffset);
-	}
-	else if( descr->returnType.IsReference() )
-	{
-		asASSERT(useVariable == false);
-
-		// We cannot clean up the arguments yet, because the
-		// reference might be pointing to one of them.
-		if( args )
-			AfterFunctionCall(funcId, *args, ctx, true);
-
-		// Do not process the output parameters yet, because it
-		// might invalidate the returned reference
-
-		// If the context holds a variable that needs cleanup
-		// store it as a deferred parameter so it will be cleaned up
-		// afterwards.
-		if( ctx->type.isTemporary )
-		{
-			asSDeferredParam defer;
-			defer.argNode = 0;
-			defer.argType = ctx->type;
-			defer.argInOutFlags = asTM_INOUTREF;
-			defer.origExpr = 0;
-			ctx->deferredParams.PushLast(defer);
-		}
-
-		ctx->type.Set(descr->returnType);
-		if( !descr->returnType.IsPrimitive() )
-		{
-			ctx->bc.Instr(asBC_PshRPtr);
-			if( descr->returnType.IsObject() &&
-				!descr->returnType.IsObjectHandle() )
-			{
-				// We are getting the pointer to the object
-				// not a pointer to a object variable
-				ctx->type.dataType.MakeReference(false);
-			}
-		}
-
-		// A returned reference can be used as lvalue
-		ctx->type.isLValue = true;
-	}
 	else
-	{
-		asCExprValue tmpExpr = ctx->type;
+		asASSERT(false);
 
-		if( descr->returnType.GetSizeInMemoryBytes() )
+	if (descr)
+	{
+		if ((descr->returnType.IsObject() || descr->returnType.IsFuncdef()) && !descr->returnType.IsReference())
 		{
-			int offset;
-			if (useVariable)
-				offset = varOffset;
+			int returnOffset = 0;
+
+			asCExprValue tmpExpr = ctx->type;
+
+			if (descr->DoesReturnOnStack())
+			{
+				asASSERT(useVariable);
+
+				// The variable was allocated before the function was called
+				returnOffset = varOffset;
+				ctx->type.SetVariable(descr->returnType, returnOffset, true);
+
+				// The variable was initialized by the function, so we need to mark it as initialized here
+				ctx->bc.ObjInfo(varOffset, asOBJ_INIT);
+			}
 			else
 			{
-				// Allocate a temporary variable to hold the value, but make sure
-				// the temporary variable isn't used in any of the deferred arguments
-				int l = int(reservedVariables.GetLength());
-				for (asUINT n = 0; args && n < args->GetLength(); n++)
+				if (useVariable)
 				{
-					asCExprContext *expr = (*args)[n]->origExpr;
-					if (expr)
-						expr->bc.GetVarsUsed(reservedVariables);
+					// Use the given variable
+					returnOffset = varOffset;
+					ctx->type.SetVariable(descr->returnType, returnOffset, false);
 				}
-				offset = AllocateVariable(descr->returnType, true);
-				reservedVariables.SetLength(l);
+				else
+				{
+					// Allocate a temporary variable for the returned object
+					// The returned object will actually be allocated on the heap, so
+					// we must force the allocation of the variable to do the same
+					returnOffset = AllocateVariable(descr->returnType, true, !descr->returnType.IsObjectHandle());
+					ctx->type.SetVariable(descr->returnType, returnOffset, true);
+				}
+
+				// Move the pointer from the object register to the temporary variable
+				ctx->bc.InstrSHORT(asBC_STOREOBJ, (short)returnOffset);
 			}
 
-			ctx->type.SetVariable(descr->returnType, offset, true);
+			// If the context holds a variable that needs cleanup and the application uses unsafe
+			// references then store it as a deferred parameter so it will be cleaned up afterwards.
+			if (tmpExpr.isTemporary && engine->ep.allowUnsafeReferences)
+			{
+				asSDeferredParam defer;
+				defer.argNode = 0;
+				defer.argType = tmpExpr;
+				defer.argInOutFlags = asTM_INOUTREF;
+				defer.origExpr = 0;
+				ctx->deferredParams.PushLast(defer);
+			}
+			else
+				ReleaseTemporaryVariable(tmpExpr, &ctx->bc);
 
-			// Move the value from the return register to the variable
-			if( descr->returnType.GetSizeOnStackDWords() == 1 )
-				ctx->bc.InstrSHORT(asBC_CpyRtoV4, (short)offset);
-			else if( descr->returnType.GetSizeOnStackDWords() == 2 )
-				ctx->bc.InstrSHORT(asBC_CpyRtoV8, (short)offset);
+			ctx->type.dataType.MakeReference(IsVariableOnHeap(returnOffset));
+			ctx->type.isLValue = false; // It is a reference, but not an lvalue
+
+			// Clean up arguments
+			// If application is using unsafe references, then don't clean up arguments yet because
+			// the returned object might be referencing one of the arguments.
+			if (args)
+				AfterFunctionCall(funcId, *args, ctx, engine->ep.allowUnsafeReferences ? true : false);
+
+			if (!engine->ep.allowUnsafeReferences)
+				ProcessDeferredParams(ctx);
+
+			ctx->bc.InstrSHORT(asBC_PSF, (short)returnOffset);
 		}
-		else
-			ctx->type.Set(descr->returnType);
-
-		// If the context holds a variable that needs cleanup and the application uses unsafe
-		// references then store it as a deferred parameter so it will be cleaned up afterwards.
-		if (tmpExpr.isTemporary && engine->ep.allowUnsafeReferences )
+		else if (descr->returnType.IsReference())
 		{
-			asSDeferredParam defer;
-			defer.argNode = 0;
-			defer.argType = tmpExpr;
-			defer.argInOutFlags = asTM_INOUTREF;
-			defer.origExpr = 0;
-			ctx->deferredParams.PushLast(defer);
+			asASSERT(useVariable == false);
+
+			// We cannot clean up the arguments yet, because the
+			// reference might be pointing to one of them.
+			if (args)
+				AfterFunctionCall(funcId, *args, ctx, true);
+
+			// Do not process the output parameters yet, because it
+			// might invalidate the returned reference
+
+			// If the context holds a variable that needs cleanup
+			// store it as a deferred parameter so it will be cleaned up
+			// afterwards.
+			if (ctx->type.isTemporary)
+			{
+				asSDeferredParam defer;
+				defer.argNode = 0;
+				defer.argType = ctx->type;
+				defer.argInOutFlags = asTM_INOUTREF;
+				defer.origExpr = 0;
+				ctx->deferredParams.PushLast(defer);
+			}
+
+			ctx->type.Set(descr->returnType);
+			if (!descr->returnType.IsPrimitive())
+			{
+				ctx->bc.Instr(asBC_PshRPtr);
+				if (descr->returnType.IsObject() &&
+					!descr->returnType.IsObjectHandle())
+				{
+					// We are getting the pointer to the object
+					// not a pointer to a object variable
+					ctx->type.dataType.MakeReference(false);
+				}
+			}
+
+			// A returned reference can be used as lvalue
+			ctx->type.isLValue = true;
 		}
 		else
-			ReleaseTemporaryVariable(tmpExpr, &ctx->bc);
+		{
+			asCExprValue tmpExpr = ctx->type;
 
-		ctx->type.isLValue = false;
+			if (descr->returnType.GetSizeInMemoryBytes())
+			{
+				int offset;
+				if (useVariable)
+					offset = varOffset;
+				else
+				{
+					// Allocate a temporary variable to hold the value, but make sure
+					// the temporary variable isn't used in any of the deferred arguments
+					int l = int(reservedVariables.GetLength());
+					for (asUINT n = 0; args && n < args->GetLength(); n++)
+					{
+						asCExprContext* expr = (*args)[n]->origExpr;
+						if (expr)
+							expr->bc.GetVarsUsed(reservedVariables);
+					}
+					offset = AllocateVariable(descr->returnType, true);
+					reservedVariables.SetLength(l);
+				}
 
-		// Clean up arguments
-		// If application is using unsafe references, then don't clean up arguments yet because
-		// the returned value might represent a reference to one of the arguments, e.g. an integer might in truth be a pointer
-		if( args )
-			AfterFunctionCall(funcId, *args, ctx, engine->ep.allowUnsafeReferences ? true : false);
+				ctx->type.SetVariable(descr->returnType, offset, true);
 
-		// If unsafe references is enabled we only process the &out parameters after the function call, 
-		// so that other deferred parameters (destruction of temporaries) can be left to the end of the statement
-		ProcessDeferredParams(ctx, engine->ep.allowUnsafeReferences);
+				// Move the value from the return register to the variable
+				if (descr->returnType.GetSizeOnStackDWords() == 1)
+					ctx->bc.InstrSHORT(asBC_CpyRtoV4, (short)offset);
+				else if (descr->returnType.GetSizeOnStackDWords() == 2)
+					ctx->bc.InstrSHORT(asBC_CpyRtoV8, (short)offset);
+			}
+			else
+				ctx->type.Set(descr->returnType);
+
+			// If the context holds a variable that needs cleanup and the application uses unsafe
+			// references then store it as a deferred parameter so it will be cleaned up afterwards.
+			if (tmpExpr.isTemporary && engine->ep.allowUnsafeReferences)
+			{
+				asSDeferredParam defer;
+				defer.argNode = 0;
+				defer.argType = tmpExpr;
+				defer.argInOutFlags = asTM_INOUTREF;
+				defer.origExpr = 0;
+				ctx->deferredParams.PushLast(defer);
+			}
+			else
+				ReleaseTemporaryVariable(tmpExpr, &ctx->bc);
+
+			ctx->type.isLValue = false;
+
+			// Clean up arguments
+			// If application is using unsafe references, then don't clean up arguments yet because
+			// the returned value might represent a reference to one of the arguments, e.g. an integer might in truth be a pointer
+			if (args)
+				AfterFunctionCall(funcId, *args, ctx, engine->ep.allowUnsafeReferences ? true : false);
+
+			// If unsafe references is enabled we only process the &out parameters after the function call, 
+			// so that other deferred parameters (destruction of temporaries) can be left to the end of the statement
+			ProcessDeferredParams(ctx, engine->ep.allowUnsafeReferences);
+		}
 	}
 }
 

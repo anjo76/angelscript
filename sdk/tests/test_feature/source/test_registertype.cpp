@@ -462,6 +462,40 @@ bool Test()
 	COutStream out;
  	asIScriptEngine *engine;
 
+	// Test class with constructor where all args have default values
+	// Reported by Patrick Jeeves
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		r = engine->RegisterObjectType("Material", sizeof(uint32_t),
+			asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_VALUE | asOBJ_POD | asOBJ_APP_CLASS | asOBJ_APP_CLASS_ALLINTS); assert(r >= 0);
+		r = engine->RegisterObjectBehaviour("Material",
+			asBEHAVE_CONSTRUCT, "void f(int detail = 0, int border = 0, int light = 0)", asFUNCTION(0), asCALL_GENERIC); assert(r >= 0);
+
+		r = engine->RegisterObjectType("Style", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+		r = engine->RegisterObjectBehaviour("Style", asBEHAVE_FACTORY, "Style@ f(Material = Material())", asFUNCTION(0), asCALL_GENERIC); assert(r >= 0);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void main() { \n"
+			"  Style s(); \n" // call to the Style factory with default arg, which in turn calls Material constructor with default arg
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+
 	// Test placement constructor in global variable for registered type
 	// Reported by Patrick Jeeves
 	{
