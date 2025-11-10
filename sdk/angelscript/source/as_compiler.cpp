@@ -4882,7 +4882,7 @@ void asCCompiler::CompileIfStatement(asCScriptNode *inode, bool *hasReturn, asCB
 			ImplicitConversion(&expr, asCDataType::CreatePrimitive(ttBool, false), inode, asIC_EXPLICIT_VAL_CAST);
 		// else, allow value types to be converted to bool using 'bool opImplConv()'
 		else if (expr.type.dataType.GetTypeInfo() && (expr.type.dataType.GetTypeInfo()->GetFlags() & asOBJ_VALUE))
-				ImplicitConversion(&expr, asCDataType::CreatePrimitive(ttBool, false), inode, asIC_IMPLICIT_CONV);
+			ImplicitConversion(&expr, asCDataType::CreatePrimitive(ttBool, false), inode, asIC_IMPLICIT_CONV);
 
 		if (!expr.type.dataType.IsEqualExceptRefAndConst(asCDataType::CreatePrimitive(ttBool, true)))
 		{
@@ -7340,7 +7340,13 @@ asUINT asCCompiler::ImplicitConvPrimitiveToPrimitive(asCExprContext *ctx, const 
 
 	// Determine the cost of this conversion
 	asUINT cost = asCC_NO_CONV;
-	if( (to.IsIntegerType() || to.IsUnsignedType()) && (ctx->type.dataType.IsFloatType() || ctx->type.dataType.IsDoubleType()) )
+	if (to.IsBooleanType() || ctx->type.dataType.IsBooleanType())
+	{
+		// conversions to/from bool are not allowed. A ternary (expr?1:0) should be used instead
+		// If at any time support for this is added, then remember that booleans can be different size on different platforms
+		return asCC_NO_CONV;
+	}
+	else if( (to.IsIntegerType() || to.IsUnsignedType()) && (ctx->type.dataType.IsFloatType() || ctx->type.dataType.IsDoubleType()) )
 		cost = asCC_FLOAT_TO_INT_CONV;
 	else if ((to.IsFloatType() || to.IsDoubleType()) && (ctx->type.dataType.IsIntegerType() || ctx->type.dataType.IsUnsignedType()))
 		cost = asCC_INT_TO_FLOAT_CONV;

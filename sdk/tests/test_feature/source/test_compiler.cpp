@@ -525,7 +525,7 @@ bool Test()
 			TEST_FAILED;
 
 		if (bout.buffer != "test (6, 1) : Info    : Compiling void Main()\n"
-			               "test (7, 22) : Error   : No conversion from 'bool' to 'int' available.\n"
+			               "test (7, 22) : Error   : No conversion from 'const bool' to 'int' available.\n"
 			               "test (7, 8) : Error   : Expression is not an l-value\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
@@ -4044,8 +4044,8 @@ bool Test()
 			TEST_FAILED;
 
 		if (bout.buffer != "TestCompiler (1, 1) : Info    : Compiling void CompilerAssert()\n"
-			"TestCompiler (3, 13) : Error   : Can't implicitly convert from 'uint' to 'bool'.\n"
-			"TestCompiler (4, 13) : Error   : Can't implicitly convert from 'int' to 'bool'.\n"
+			"TestCompiler (3, 13) : Error   : Can't implicitly convert from 'const uint' to 'bool'.\n"
+			"TestCompiler (4, 13) : Error   : Can't implicitly convert from 'const int' to 'bool'.\n"
 			"TestCompiler (5, 5) : Error   : No conversion from 'bool' to math type available.\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());

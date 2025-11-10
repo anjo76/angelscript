@@ -102,6 +102,33 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test explicit conv from bool to uint
+	// https://github.com/anjo76/angelscript/issues/27
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		r = engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		r = ExecuteString(engine, "bool f = false; assert( uint(f) == 0 );");
+		if (r >= 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "assert( uint(true) == 1 );");
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "ExecuteString (1, 25) : Error   : No conversion from 'bool' to 'const uint' available.\n"
+						   "ExecuteString (1, 9) : Error   : No conversion from 'const bool' to 'const uint' available.\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test use of explicit opConv to bool in conditions, since it is known it will always be a boolean
 	// https://www.gamedev.net/forums/topic/717477-feature-request-automatically-use-bool-opconv-in-a-if-statement/
 	// Code submitted by HenryAWE
@@ -259,7 +286,7 @@ bool Test()
 			TEST_FAILED;
 
 		if( bout.buffer != "ExecuteString (3, 7) : Error   : Expression must be of boolean type, instead found 'int'\n"
-						   "ExecuteString (7, 7) : Error   : No conversion from 'const int' to 'const bool' available.\n"
+						   "ExecuteString (7, 7) : Error   : No conversion from 'int' to 'const bool' available.\n"
 						   "ExecuteString (11, 9) : Error   : No conversion from 'int' to 'bool' available.\n"
 						   "ExecuteString (15, 7) : Error   : Illegal operation on this datatype\n" )
 		{
@@ -288,7 +315,7 @@ bool Test()
 		engine->RegisterObjectBehaviour("MyBool", asBEHAVE_CONSTRUCT, "void f(bool)", asFUNCTION(ConstructFromBool), asCALL_CDECL_OBJLAST);
 		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
 
-		r = ExecuteString(engine, 
+		r = ExecuteString(engine,
 			"MyBool b = false; \n"
 			"assert( !b ); \n"
 			"b = true; \n"
