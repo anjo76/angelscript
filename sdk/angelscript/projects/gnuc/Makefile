@@ -182,7 +182,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.s
 	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 $(LIBDIR)/$(SHLIB): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -shared -Wl,-soname,$(SHLIB) -o "$(LIBDIR)"/$(SHLIB) $(OBJ)
+	$(CXX) $(CXXFLAGS) -shared -Wl,-soname,$(SHLIB) -o "$(LIBDIR)"/$(SHLIB) $(OBJ) $(LDFLAGS)
 
 $(LIBDIR)/$(LIBNAME).so: $(LIBDIR)/$(SHLIB)
 	@( cd "$(LIBDIR)" && ln -s $(SHLIB) $(LIBNAME).so )

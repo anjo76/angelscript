@@ -6,7 +6,7 @@
 #include <iostream>  // cout
 #include <assert.h>  // assert()
 #include <string.h>  // strstr()
-#ifdef __linux__
+#ifdef defined(__linux__) || defined(__unix__)
 	#include <sys/time.h>
 	#include <stdio.h>
 	#include <termios.h>
@@ -27,7 +27,7 @@
 
 using namespace std;
 
-#ifdef __linux__
+#ifdef defined(__linux__) || defined(__unix__)
 
 #define UINT unsigned int 
 typedef unsigned int DWORD;
