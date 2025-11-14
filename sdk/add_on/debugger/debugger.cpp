@@ -264,18 +264,66 @@ bool CDebugger::CheckBreakPoint(asIScriptContext *ctx)
 			else if( m_breakPoints[n].needsAdjusting &&
 					 m_breakPoints[n].name == file )
 			{
-				int line = func->FindNextLineWithCode(m_breakPoints[n].lineNbr);
-				if( line >= 0 )
+				// Use GetLineEntryCount and GetLineEntry to build a list of valid lines
+				// This will also work for functions compiled from multiple sections, e.g. inlined functions, injected code, etc.
+				int lowestLine = m_breakPoints[n].lineNbr + 1;
+				int nextLine = m_breakPoints[n].lineNbr - 1;
+
+				// The function may be declared earlier than the breakpoint even though the first line of code is only after it
+				int row;
+				const char* sectionName;
+				func->GetDeclaredAt(&sectionName, &row, 0);
+
+				// Only consider lines in the same section as the breakpoint
+				string entryFile = sectionName ? sectionName : "";
+				if (m_useSectionFileNameOnly)
+				{
+					// Consider just filename, not the full path
+					size_t r = entryFile.find_last_of("\\/");
+					if (r != string::npos)
+						entryFile = entryFile.substr(r + 1);
+				}
+				if (entryFile == file)
+				{
+					if (row < lowestLine)
+						lowestLine = row;
+				}
+
+				int lineEntries = func->GetLineEntryCount();
+				for( int i = 0; i < lineEntries; i++ )
+				{
+					func->GetLineEntry(i, &row, 0, &sectionName, 0);
+
+					// Only consider lines in the same section as the breakpoint
+					entryFile = sectionName ? sectionName : "";
+					if( m_useSectionFileNameOnly )
+					{
+						// Consider just filename, not the full path
+						size_t r = entryFile.find_last_of("\\/");
+						if( r != string::npos )
+							entryFile = entryFile.substr(r+1);
+					}
+					if (entryFile == file)
+					{
+						if( row < lowestLine )
+							lowestLine = row;
+						if (row >= m_breakPoints[n].lineNbr && (row < nextLine || nextLine < m_breakPoints[n].lineNbr))
+							nextLine = row;
+					}
+				}
+
+				// Only adjust the breakpoint if the currenct function has code before/on and after/on the breakpoint line in the same section
+				if( lowestLine <= m_breakPoints[n].lineNbr && nextLine >= m_breakPoints[n].lineNbr )
 				{
 					m_breakPoints[n].needsAdjusting = false;
-					if( line != m_breakPoints[n].lineNbr )
+					if( nextLine != m_breakPoints[n].lineNbr )
 					{
 						stringstream s;
-						s << "Moving break point " << n << " in file '" << file << "' to next line with code at line " << line << endl;
+						s << "Moving break point " << n << " in file '" << file << "' to next line with code at line " << nextLine << endl;
 						Output(s.str());
 
 						// Move the breakpoint to the next line
-						m_breakPoints[n].lineNbr = line;
+						m_breakPoints[n].lineNbr = nextLine;
 					}
 				}
 			}

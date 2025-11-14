@@ -840,7 +840,11 @@ asCString asCScriptFunction::GetDeclarationStr(bool includeObjectName, bool incl
 	return str;
 }
 
+#ifdef AS_DEPRECATED
+// deprecated since 2025-11-14, 2.39.0
 // interface
+// Deprecate this function in favor of GetLineEntryCount and GetLineEntry
+// This function will not work when I add support for functions compiled from multiple sections, e.g. inlined functions, injected code, etc.
 int asCScriptFunction::FindNextLineWithCode(int line) const
 {
 	if( scriptData == 0 ) return -1;
@@ -887,6 +891,7 @@ int asCScriptFunction::FindNextLineWithCode(int line) const
 
 	return -1;
 }
+#endif
 
 // interface
 int asCScriptFunction::GetLineEntryCount() const

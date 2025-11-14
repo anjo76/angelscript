@@ -258,14 +258,13 @@ bool Test()
 		debug.SetEngine(engine);
 		debug.RegisterToStringCallback(engine->GetTypeInfoByName("string"), StringToString);
 
-		// Set a break point on a line in the second file
-		debug.InterpretCommand("b b/file:1", ctx);
-
 		ctx = engine->CreateContext();
 		ctx->SetLineCallback(asMETHOD(CMyDebugger, LineCallback), &debug, asCALL_THISCALL);
 
 		ctx->Prepare(mod->GetFunctionByName("main"));
 
+		// Set a break point on a line in the second file
+		debug.InterpretCommand("b b/file:1", ctx);
 
 		r = ctx->Execute();
 		if (r != asEXECUTION_SUSPENDED)

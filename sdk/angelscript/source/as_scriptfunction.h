@@ -207,7 +207,10 @@ public:
 	asUINT               GetVarCount() const;
 	int                  GetVar(asUINT index, const char **name, int *typeId = 0) const;
 	const char *         GetVarDecl(asUINT index, bool includeNamespace = false) const;
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-11-14, 2.39.0
 	int                  FindNextLineWithCode(int line) const;
+#endif
 	int                  GetDeclaredAt(const char** scriptSection, int* row, int* col) const;
 	int                  GetLineEntryCount() const;
 	int                  GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const;

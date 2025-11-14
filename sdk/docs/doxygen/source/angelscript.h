@@ -4289,10 +4289,14 @@ public:
 	//! \param[in] includeNamespace Set to true if the namespace should be included in the declaration.
 	//! \return The declaration string, or null on error
 	virtual const char      *GetVarDecl(asUINT index, bool includeNamespace = false) const = 0;
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-11-14, 2.39.0
 	//! \brief Returns the next line number with code
 	//! \param[in] line A line number
 	//! \return The number of the next line with code, or a negative value if the line is outside the function.
+	//! \deprecated Since 2.39.0. Use \ref GetLineEntry instead
 	virtual int              FindNextLineWithCode(int line) const = 0;
+#endif
 	//! \brief Returns the location in the script where the function was declared
 	//! \param[out] scriptSection The name of the script section where the function was declared
 	//! \param[out] row The row number where the function was declared
@@ -4319,7 +4323,9 @@ public:
 	//! \retval asINVALID_ARG The index is out of range
 	//! \retval asERROR There is no bytecode
 	//! 
-	//! This function can be used to find all the lines with code in a function.
+	//! This function can be used to find all the lines with code in a function. Observe that the lines may not be sequential,
+	//! or even from the same script section, if the function has been compiled from multiple pieces of code. A common example of
+	//! this is class constructors that contain the initializations of class members as well as additional logic from the constructor body.
 	//! 
 	//! The bytecode pointer can be used to inspect the compiled bytecode at the line.
 	virtual int              GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const = 0;

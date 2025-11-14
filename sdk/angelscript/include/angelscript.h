@@ -1202,7 +1202,10 @@ public:
 	virtual asUINT           GetVarCount() const = 0;
 	virtual int              GetVar(asUINT index, const char **name, int *typeId = 0) const = 0;
 	virtual const char      *GetVarDecl(asUINT index, bool includeNamespace = false) const = 0;
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-11-14, 2.39.0
 	virtual int              FindNextLineWithCode(int line) const = 0;
+#endif
 	virtual int              GetDeclaredAt(const char** scriptSection, int* row, int* col) const = 0;
 	virtual int              GetLineEntryCount() const = 0;
 	virtual int              GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const = 0;

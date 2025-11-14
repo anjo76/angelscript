@@ -920,6 +920,8 @@ test:void main(bool):29,2
 		engine->Release();
 	}
 
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-11-14, 2.39.0
 	// Test FindNextLineWithCode
 	// Reported by Scott Bean
 	{
@@ -998,6 +1000,7 @@ test:void main(bool):29,2
 
 		engine->Release();
 	}
+#endif
 
 	// Test crash in GetLineNumber
 	// http://www.gamedev.net/topic/638656-crash-in-ctx-getlinenumber/
