@@ -233,6 +233,69 @@ bool Test()
  	asIScriptEngine *engine;
 	asIScriptModule *mod;
 	asIScriptContext *ctx;
+
+	// Test setting breakpoint with full path
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(COutStream, Callback), &out, asCALL_THISCALL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		RegisterStdString(engine);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("a/file",
+			"void main() { another(); } \n");
+		mod->AddScriptSection("b/file",
+			"void another() { \n"
+			" string a = 'this is another file'; \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		CMyDebugger2 debug;
+		debug.SetUseSectionFileNameOnly(false); // Set full path usage
+		debug.SetEngine(engine);
+		debug.RegisterToStringCallback(engine->GetTypeInfoByName("string"), StringToString);
+
+		// Set a break point on a line in the second file
+		debug.InterpretCommand("b b/file:1", ctx);
+
+		ctx = engine->CreateContext();
+		ctx->SetLineCallback(asMETHOD(CMyDebugger, LineCallback), &debug, asCALL_THISCALL);
+
+		ctx->Prepare(mod->GetFunctionByName("main"));
+
+
+		r = ctx->Execute();
+		if (r != asEXECUTION_SUSPENDED)
+			TEST_FAILED;
+
+		// Now we should be in the second file
+		const char* section;
+		ctx->GetFunction()->GetDeclaredAt(&section, 0, 0);
+		if( std::string(section) != "b/file" )
+			TEST_FAILED;
+		if (ctx->GetLineNumber() != 2 )  // breakpoint was moved to the second line
+			TEST_FAILED;
+		r = ctx->Execute();
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		if (debug.output != 
+			"Setting break point in file 'b/file' at line 1\n"
+			"Moving break point 0 in file 'b/file' to next line with code at line 2\n"
+			"Reached break point 0 in file 'b/file' at line 2\n"
+			"b/file:2; void another()\n")
+		{
+			PRINTF("%s", debug.output.c_str());
+			TEST_FAILED;
+		}
+
+		ctx->Release();
+
+		engine->Release();
+	}
 	
 	// Test expanding a dictionary
 	{

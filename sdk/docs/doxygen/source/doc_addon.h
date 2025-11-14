@@ -370,6 +370,11 @@ public:
   // by callbacks that need it. This will hold a reference to the engine.
   virtual void SetEngine(asIScriptEngine *engine);
   virtual asIScriptEngine *GetEngine();
+  
+  // Sets the flag to decide if section name should be converted to just filename (true)
+  // or should not be converted and full path should be used instead (false).
+  virtual bool GetUseSectionFileNameOnly() const;
+  virtual void SetUseSectionFileNameOnly(bool useSectionFileNameOnly);
 };
 \endcode
 
