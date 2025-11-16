@@ -273,15 +273,14 @@ void asCContext::DetachEngine()
 	if( m_engine == 0 ) return;
 
 	// Clean up all calls, included nested ones
-	do
+	while (IsNested())
 	{
 		// Abort any execution
 		Abort();
-
-		// Free all resources
-		Unprepare();
+		PopState();
 	}
-	while( IsNested() );
+	Abort();
+	Unprepare();
 
 	// Free the stack blocks
 	for( asUINT n = 0; n < m_stackBlocks.GetLength(); n++ )
@@ -1807,7 +1806,7 @@ int asCContext::PopState()
 	m_regs.objectType      = (asITypeInfo*)tmp[8];
 
 	// Calculate the returnValueSize
-	if( m_initialFunction->DoesReturnOnStack() )
+	if(m_initialFunction && m_initialFunction->DoesReturnOnStack() )
 		m_returnValueSize = m_initialFunction->returnType.GetSizeInMemoryDWords();
 	else
 		m_returnValueSize = 0;
@@ -1893,7 +1892,7 @@ void asCContext::PopCallState()
 // interface
 asUINT asCContext::GetCallstackSize() const
 {
-	if( m_currentFunction == 0 ) return 0;
+	if (m_currentFunction == 0 && m_callStack.GetLength() <= CALLSTACK_FRAME_SIZE) return 0;
 
 	// The current function is accessed at stackLevel 0
 	return asUINT(1 + m_callStack.GetLength() / CALLSTACK_FRAME_SIZE);
