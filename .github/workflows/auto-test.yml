@@ -25,18 +25,19 @@ jobs:
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
         ./testgnuc
 
-  Linux_x86-64_GCC_AS_DEBUG:
+  Linux_x86-64_GCC_AS_DEBUG_CPP98:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
     - name: build angelscript
       run: |
         cd $GITHUB_WORKSPACE/sdk/angelscript/projects/gnuc
-        export "CXXFLAGS=-DAS_DEBUG -O0"
+        export "CXXFLAGS=-DAS_DEBUG -O0 -std=c++98"
         make
     - name: build test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/gnuc
+        export "CXXFLAGS=-DAS_DEBUG -O0"
         make
     - name: run test_feature
       run: |
