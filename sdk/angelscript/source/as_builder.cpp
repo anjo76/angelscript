@@ -911,7 +911,9 @@ void asCBuilder::RegisterNamespaceVisibility(asCScriptNode* node, asCScriptCode*
 
 void asCBuilder::AddVisibleNamespaces(asSNameSpace *ns, const asCArray<asSNameSpace*>& visited, asCArray<asSNameSpace*>& pending)
 {
-	asSMapNode<asSNameSpace*, asCArray<asSNameSpace*>>* cursor = 0;
+	asSMapNode<
+		asSNameSpace*, asCArray<asSNameSpace*>
+	>* cursor = 0;
 
 	if (namespaceVisibility.MoveTo(&cursor, ns))
 	{
@@ -2267,7 +2269,9 @@ int asCBuilder::RegisterUsingNamespace(asCScriptNode *node, asCScriptCode *file,
 	}
 
 	asSNameSpace* visibleNamespace = engine->AddNameSpace(name.AddressOf());
-	asSMapNode<asSNameSpace*, asCArray<asSNameSpace*>>* cursor = 0;
+	asSMapNode<
+		asSNameSpace*, asCArray<asSNameSpace*>
+	>* cursor = 0;
 
 	if (namespaceVisibility.MoveTo(&cursor, ns))
 	{

@@ -1435,7 +1435,7 @@ void asCCompiler::CompileStatementBlock(asCScriptNode *block, bool ownVariableSc
 				name += asCString(&script->code[n->tokenPos], n->tokenLength);
 			}
 
-			auto visibleNamespace = engine->FindNameSpace(name.AddressOf());
+			asSNameSpace* visibleNamespace = engine->FindNameSpace(name.AddressOf());
 
 			if (visibleNamespace == 0)
 			{
