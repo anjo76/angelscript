@@ -203,9 +203,7 @@ protected:
 
 	asCScriptEngine *engine;
 	asCModule       *module;
-	asCMap<
-		asSNameSpace*, asCArray<asSNameSpace*>
-	> namespaceVisibility;
+	asCMap< asSNameSpace*, asCArray<asSNameSpace*> >    namespaceVisibility;
 
 #ifndef AS_NO_COMPILER
 protected:

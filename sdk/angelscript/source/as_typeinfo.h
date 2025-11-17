@@ -192,7 +192,7 @@ struct asSEnumValue
 	asCString name;
 	asINT64   value;
 
-	asSEnumValue() : value() {}
+	asSEnumValue() : value(0) {}
 };
 
 class asCEnumType : public asCTypeInfo
