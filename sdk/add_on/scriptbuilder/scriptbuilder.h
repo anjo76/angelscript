@@ -35,7 +35,8 @@
 #include <map>
 #include <set>
 #include <vector>
-#include <string.h> // _strcmpi
+#include <cstring>
+#include <algorithm>
 
 BEGIN_AS_NAMESPACE
 
@@ -199,9 +200,20 @@ protected:
 
 	struct ci_less
 	{
+		static int tolower(unsigned char c)
+		{
+			return std::tolower(c);
+		}
+		static std::string str_tolower(std::string s)
+		{
+			std::transform(s.begin(), s.end(), s.begin(),
+				tolower // correct
+			);
+			return s;
+		}
 		bool operator()(const std::string &a, const std::string &b) const
 		{
-			return _stricmp(a.c_str(), b.c_str()) < 0;
+			return str_tolower(a) < str_tolower(b);
 		}
 	};
 	std::set<std::string, ci_less> includedScripts;
