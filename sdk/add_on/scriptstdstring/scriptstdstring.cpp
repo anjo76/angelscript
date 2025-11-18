@@ -7,7 +7,9 @@
 #ifndef __psp2__
 	#include <locale.h> // setlocale()
 #endif
+#ifdef AS_CAN_USE_CPP11
 #include <regex>
+#endif
 
 
 using namespace std;
@@ -406,7 +408,7 @@ static int StringRegexFind(const string& rex, asUINT start, asUINT& outLengthOfM
 	//
 	// I've tried setting the manifest to use utf8 code page but it also doesn't work with MSVC
 	// https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page
-
+#   ifdef AS_CAN_USE_CPP11
 	std::regex pattern(rex, std::regex_constants::ECMAScript | std::regex_constants::collate);
 	std::cmatch match;
 	bool result = std::regex_search(str.c_str() + start, str.c_str()+str.length(), match, pattern);
@@ -419,6 +421,9 @@ static int StringRegexFind(const string& rex, asUINT start, asUINT& outLengthOfM
 
 	outLengthOfMatch = (asUINT)match[0].length();
 	return (int)match.prefix().length();
+#   else 
+	return -1;
+#   endif
 }
 
 // This function returns the index of the first position where the one of the bytes in substring
@@ -637,6 +642,15 @@ static string formatFloat(double value, const string &options, asUINT width, asU
 	return buf;
 }
 
+template<class T>
+static std::string to_string(T value)
+{
+	std::stringstream _ss;
+	_ss << value;
+	std::string _str(_ss.str());
+	return _str;
+}
+
 // TODO: variadic: review
 static void StringFormat(asIScriptGeneric* gen)
 {
@@ -734,7 +748,7 @@ static void StringFormat(asIScriptGeneric* gen)
 		}
 	}
 
-	new(gen->GetAddressOfReturnLocation()) string(std::move(result));
+	new(gen->GetAddressOfReturnLocation()) string(result);
 }
 
 // TODO: variadic: review
@@ -786,7 +800,7 @@ static void StringScan(asIScriptGeneric* gen)
 			if (!ss) goto end_scan;
 
 			void* ref = gen->GetArgAddress(i);
-			*(string*)ref = std::move(val);
+			val.swap(*(string*)ref);
 		}
 		else // Invalid type
 		{
@@ -921,7 +935,7 @@ double parseFloat(const string &val, asUINT *byteCount)
 	setlocale(LC_NUMERIC, "C");
 #endif
 #else
-#if !defined(ANDROID) && !defined(__psp2__)
+#if !defined(ANDROID) && !defined(__psp2__) && defined(LC_NUMERIC_MASK)
 	// On Linux and other similar systems the threadsafe option is uselocale
 	// ref: https://stackoverflow.com/questions/4057319/is-setlocale-thread-safe-function
 	locale_t locale = newlocale(LC_NUMERIC_MASK, "C", NULL);
@@ -938,10 +952,10 @@ double parseFloat(const string &val, asUINT *byteCount)
 	_configthreadlocale(oldConfig);
 #endif
 #else
-#if !defined(ANDROID) && !defined(__psp2__)
-#endif
+#if !defined(ANDROID) && !defined(__psp2__) && defined(LC_NUMERIC_MASK)
 	uselocale(orig_locale);
 	freelocale(locale);
+#endif
 #endif
 
 	if( byteCount )
