@@ -922,7 +922,7 @@ double parseFloat(const string &val, asUINT *byteCount)
 	char *end;
 
 	// Set the locale to C so that we are guaranteed to parse the float value correctly
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(_MSC_VER)
 	// WinCE doesn't have setlocale. Some quick testing on my current platform
 	// still manages to parse the numbers such as "3.14" even if the decimal for the
 	// locale is ",".
@@ -946,7 +946,7 @@ double parseFloat(const string &val, asUINT *byteCount)
 	double res = strtod(val.c_str(), &end);
 
 	// Restore the original locale
-#if defined(_WIN32)
+#if defined(_WIN32) && defined(_MSC_VER)
 #if !defined(_WIN32_WCE)
 	setlocale(LC_NUMERIC, orig.c_str());
 	_configthreadlocale(oldConfig);
