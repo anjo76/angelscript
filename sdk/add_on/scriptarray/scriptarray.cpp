@@ -1457,6 +1457,45 @@ void CScriptArray::SortDesc(asUINT startAt, asUINT count)
 	Sort(startAt, count, false);
 }
 
+struct CScriptArray::customLess
+{
+	bool               asc;
+	asIScriptContext* cmpContext;
+	asIScriptFunction* cmpFunc;
+	bool operator()(void* a, void* b) const
+	{
+		if (!asc)
+		{
+			// Swap items
+			void* TEMP = a;
+			a = b;
+			b = TEMP;
+		}
+
+		int r = 0;
+
+		// Allow sort to work even if the array contains null handles
+		if (a == 0) return true;
+		if (b == 0) return false;
+
+		// Execute object opCmp
+		if (cmpFunc)
+		{
+			// TODO: Add proper error handling
+			r = cmpContext->Prepare(cmpFunc); assert(r >= 0);
+			r = cmpContext->SetObject(a); assert(r >= 0);
+			r = cmpContext->SetArgObject(0, b); assert(r >= 0);
+			r = cmpContext->Execute();
+
+			if (r == asEXECUTION_FINISHED)
+			{
+				return (int)cmpContext->GetReturnDWord() < 0;
+			}
+		}
+
+		return false;
+	}
+};
 
 // internal
 void CScriptArray::Sort(asUINT startAt, asUINT count, bool asc)
@@ -1536,44 +1575,7 @@ void CScriptArray::Sort(asUINT startAt, asUINT count, bool asc)
 			cmpContext = objType->GetEngine()->RequestContext();
 
 		// Do the sorting
-		struct {
-			bool               asc;
-			asIScriptContext  *cmpContext;
-			asIScriptFunction *cmpFunc;
-			bool operator()(void *a, void *b) const
-			{
-				if( !asc )
-				{
-					// Swap items
-					void *TEMP = a;
-					a = b;
-					b = TEMP;
-				}
-
-				int r = 0;
-
-				// Allow sort to work even if the array contains null handles
-				if( a == 0 ) return true;
-				if( b == 0 ) return false;
-
-				// Execute object opCmp
-				if( cmpFunc )
-				{
-					// TODO: Add proper error handling
-					r = cmpContext->Prepare(cmpFunc); assert(r >= 0);
-					r = cmpContext->SetObject(a); assert(r >= 0);
-					r = cmpContext->SetArgObject(0, b); assert(r >= 0);
-					r = cmpContext->Execute();
-
-					if( r == asEXECUTION_FINISHED )
-					{
-						return (int)cmpContext->GetReturnDWord() < 0;
-					}
-				}
-
-				return false;
-			}
-		} customLess = {asc, cmpContext, cache ? cache->cmpFunc : 0};
+		CScriptArray::customLess customLess = { asc, cmpContext, cache ? cache->cmpFunc : 0 };
 		std::sort((void**)GetArrayItemPointer(start), (void**)GetArrayItemPointer(end), customLess);
 
 		// Clean up
