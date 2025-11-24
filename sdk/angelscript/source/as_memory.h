@@ -84,6 +84,13 @@ bool isAligned(const void* const pointer, asUINT alignment);
 
 #else
 
+	#ifdef __GNUC__
+	// Disable the warning about casting to incompatible function type
+	// This is a bit of a hack, but it works perfectly because we're just passing
+	// a couple of primitives extra, and the called function can safely ignore them if not needed
+	#pragma GCC diagnostic ignored "-Wcast-function-type"
+	#endif
+
 	typedef void *(*asALLOCFUNCDEBUG_t)(size_t, const char *, unsigned int);
 
 	#define asNEW(x)        new((reinterpret_cast<asALLOCFUNCDEBUG_t>(userAlloc))(sizeof(x), __FILE__, __LINE__)) x
