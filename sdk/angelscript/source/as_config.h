@@ -443,11 +443,11 @@
 	#endif
 
 	#ifdef _M_X64
-		#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+2))
-		#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+4))
+		#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+2))
+		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+4))
 	#else
-		#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
-		#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+3))
+		#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
+		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+3))
 	#endif
 	#define HAVE_VIRTUAL_BASE_OFFSET
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
