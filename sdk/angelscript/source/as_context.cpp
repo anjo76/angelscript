@@ -60,7 +60,7 @@
 #if __cplusplus >= 201703L
 #define FALLTHROUGH [[fallthrough]];
 #else
-#define FALLTHROUGH
+#define FALLTHROUGH // fall through
 #endif
 
 BEGIN_AS_NAMESPACE
@@ -2215,12 +2215,12 @@ void asCContext::CallInterfaceMethod(asCScriptFunction *func)
 
 #if AS_USE_COMPUTED_GOTOS
 #define INSTRUCTION(x) case_##x
-#define NEXT_INSTRUCTION() goto *(void*) dispatch_table[*(asBYTE*)l_bc]
+#define NEXT_INSTRUCTION() goto *(const void*) dispatch_table[*(asBYTE*)l_bc]
 #define BEGIN() NEXT_INSTRUCTION();
 #else
 #define INSTRUCTION(x) case x
 #define NEXT_INSTRUCTION() break
-#define BEGIN() switch( *(asBYTE*)l_bc )
+#define BEGIN() switch( *(const asBYTE*)l_bc )
 #endif
 
 void asCContext::ExecuteNext()

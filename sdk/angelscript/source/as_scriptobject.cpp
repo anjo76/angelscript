@@ -924,7 +924,7 @@ int asCScriptObject::CopyFromAs(const asCScriptObject *other, asCObjectType *in_
 				if( prop->type.IsObject() )
 				{
 					void **dst = (void**)(((char*)this) + prop->byteOffset);
-					const void **src = (const void**)(((const char*)other) + prop->byteOffset);
+					void **src = (void**)(const_cast<char*>((const char*)other) + prop->byteOffset);
 					if( !prop->type.IsObjectHandle() )
 					{
 						if( prop->type.IsReference() || (prop->type.GetTypeInfo()->flags & asOBJ_REF) )
@@ -938,7 +938,7 @@ int asCScriptObject::CopyFromAs(const asCScriptObject *other, asCObjectType *in_
 				else if (prop->type.IsFuncdef())
 				{
 					asCScriptFunction **dst = (asCScriptFunction**)(((char*)this) + prop->byteOffset);
-					const asCScriptFunction **src = (const asCScriptFunction**)(((const char*)other) + prop->byteOffset);
+					asCScriptFunction **src = (asCScriptFunction**)(const_cast<char*>((const char*)other) + prop->byteOffset);
 					if (*dst)
 						(*dst)->Release();
 					*dst = *const_cast<asCScriptFunction**>(src);

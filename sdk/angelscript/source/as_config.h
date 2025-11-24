@@ -401,9 +401,9 @@
   #error "Configuration doesn't yet support BCC for AMD64."
  #endif
 
-	#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
 	#define HAVE_VIRTUAL_BASE_OFFSET
-	#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+2))
+	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+2))
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 	#define CDECL_RETURN_SIMPLE_IN_MEMORY
 	#define STDCALL_RETURN_SIMPLE_IN_MEMORY
@@ -554,9 +554,9 @@
 
 // Metrowerks CodeWarrior (experimental, let me know if something isn't working)
 #if defined(__MWERKS__) && !defined(EPPC) // JWC -- If Wii DO NOT use this even when using Metrowerks Compiler. Even though they are called Freescale...
-	#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
 	#define HAVE_VIRTUAL_BASE_OFFSET
-	#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+3))
+	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+3))
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 	#define THISCALL_PASS_OBJECT_POINTER_IN_ECX
 	#define asVSNPRINTF(a, b, c, d) _vsnprintf(a, b, c, d)
@@ -578,7 +578,7 @@
 
 // SN Systems ProDG
 #if defined(__SNC__) || defined(SNSYS)
-	#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*(const asDWORD*)(&x)+1))
 	#define CALLEE_POPS_HIDDEN_RETURN_POINTER
 	#define COMPLEX_OBJS_PASSED_BY_REF
 
@@ -648,7 +648,7 @@
 // MSVC2015 can now use CLang too, but it shouldn't go in here
 #if (defined(__GNUC__) && !defined(__SNC__) && !defined(_MSC_VER)) || defined(EPPC) || defined(__CYGWIN__) // JWC -- use this instead for Wii
 	#define GNU_STYLE_VIRTUAL_METHOD
-	#define MULTI_BASE_OFFSET(x) (*((asPWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asPWORD*)(&x)+1))
 	#define asVSNPRINTF(a, b, c, d) vsnprintf(a, b, c, d)
 	#define CALLEE_POPS_HIDDEN_RETURN_POINTER
 	#define COMPLEX_OBJS_PASSED_BY_REF
@@ -1346,7 +1346,7 @@
 	#endif
 
 	// I presume Sun CC uses a similar structure of method pointers as gnuc
-	#define MULTI_BASE_OFFSET(x) (*((asPWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asPWORD*)(&x)+1))
 
 	#if !defined(AS_SIZEOF_BOOL)
 		#define AS_SIZEOF_BOOL 1 // sizeof(bool) == 1
