@@ -32,7 +32,7 @@ jobs:
     - name: build angelscript
       run: |
         cd $GITHUB_WORKSPACE/sdk/angelscript/projects/gnuc
-        export "CXXFLAGS=-DAS_DEBUG -O0 -std=c++98"
+        export "CXXFLAGS=-DAS_DEBUG -O0 -std=c++98 -Wall -Wdeprecated -Wcast-qual -Wextra"
         make
     - name: build test_feature
       run: |
