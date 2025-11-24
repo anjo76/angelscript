@@ -6638,6 +6638,10 @@ int as_powi(int base, int exponent, bool& isOverflow)
 			return 0;  // overflow
 		}
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 		int result = 1;
 		switch( high_bit )
 		{
@@ -6668,6 +6672,9 @@ int as_powi(int base, int exponent, bool& isOverflow)
 			isOverflow = false;
 			return result;
 		}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	}
 }
 
@@ -6705,6 +6712,10 @@ asDWORD as_powu(asDWORD base, asDWORD exponent, bool& isOverflow)
 			return 0;  // overflow
 		}
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 		asDWORD result = 1;
 		switch( high_bit )
 		{
@@ -6735,6 +6746,9 @@ asDWORD as_powu(asDWORD base, asDWORD exponent, bool& isOverflow)
 			isOverflow = false;
 			return result;
 		}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	}
 }
 
@@ -6786,6 +6800,10 @@ asINT64 as_powi64(asINT64 base, asINT64 exponent, bool& isOverflow)
 			return 0;  // overflow
 		}
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 		asINT64 result = 1;
 		switch( high_bit )
 		{
@@ -6821,6 +6839,9 @@ asINT64 as_powi64(asINT64 base, asINT64 exponent, bool& isOverflow)
 			isOverflow = false;
 			return result;
 		}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	}
 }
 
@@ -6858,6 +6879,10 @@ asQWORD as_powu64(asQWORD base, asQWORD exponent, bool& isOverflow)
 			return 0;  // overflow
 		}
 
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 		asQWORD result = 1;
 		switch( high_bit )
 		{
@@ -6893,6 +6918,9 @@ asQWORD as_powu64(asQWORD base, asQWORD exponent, bool& isOverflow)
 			isOverflow = false;
 			return result;
 		}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	}
 }
 

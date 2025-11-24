@@ -215,6 +215,8 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	asQWORD  paramBuffer[X64_CALLSTACK_SIZE] = { 0 };
 	asBYTE	 argsType[X64_CALLSTACK_SIZE] = { 0 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 	switch ( callConv ) 
 	{
 		case ICC_CDECL_RETURNINMEM:
@@ -303,6 +305,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			break;
 		}
 	}
+#pragma GCC diagnostic pop
 
 	int argumentCount = ( int )descr->parameterTypes.GetLength();
 	for( int a = 0; a < argumentCount; ++a ) 
