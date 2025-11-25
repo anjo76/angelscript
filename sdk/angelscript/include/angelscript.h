@@ -428,7 +428,7 @@ typedef void (*asJITFunction)(asSVMRegisters* registers, asPWORD jitArg);
 #if !defined(_MSC_VER) || _MSC_VER >= 1700   // MSVC 2012
  #if !defined(__GNUC__) || defined(__clang__) || __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)  // gnuc 4.7 or clang
   #if !(defined(__GNUC__) && defined(__cplusplus) && __cplusplus < 201103L) // gnuc and clang require compiler flag -std=c++11
-   #if !defined(__SUNPRO_CC) // Oracle Solaris Studio
+   #if !defined(__SUNPRO_CC) && !defined(__BORLANDC__) // Oracle Solaris Studio or Borland Builder
     #define AS_CAN_USE_CPP11 1
    #endif
   #endif
