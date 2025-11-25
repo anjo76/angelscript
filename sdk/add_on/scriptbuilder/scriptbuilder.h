@@ -37,6 +37,7 @@
 #include <vector>
 #include <cstring>
 #include <algorithm>
+#include <cctype>
 
 BEGIN_AS_NAMESPACE
 
@@ -200,14 +201,16 @@ protected:
 
 	struct ci_less
 	{
-		static int tolower(unsigned char c)
+		static int tolower_impl(unsigned char c)
 		{
-			return std::tolower(c);
+			using namespace std;
+
+			return tolower(c);
 		}
 		static std::string str_tolower(std::string s)
 		{
 			std::transform(s.begin(), s.end(), s.begin(),
-				tolower // correct
+				tolower_impl // correct
 			);
 			return s;
 		}
