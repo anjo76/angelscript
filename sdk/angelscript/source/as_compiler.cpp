@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -4249,9 +4249,26 @@ int asCCompiler::CompileInitListElement(asSListPatternNode *&patternNode, asCScr
 				lctx.bc.Instr(asBC_PopRPtr);
 				lctx.type.dataType.MakeReference(true);
 			}
-			else if( dt.IsObjectHandle() ||
-					 dt.GetTypeInfo()->flags & asOBJ_REF )
+			else if( dt.IsObjectHandle() )
 			{
+				lctx.type.isExplicitHandle = true;
+				lctx.type.dataType.MakeReference(true);
+			}
+			else if (dt.GetTypeInfo()->flags & asOBJ_REF)
+			{
+				if ( lctx.type.dataType.GetTypeInfo() != rctx.type.dataType.GetTypeInfo() )
+				{
+					// Create a new instance of the correct type and assign the value to it
+					int offset = AllocateVariable(lctx.type.dataType, true);
+					asCExprContext ctx(engine);
+					CompileInitAsCopy(lctx.type.dataType, offset, &ctx, &rctx, valueNode, false);
+					MergeExprBytecode(&rctx, &ctx);
+
+					// Put the object on the stack
+					rctx.bc.InstrSHORT(asBC_PSF, (short)offset);
+					rctx.type.SetVariable(ctx.type.dataType, offset, true);
+				}
+
 				lctx.type.isExplicitHandle = true;
 				lctx.type.dataType.MakeReference(true);
 			}

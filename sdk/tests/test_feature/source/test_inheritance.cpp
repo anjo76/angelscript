@@ -130,6 +130,81 @@ bool Test()
 	CBufferedOutStream bout;
  	asIScriptEngine *engine = 0;
 
+	// Test inheritance in initialization lists
+	// https://www.gamedev.net/forums/topic/711197-value-array-of-parent-type-with-initializer-list-containing-child-type-constructor/
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+		RegisterScriptArray(engine, true);
+		engine->RegisterGlobalFunction("void print(const string &in)", asFUNCTION(print), asCALL_CDECL);
+		printResult = "";
+
+		mod = engine->GetModule("Test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("Test",
+			"class ReportA { \n"
+			"	void Report() const { print('A'); } \n"
+			"} \n"
+			"class ReportB : ReportA { \n"
+			"	void Report() const override { print('B'); } \n"
+			"} \n"
+
+			"void main() { \n"
+			"	array<ReportA> startWithConstructorA = { ReportA() }; \n"
+			"	startWithConstructorA[0].Report(); \n" //A
+			"	startWithConstructorA = { ReportB() }; \n" // When the array is copied from one to the other the elements are copied (hence correctly converted to A)
+			"	startWithConstructorA[0].Report(); \n" //A
+			"	startWithConstructorA.insertAt(0, ReportB()); \n" // The array will allocate an object A with default constructor, then use copy operator
+			"	startWithConstructorA[0].Report(); \n" //A
+
+			"	array<ReportA> startWithConstructorB = { ReportB() }; \n" // The array constructor doesn't copy the object, it relies on the object being correct for storage. TODO: The compiler must make sure the type is correct
+			"	startWithConstructorB[0].Report(); \n" //B. TODO: This is wrong
+			"	startWithConstructorB = { ReportB() }; \n" // The array will use the elements copy operator, since it was stored as B it will copy as B
+			"	startWithConstructorB[0].Report(); \n" //B. TODO: This s wrong
+			"	startWithConstructorB.insertAt(0, ReportB()); \n" // The array will allocate an object A with default constructor, then use copy operator
+			"	startWithConstructorB[0].Report(); \n" //A
+
+			"	ReportB variableB; \n"
+			"	array<ReportA> startWithVariableB = { variableB }; \n" // The compiler correctly copies the value to a temp ReportA
+			"	startWithVariableB[0].Report(); \n" //A
+			"	startWithVariableB = { variableB }; \n"
+			"	startWithVariableB[0].Report(); \n" //A
+			"	startWithVariableB = { ReportB() }; \n"
+			"	startWithVariableB[0].Report(); \n" //A
+			"	startWithVariableB.insertAt(0, variableB); \n"
+			"	startWithVariableB[0].Report(); \n" //A
+			"	startWithVariableB.insertAt(0, ReportB()); \n"
+			"	startWithVariableB[0].Report(); \n" //A
+			"} \n");
+
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asIScriptContext* ctx = engine->CreateContext();
+		r = ExecuteString(engine, "main(); \n", mod, ctx);
+		if (r != asEXECUTION_FINISHED)
+		{
+			if (r == asEXECUTION_EXCEPTION)
+				PRINTF("Exception: %s\n", ctx->GetExceptionString());
+			TEST_FAILED;
+		}
+		ctx->Release();
+
+		if (printResult != "AAAAAAAAAAA")
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Script class inheriting from an application class through proxy and copy object
 	// https://www.gamedev.net/forums/topic/704232-add-ref-proxy-class-causes-crash-in-asiscriptobjectoperator-due-to-early-destruction/
 	{

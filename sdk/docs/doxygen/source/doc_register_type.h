@@ -164,6 +164,13 @@ The list buffer passed to the factory function will be populated using the follo
 - All values in the buffer will be aligned to a 32bit boundary, unless the size of the value placed
   in the buffer is smaller than 32bits.
 
+The compiler will prepare the buffer with temporary values that can be moved into the
+storage space of the object. Reference types will be stored as pointers, while value types will be 
+stored inline. For reference types the ownership is handed over to the application object, so the 
+application must not increase the reference counter for the objects in the buffer.
+
+\todo What of value types in the buffer? Must they be destroyed by the application?
+
 \see \ref doc_addon_array and \ref doc_addon_dict for example implementations of list factories.
   
 
