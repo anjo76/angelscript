@@ -10264,6 +10264,8 @@ int asCCompiler::CompileCondition(asCScriptNode *expr, asCExprContext *ctx)
 	asCScriptNode *cexpr = expr->firstChild;
 	if( cexpr->next )
 	{
+		ctx->exprNode = expr;
+		
 		//-------------------------------
 		// Compile the condition
 		asCExprContext e(engine);

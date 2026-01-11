@@ -94,6 +94,36 @@ bool TestCondition()
 	CBufferedOutStream bout;
 	asIScriptEngine* engine;
 
+	// Test assert in condition
+	// https://github.com/anjo76/angelscript/issues/37
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"int f(int x) { \n"
+			"  return x; \n"
+			"} \n"
+			"int main() { \n"
+			"  f((true ? -1.0f : -1)); \n"
+			"  return 0; \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "test (4, 1) : Info    : Compiling int main()\n"
+						   "test (5, 6) : Warning : Float value truncated in implicit conversion to integer\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test crash on condition
 	// https://www.gamedev.net/forums/topic/718945-ternary-operator-with-global-assignment-causes-crash/
 	{
