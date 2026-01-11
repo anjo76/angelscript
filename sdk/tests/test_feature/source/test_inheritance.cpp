@@ -159,10 +159,10 @@ bool Test()
 			"	startWithConstructorA.insertAt(0, ReportB()); \n" // The array will allocate an object A with default constructor, then use copy operator
 			"	startWithConstructorA[0].Report(); \n" //A
 
-			"	array<ReportA> startWithConstructorB = { ReportB() }; \n" // The array constructor doesn't copy the object, it relies on the object being correct for storage. TODO: The compiler must make sure the type is correct
-			"	startWithConstructorB[0].Report(); \n" //B. TODO: This is wrong
+			"	array<ReportA> startWithConstructorB = { ReportB() }; \n" // The array constructor doesn't copy the object, it relies on the object being correct for storage. The compiler must make sure the type is correct
+			"	startWithConstructorB[0].Report(); \n" //A
 			"	startWithConstructorB = { ReportB() }; \n" // The array will use the elements copy operator, since it was stored as B it will copy as B
-			"	startWithConstructorB[0].Report(); \n" //B. TODO: This s wrong
+			"	startWithConstructorB[0].Report(); \n" //A
 			"	startWithConstructorB.insertAt(0, ReportB()); \n" // The array will allocate an object A with default constructor, then use copy operator
 			"	startWithConstructorB[0].Report(); \n" //A
 
