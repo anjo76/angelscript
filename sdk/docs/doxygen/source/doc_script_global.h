@@ -234,6 +234,9 @@ namespace declare the same entity.
   }
 </pre>
 
+\todo Namespace can have same name as class for pseudo static members
+
+
 \section doc_global_using_ns Using namespace
 
 In order to avoid having to always prefix symbols with their namespace it is also possible to use

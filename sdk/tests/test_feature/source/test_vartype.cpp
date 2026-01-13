@@ -208,6 +208,29 @@ bool Test()
 	asIScriptModule *mod = 0;
 	asIScriptContext *ctx = 0;
 
+	// Test that variadic functions accept 0 args
+	// https://www.gamedev.net/forums/topic/719538-variadic-functions-can-not-take-0-args/5472673/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		r = engine->RegisterGlobalFunction("void func(const ?&in ...)", asFUNCTION(testFactVariadic), asCALL_GENERIC);
+		if (r < 0)
+			TEST_FAILED;
+		numArgs = -1;
+		r = ExecuteString(engine, "func();");
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		if (numArgs != 0)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test function overloads with variadic functions
 	// https://github.com/anjo76/angelscript/issues/14
 	{

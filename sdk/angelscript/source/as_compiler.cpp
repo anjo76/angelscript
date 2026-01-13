@@ -2307,7 +2307,7 @@ int asCCompiler::PrepareFunctionCall(int funcId, asCByteCode *bc, asCArray<asCEx
 	// If the function being called is the opAssign or copy constructor for the same type
 	// as the argument, then we should avoid making temporary copy of the argument
 	bool makingCopy = false;
-	if( descr->parameterTypes.GetLength() == 1 &&
+	if( descr->parameterTypes.GetLength() == 1 && args.GetLength() == 1 &&
 		descr->parameterTypes[0].IsEqualExceptRefAndConst(args[0]->type.dataType) &&
 		(((descr->name == "opAssign" || descr->name == "$beh0") && descr->objectType && descr->objectType == args[0]->type.dataType.GetTypeInfo()) ||
 		 (descr->objectType == 0 && args[0]->type.dataType.GetTypeInfo() && descr->name == args[0]->type.dataType.GetTypeInfo()->name)) )
@@ -2361,7 +2361,7 @@ void asCCompiler::MoveArgsToStack(int funcId, asCByteCode *bc, asCArray<asCExprC
 	// If the function being called is the opAssign or copy constructor for the same type
 	// as the argument, then we should avoid making temporary copy of the argument
 	bool makingCopy = false;
-	if( descr->parameterTypes.GetLength() == 1 &&
+	if( descr->parameterTypes.GetLength() == 1 && args.GetLength() == 1 &&
 		descr->parameterTypes[0].IsEqualExceptRefAndConst(args[0]->type.dataType) &&
 		(((descr->name == "opAssign" || descr->name == "$beh0") && descr->objectType && descr->objectType == args[0]->type.dataType.GetTypeInfo()) ||
 		 (descr->objectType == 0 && args[0]->type.dataType.GetTypeInfo() && descr->name == args[0]->type.dataType.GetTypeInfo()->name)) )
@@ -2559,7 +2559,7 @@ int asCCompiler::CompileArgumentList(asCScriptNode *node, asCArray<asCExprContex
 int asCCompiler::CompileDefaultAndNamedArgs(asCScriptNode *node, asCArray<asCExprContext*> &args, int funcId, asCObjectType *objectType, asCArray<asSNamedArgument> *namedArgs)
 {
 	asCScriptFunction *func = builder->GetFunctionDescription(funcId);
-	if( func == 0 || args.GetLength() >= (asUINT)func->GetParamCount() )
+	if( func == 0 || args.GetLength() >= (func->IsVariadic() ? (asUINT)func->GetParamCount() - 1 : (asUINT)func->GetParamCount()) )
 		return 0;
 
 	// Make sure to use the real function for virtual functions
@@ -2612,6 +2612,7 @@ int asCCompiler::CompileDefaultAndNamedArgs(asCScriptNode *node, asCArray<asCExp
 	for( int n = (int)func->parameterTypes.GetLength() - 1; n >= explicitArgs; n-- )
 	{
 		if( args[n] != 0 ) continue;
+		if (n >= (int)func->defaultArgs.GetLength()) { asASSERT(func->IsVariadic()); continue; }
 		if( func->defaultArgs[n] == 0 ) { anyErrors = true; continue; }
 
 		// Parse the default arg string
@@ -2727,7 +2728,7 @@ asUINT asCCompiler::MatchFunctions(asCArray<int> &funcs, asCArray<asCExprContext
 
 				// TODO: variadic: Handle default args
 
-				if (totalArgs <= argsWithoutLast)
+				if (totalArgs < argsWithoutLast)
 				{
 					failedMatches.PushLast(asSFailedMatch(desc->id, asEFM_NOT_ENOUGH_ARGS));
 					noMatch = true;
@@ -2826,7 +2827,9 @@ asUINT asCCompiler::MatchFunctions(asCArray<int> &funcs, asCArray<asCExprContext
 					(*namedArgs)[n].match = asUINT(-1);
 
 				bool matchedAll = true;
-				for( asUINT j = 0; j < desc->parameterTypes.GetLength(); ++j )
+				asUINT argsToMatch = desc->parameterTypes.GetLength();
+				if (desc->IsVariadic()) argsToMatch--;
+				for( asUINT j = 0; j < argsToMatch; ++j )
 				{
 					asUINT match = asUINT(-1);
 					for( n = 0; n < namedArgs->GetLength(); ++n )
@@ -2843,7 +2846,7 @@ asUINT asCCompiler::MatchFunctions(asCArray<int> &funcs, asCArray<asCExprContext
 					// Check that every position is filled somehow
 					if( j >= args.GetLength() )
 					{
-						if( match == asUINT(-1) && !desc->defaultArgs[j] )
+						if( match == asUINT(-1) && (j >= desc->defaultArgs.GetLength() || !desc->defaultArgs[j]) )
 						{
 							// No argument was found for this, and there is no
 							// default, so it doesn't work.
