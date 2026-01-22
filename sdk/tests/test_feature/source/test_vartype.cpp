@@ -196,6 +196,22 @@ void func1(asIScriptGeneric* gen)
 	calledFunc = gen->GetFunction();
 }
 
+void funcConstruct(asIScriptGeneric* gen)
+{
+	calledFunc = gen->GetFunction();
+	gen->SetReturnAddress((void*)1); // Dummy pointer
+}
+
+void funcConstructNoArgs(asIScriptGeneric* gen)
+{
+	gen->SetReturnAddress((void*)1); // Dummy pointer
+}
+
+void dummy(asIScriptGeneric* gen)
+{
+	// Do nothing
+}
+
 bool Test()
 {
 	RET_ON_MAX_PORT
@@ -207,6 +223,55 @@ bool Test()
  	asIScriptEngine *engine = 0;
 	asIScriptModule *mod = 0;
 	asIScriptContext *ctx = 0;
+
+	// Test behavior of overload when matching function with vartype compared to function with default args
+	// Reported by Aleksander Jaronik
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		engine->RegisterObjectType("MyType", 0, asOBJ_REF);
+		engine->RegisterObjectBehaviour("MyType", asBEHAVE_FACTORY, "MyType@ f()", asFUNCTION(funcConstructNoArgs), asCALL_GENERIC);
+		r = engine->RegisterObjectBehaviour("MyType", asBEHAVE_FACTORY, "MyType@ f(int a, int b = 0)", asFUNCTION(funcConstruct), asCALL_GENERIC);
+		asIScriptFunction* expectedFunc = engine->GetFunctionById(r);
+		engine->RegisterObjectBehaviour("MyType", asBEHAVE_FACTORY, "MyType@ f(?&in a)", asFUNCTION(funcConstruct), asCALL_GENERIC);
+		engine->RegisterObjectBehaviour("MyType", asBEHAVE_ADDREF, "void f()", asFUNCTION(dummy), asCALL_GENERIC);
+		engine->RegisterObjectBehaviour("MyType", asBEHAVE_RELEASE, "void f()", asFUNCTION(dummy), asCALL_GENERIC);
+		engine->RegisterObjectMethod("MyType", "MyType &opAssign(const MyType &in)", asFUNCTION(dummy), asCALL_GENERIC);
+
+		mod = engine->GetModule("mod", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void main1() { \n"
+			"  MyType t1(42); \n" // must call f(int a, int b = 0)
+			"} \n"
+			"void main2() { \n"
+			"  MyType t2 = MyType(42); \n" // must call f(int a, int b = 0)
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		calledFunc = 0;
+		r = ExecuteString(engine, "main1()", mod);
+		if( r!= asEXECUTION_FINISHED )
+			TEST_FAILED;
+		if (calledFunc != expectedFunc)
+			TEST_FAILED;
+
+		calledFunc = 0;
+		r = ExecuteString(engine, "main2()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		if (calledFunc != expectedFunc)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test that variadic functions accept 0 args
 	// https://www.gamedev.net/forums/topic/719538-variadic-functions-can-not-take-0-args/5472673/

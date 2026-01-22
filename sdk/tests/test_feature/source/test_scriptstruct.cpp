@@ -2360,7 +2360,7 @@ bool Test()
 			"script (12, 8) : Error   : No default constructor for object of type 'CBar'.\n"
 			"script (12, 8) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 			"script (13, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
-			"script (14, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
+			"script (14, 9) : Error   : No matching signatures to 'CBar(CBar@&)'\n"
 			"script (14, 9) : Info    : Candidates are:\n"
 			"script (14, 9) : Info    : CBar@ CBar(int a)\n"
 			"script (14, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n")
@@ -2417,7 +2417,7 @@ bool Test()
 						   "script (13, 8) : Error   : No default constructor for object of type 'CBar'.\n"
 						   "script (13, 8) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 						   "script (14, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
-						   "script (15, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
+						   "script (15, 9) : Error   : No matching signatures to 'CBar(CBar@&)'\n"
 						   "script (15, 9) : Info    : Candidates are:\n"
 						   "script (15, 9) : Info    : CBar@ CBar(int a)\n"
 						   "script (15, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n")
@@ -2520,7 +2520,7 @@ bool Test()
 			"script (13, 8) : Error   : No default constructor for object of type 'CBar'.\n"
 			"script (13, 8) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 			"script (14, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
-			"script (15, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
+			"script (15, 9) : Error   : No matching signatures to 'CBar(CBar@&)'\n"
 			"script (15, 9) : Info    : Candidates are:\n"
 			"script (15, 9) : Info    : CBar@ CBar(int a)\n"
 			"script (15, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n"
