@@ -94,6 +94,31 @@ bool Test()
 	int r;
 	CBufferedOutStream bout;
 
+	// Test foreach in switch statement
+	// https://github.com/anjo76/angelscript/issues/39
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterStdString(engine);
+		RegisterScriptArray(engine, true);
+		r = ExecuteString(engine,
+			"array<string> arr = {'one', 'two', 'three'}; \n"
+			"int i = 0; \n"
+			"switch( i ) { \n"
+			"  case 0: foreach (string str : arr) { } \n"
+			"  break; \n"
+			"} \n");
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			TEST_FAILED;
+			PRINTF("%s", bout.buffer.c_str());
+		}
+	}
+
 	// Test foreach on empty array of strings
 	// reported by li zhuang
 	{

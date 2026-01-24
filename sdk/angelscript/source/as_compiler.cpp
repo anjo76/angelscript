@@ -5309,6 +5309,10 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 		return;
 	}
 
+	// Add a variable scope that will be used by CompileBreak/Continue to know where to stop deallocating variables
+	bc->Block(true);
+	AddVariableScope(true, true);
+
 	asCDataType rangeDt = rangeExpr.type.dataType;
 	rangeDt.MakeReference(false);
 	if (rangeDt.SupportHandles()) rangeDt.MakeHandle(true);
@@ -5495,10 +5499,6 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 	}
 
 	// The following part is majorly copied from CompileForStatement
-
-	// Add a variable scope that will be used by CompileBreak/Continue to know where to stop deallocating variables
-	bc->Block(true);
-	AddVariableScope(true, true);
 
 	// We will use three labels for the for loop
 	int conditionLabel = nextLabel++;
