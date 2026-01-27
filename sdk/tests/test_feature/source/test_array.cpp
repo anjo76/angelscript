@@ -182,7 +182,7 @@ bool Test()
 	// Test conversion of list elements in initialization lists
 	// https://github.com/anjo76/angelscript/issues/44
 	{
-		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		asIScriptEngine *engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
 		bout.buffer = "";
 		RegisterScriptArray(engine, true);
