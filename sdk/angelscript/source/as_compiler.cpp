@@ -4259,7 +4259,11 @@ int asCCompiler::CompileInitListElement(asSListPatternNode *&patternNode, asCScr
 			}
 			else if (dt.GetTypeInfo()->flags & asOBJ_REF)
 			{
-				if ( lctx.type.dataType.GetTypeInfo() != rctx.type.dataType.GetTypeInfo() )
+				// For reference types stored by value we must make sure the correct type is 
+				// used even though the expression may be ref cast to the expected type
+				if ( lctx.type.dataType.GetTypeInfo() != rctx.type.dataType.GetTypeInfo() &&
+					rctx.type.dataType.GetTypeInfo() &&
+					rctx.type.dataType.GetTypeInfo()->DerivesFrom(lctx.type.dataType.GetTypeInfo()) )
 				{
 					// Create a new instance of the correct type and assign the value to it
 					int offset = AllocateVariable(lctx.type.dataType, true);

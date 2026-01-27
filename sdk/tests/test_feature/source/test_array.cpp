@@ -179,6 +179,58 @@ bool Test()
 	CBufferedOutStream bout;
 	asIScriptContext *ctx;
 
+	// Test conversion of list elements in initialization lists
+	// https://github.com/anjo76/angelscript/issues/44
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterScriptArray(engine, true);
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"class X {} \n"
+			"class Y { \n"
+			"  Y() {} \n"
+			"  Y(const X& in) {} \n"
+			"} \n"
+			"void Main() { \n"
+			"  X x; \n"
+			"  Y[] arr = { x }; \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		mod->AddScriptSection("test",
+			"class Y { \n"
+			"	Y() {} \n"
+			"	Y(const int) {} \n"
+			" } \n"
+			"void Main() { \n"
+			"	Y[] arr = {1}; \n"
+			" } \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		mod->AddScriptSection("test",
+			"class Foo {} \n"
+			"void Main() { \n"
+			"  Foo[] arr = {1}; \n"
+			" } \n");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "test (2, 1) : Info    : Compiling void Main()\n"
+			"test (3, 16) : Error   : Can't implicitly convert from 'const int' to 'Foo'.\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test anonymous initialization list with short hand version of array type
 	// Reported by Phong Ba
 	{
