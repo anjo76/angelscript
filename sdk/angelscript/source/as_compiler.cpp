@@ -12897,10 +12897,18 @@ int asCCompiler::CompileConstructCall(asCScriptNode *node, asCExprContext *ctx)
 		// Special case: If this is a construction of a delegate and the expression names an object method
 		if( dt.IsFuncdef() && args.GetLength() == 1 && args[0]->methodName != "" && namedArgs.GetLength() == 0 )
 		{
-			// TODO: delegate: It is possible that the argument returns a function pointer already, in which
-			//                 case no object delegate will be created, but instead a delegate for a function pointer
-			//                 In theory a simple cast would be good in this case, but this is a construct call so it
-			//                 is expected that a new object is created.
+			// It is possible that the argument returns a function pointer already, in which
+			// case no object delegate will be created, but instead a delegate for a function pointer
+			if (args[0]->type.IsUndefinedFuncHandle())
+			{
+				int r = ImplicitConversion(args[0], dt, node->lastChild, asIC_EXPLICIT_VAL_CAST);
+
+				MergeExprBytecode(ctx, args[0]);
+				ctx->type = args[0]->type;
+
+				asDELETE(args[0], asCExprContext);
+				return r;
+			}
 
 			dt.MakeHandle(true);
 			tempCtx.type.Set(dt);

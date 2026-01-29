@@ -222,6 +222,20 @@ passing the class method as the argument.
   }
 </pre>
 
+If a delegate is instantiated for a global function no new object is actually created, instead the actual function will be used as the delegate.
+
+<pre>
+  bool global(int a ,int b) { return a == b; };
+
+  void main()
+  {
+    // A delegate for a global function is the same as taking the function pointer directly;
+    CALLBACK \@f1 = CALLBACK(global);
+    CALLBACK \@f2 = global;
+
+    assert( f1 is f2 );
+  }
+</pre>
 
 
 

@@ -86,6 +86,39 @@ bool Test()
 	asIScriptContext *ctx;
 	CBufferedOutStream bout;
 
+	// Test instantiating delegate from global function (no delegate object is actually created)
+	// https://github.com/anjo76/angelscript/issues/43
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test", R"(
+			void startnew(CoroutineFunc@ func) {}
+			funcdef void CoroutineFunc();
+			void Thing() {}
+			void Main() {
+				startnew(Thing); // OK
+				startnew(CoroutineFunc(Thing)); // identical (just more explicit)
+				CoroutineFunc @f1 = Thing;
+				CoroutineFunc @f2 = CoroutineFunc(Thing); 
+				assert( f1 is f2 );
+			} )");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		r = ExecuteString(engine, "Main()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test anon function taking a parameter with the same name as a type
 	// Reported by Aaron Baker
 	{
