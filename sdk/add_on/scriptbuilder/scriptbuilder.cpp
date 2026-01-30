@@ -1217,8 +1217,23 @@ string GetCurrentDir()
 	#elif defined(_M_ARM)
 	// TODO: How to determine current working dir on Windows Phone?
 	return "";
-	#else
+	#elif defined(_MSC_VER)
 	return _getcwd(buffer, (int)1024);
+#else
+	std::string filename;
+    #if defined(__argc) && defined(__argv)
+    	if (__argc) filename = std::string(__argv[0]);
+    #endif
+
+	if (!filename.length())
+	{
+		char path[MAX_PATH] = { 0 };
+		GetModuleFileNameA(NULL, path, MAX_PATH);
+		filename = std::string(path);
+	}
+	const size_t last_slash_idx = filename.rfind('\\');
+	if (std::string::npos != last_slash_idx) filename = filename.substr(0, last_slash_idx);
+	return filename;
 	#endif // _MSC_VER
 #elif defined(__APPLE__) || defined(__linux__)
 	return getcwd(buffer, 1024);
