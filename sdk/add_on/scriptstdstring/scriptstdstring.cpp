@@ -408,7 +408,7 @@ static int StringRegexFind(const string& rex, asUINT start, asUINT& outLengthOfM
 	//
 	// I've tried setting the manifest to use utf8 code page but it also doesn't work with MSVC
 	// https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page
-#   ifdef AS_CAN_USE_CPP11
+#ifdef AS_CAN_USE_CPP11
 	std::regex pattern(rex, std::regex_constants::ECMAScript | std::regex_constants::collate);
 	std::cmatch match;
 	bool result = std::regex_search(str.c_str() + start, str.c_str()+str.length(), match, pattern);
@@ -421,9 +421,9 @@ static int StringRegexFind(const string& rex, asUINT start, asUINT& outLengthOfM
 
 	outLengthOfMatch = (asUINT)match[0].length();
 	return (int)match.prefix().length();
-#   else 
+#else 
 	return -1;
-#   endif
+#endif
 }
 
 // This function returns the index of the first position where the one of the bytes in substring
@@ -647,8 +647,7 @@ static std::string to_string(T value)
 {
 	std::stringstream _ss;
 	_ss << value;
-	std::string _str(_ss.str());
-	return _str;
+	return _ss.str();
 }
 
 // TODO: variadic: review

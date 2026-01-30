@@ -1219,7 +1219,7 @@ string GetCurrentDir()
 	return "";
 	#elif defined(_MSC_VER)
 	return _getcwd(buffer, (int)1024);
-#else
+	#else
 	std::string filename;
     #if defined(__argc) && defined(__argv)
     	if (__argc) filename = std::string(__argv[0]);

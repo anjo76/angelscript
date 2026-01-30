@@ -101,7 +101,7 @@ namespace Test_Addon_StdString
 		}
 
 		// Test regexFind
-#       if AS_CAN_USE_CPP11
+#if AS_CAN_USE_CPP11
 		{
 			asIScriptEngine* engine = asCreateScriptEngine();
 			engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
@@ -168,7 +168,7 @@ namespace Test_Addon_StdString
 
 			engine->ShutDownAndRelease();
 		}
-#       endif
+#endif
 
 		// Test const string with int value assignment
 		// https://www.gamedev.net/forums/topic/715649-assertion-failure-const-string-asdf-10/5461912/

@@ -203,15 +203,11 @@ protected:
 	{
 		static int tolower_impl(unsigned char c)
 		{
-			using namespace std;
-
-			return tolower(c);
+			return std::tolower(c);
 		}
 		static std::string str_tolower(std::string s)
 		{
-			std::transform(s.begin(), s.end(), s.begin(),
-				tolower_impl // correct
-			);
+			std::transform(s.begin(), s.end(), s.begin(), tolower_impl);
 			return s;
 		}
 		bool operator()(const std::string &a, const std::string &b) const
