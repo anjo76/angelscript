@@ -397,6 +397,34 @@ bool Test()
 	asIScriptEngine* engine;
 	asIScriptModule* mod;
 
+	// Test error handling when loading bogus data
+	// https://www.gamedev.net/forums/topic/710972-recover-from-assertion-in-loadbytecode/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		mod = engine->GetModule("DynamicModule", asGM_ALWAYS_CREATE);
+		const unsigned char bogusData[] = "This is not valid bytecode";
+		CBytecodeStream stream("test");
+		stream.buffer.assign(sizeof(bogusData), *(&bogusData[0]));
+		r = mod->LoadByteCode(&stream);
+		if( r >= 0 )
+			TEST_FAILED;
+		const unsigned char bogusData2[] = { 0x00, 0x01 };
+		stream.buffer.assign(sizeof(bogusData2), *(&bogusData2[0]));
+		stream.Restart();
+		r = mod->LoadByteCode(&stream);
+		if (r >= 0)
+			TEST_FAILED;		
+		engine->ShutDownAndRelease();
+		if (bout.buffer != " (0, 0) : Error   : Unexpected end of file\n"
+						   " (0, 0) : Error   : Unexpected end of file\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test saving bytecode loaded from precompiled bytecode
 	// Reported by Aleksander Jaronik
 	{
@@ -923,9 +951,9 @@ bool Test()
 		if( r >= 0 )
 			TEST_FAILED;
 		
-		if (bout.buffer != " (0, 0) : Error   : Shared type 'Test1' doesn't match the original declaration in other module\n"
+		if (bout.buffer != " (0, 0) : Error   : Shared type 'Test1' doesn't match the declaration in module 'test2'\n"
 						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 172\n"
-						   " (0, 0) : Error   : Shared type 'Test1' doesn't match the original declaration in other module\n"
+						   " (0, 0) : Error   : Shared type 'Test1' doesn't match the declaration in module 'test2'\n"
 						   " (0, 0) : Error   : LoadByteCode failed. The bytecode is invalid. Number of bytes read from stream: 172\n") 
 		{
 			PRINTF("%s", bout.buffer.c_str());

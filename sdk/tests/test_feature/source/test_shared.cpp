@@ -1190,8 +1190,8 @@ const char* file2 = "					\
 		if( r >= 0 )
 			TEST_FAILED;
 
-		if( bout.buffer != "B (3, 13) : Error   : Shared type 'ielement' doesn't match the original declaration in other module\n"
-		                   "B (3, 18) : Error   : Shared type 'ielement' doesn't match the original declaration in other module\n" )
+		if( bout.buffer != "B (3, 13) : Error   : Shared type 'ielement' doesn't match the declaration in module 'A'\n"
+		                   "B (3, 18) : Error   : Shared type 'ielement' doesn't match the declaration in module 'A'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1236,15 +1236,15 @@ const char* file2 = "					\
 		engine->Release();
 	}
 
-	// Compiling a script with a shared class that refers to other non declared entities must give
-	// error even if the shared class is already existing in a previous module
+	// Compiling a script with a shared class that refers to other non declared entities must not give
+	// error if the shared class is already existing in a previous module
 	// http://www.gamedev.net/topic/632922-huge-problems-with-precompilde-byte-code/
 	{
 		const char *script1 = 
 			"shared class A { \n"
 			"  B @b; \n"
 			"  void setB(B@) {} \n"
-			"  void func() {B@ l;} \n" // TODO: The method isn't compiled so this error isn't seen. Should it be?
+			"  void func() {B@ l;} \n" // The method isn't compiled so this error isn't seen
 			"  string c; \n"
 			"} \n";
 
@@ -1269,9 +1269,7 @@ const char* file2 = "					\
 		if( r >= 0 )
 			TEST_FAILED;
 		if( bout.buffer != "A (3, 13) : Error   : Identifier 'B' is not a data type in global namespace\n"
-		                   "A (3, 3) : Error   : Shared type 'A' doesn't match the original declaration in other module\n"
-		                 /*  "A (2, 3) : Error   : Identifier 'B' is not a data type in global namespace\n"
-		                   "A (2, 6) : Error   : Shared type 'A' doesn't match the original declaration in other module\n" */)
+		                   "A (3, 3) : Error   : Shared type 'A' doesn't match the declaration in module 'A'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
