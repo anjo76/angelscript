@@ -16620,6 +16620,22 @@ void asCCompiler::CompileBitwiseOperator(asCScriptNode *node, asCExprContext *lc
 {
 	// TODO: If a constant is only using 32bits, then a 32bit operation is preferred
 
+	// If either operand is a non-primitive then use the primitive type
+	if (!lctx->type.dataType.IsPrimitive())
+	{
+		int l = int(reservedVariables.GetLength());
+		rctx->bc.GetVarsUsed(reservedVariables);
+		ImplicitConvObjectToBestMathType(lctx, node);
+		reservedVariables.SetLength(l);
+	}
+	if (!rctx->type.dataType.IsPrimitive())
+	{
+		int l = int(reservedVariables.GetLength());
+		lctx->bc.GetVarsUsed(reservedVariables);
+		ImplicitConvObjectToBestMathType(rctx, node);
+		reservedVariables.SetLength(l);
+	}
+
 	if( op == ttUnrecognizedToken )
 		op = node->tokenType;
 	if( op == ttAmp    || op == ttAndAssign ||

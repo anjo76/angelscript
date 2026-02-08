@@ -190,6 +190,36 @@ bool Test()
 	CBufferedOutStream bout;
 	COutStream out;
 
+	// Test bitshift with implicit conv
+	// https://www.gamedev.net/forums/topic/711021-opimplconv-not-respected-by-shift-operators/5442910/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void print(const string &in)", asFUNCTION(Print), asCALL_GENERIC);
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test", R"(
+			class foo {
+			    uint opImplConv() const { return 0; }
+			}
+			void Main()
+			{
+				foo f;
+				int b = f + 1;
+				int a = f >> 1;
+			}	)");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test implicit conv with &inout ref
 	// https://www.gamedev.net/forums/topic/716940-no-constructor-called-on-implicit-construction-with-inout-parameter-reference/5464209/
 	{
@@ -798,19 +828,8 @@ bool Test()
 
 	// Test 2
 	// A class won't be converted to primitive if there is no obvious target type
-	// ex: t << 1 - It is not known what type t should be converted to
 	// ex: t + t - It is not known what type t should be converted to
 	// ex: t < t - It is not known what type t should be converted to
-	bout.buffer = "";
-	engine->SetMessageCallback(asMETHOD(CBufferedOutStream,Callback), &bout, asCALL_THISCALL);
-	r = ExecuteString(engine, "type t(5); t << 1; ");
-	if( r >= 0 ) TEST_FAILED;
-	if( bout.buffer != "ExecuteString (1, 14) : Error   : Illegal operation on 'type'\n" )
-	{
-		PRINTF("%s", bout.buffer.c_str());
-		TEST_FAILED;
-	}
-
 	bout.buffer = "";
 	r = ExecuteString(engine, "type t(5); t + t; ");
 	if( r >= 0 ) TEST_FAILED;
