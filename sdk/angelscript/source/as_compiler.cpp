@@ -9072,6 +9072,9 @@ asUINT asCCompiler::ImplicitConvPrimitiveToObject(asCExprContext *ctx, const asC
 	if( !objType )
 		return asCC_NO_CONV;
 
+	if (!allowObjectConstruct)
+		return asCC_NO_CONV;
+
 	asCArray<int> funcs;
 	if (objType->flags & asOBJ_VALUE)
 	{

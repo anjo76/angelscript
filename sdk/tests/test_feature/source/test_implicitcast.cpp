@@ -190,6 +190,80 @@ bool Test()
 	CBufferedOutStream bout;
 	COutStream out;
 
+	// Test implicit conv with &inout ref
+	// https://www.gamedev.net/forums/topic/716940-no-constructor-called-on-implicit-construction-with-inout-parameter-reference/5464209/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void print(const string &in)", asFUNCTION(Print), asCALL_GENERIC);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test", R"(
+			class Test
+			{
+				int32 Val;
+    
+				Test() { Val = 0; print("ctor: " + Val + "\n"); }
+				Test(int32 x) { Val = x;  print("ctor(int32): " + Val + "\n"); }
+
+				void Set(const Test& test) 
+				{
+					print("Set\n");
+					print(" - Old Val: " + Val + "\n");
+					print(" - Parameter test.Val: " + test.Val + "\n");
+					Val = test.Val;
+					print(" - New Val: " + Val + "\n");
+				}
+			}
+
+			void Main()
+			{
+				{
+					print("TestA\n");
+					Test test;
+					int32 val = 1;
+					test.Set(val); // Fails even though implicit int32 constructor exist. The construction of the temporary Test object is not done because the parameter is a reference
+				}
+				{
+					print("TestB\n");
+					Test test;
+					test.Set(1); // Does not compile: "Error: Not a valid reference"
+				}
+				{
+					print("TestC\n");
+					Test test;
+					test.Set(Test(1)); // Constructing Test explicitly using int32 constructor
+				}
+				{
+					print("TestD\n");
+					Test test;
+					test.Set(cast<Test>(1)); // Explicitly casting from int32 to Test. Identical to TestC
+				}
+			}	)");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "test (19, 4) : Info    : Compiling void Main()\n"
+						   "test (25, 11) : Error   : No matching signatures to 'Test::Set(int)'\n"
+						   "test (25, 11) : Info    : Candidates are:\n"
+						   "test (25, 11) : Info    : void Test::Set(const Test&inout test)\n"
+						   "test (25, 11) : Info    : Rejected due to type mismatch on parameter 'test'\n"
+						   "test (30, 11) : Error   : No matching signatures to 'Test::Set(const int)'\n"
+						   "test (30, 11) : Info    : Candidates are:\n"
+						   "test (30, 11) : Info    : void Test::Set(const Test&inout test)\n"
+						   "test (30, 11) : Info    : Rejected due to type mismatch on parameter 'test'\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test implicit conv on member with opImplConv
 	// Reported by Sam Tupy
 	{
