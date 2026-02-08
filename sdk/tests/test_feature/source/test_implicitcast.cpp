@@ -830,6 +830,8 @@ bool Test()
 	// A class won't be converted to primitive if there is no obvious target type
 	// ex: t + t - It is not known what type t should be converted to
 	// ex: t < t - It is not known what type t should be converted to
+	engine->SetMessageCallback(asMETHOD(CBufferedOutStream,Callback), &bout, asCALL_THISCALL);
+
 	bout.buffer = "";
 	r = ExecuteString(engine, "type t(5); t + t; ");
 	if( r >= 0 ) TEST_FAILED;
