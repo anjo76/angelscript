@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -4347,7 +4347,7 @@ static const void *const dispatch_table[256] = {
 	INSTRUCTION(asBC_CallPtr):
 		{
 			// Get the function pointer from the local variable
-			asCScriptFunction *func = *(asCScriptFunction**)(l_fp - asBC_SWORDARG0(l_bc));
+			asCScriptFunction *func = *(asCScriptFunction**)(l_fp - asBC_SWORDARG1(l_bc));
 
 			// Need to move the values back to the context
 			m_regs.programPointer    = l_bc;
@@ -4357,7 +4357,7 @@ static const void *const dispatch_table[256] = {
 			if( func == 0 )
 			{
 				// Need to update the program pointer anyway for the exception handler
-				m_regs.programPointer++;
+				m_regs.programPointer += 2;
 
 				// Tell the exception handler to clean up the arguments to this method
 				m_needToCleanupArgs = true;
@@ -4370,7 +4370,7 @@ static const void *const dispatch_table[256] = {
 			{
 				if (func->funcType == asFUNC_SCRIPT)
 				{
-					m_regs.programPointer++;
+					m_regs.programPointer += 2;
 					CallScriptFunction(func);
 				}
 				else if (func->funcType == asFUNC_DELEGATE)
@@ -4388,11 +4388,11 @@ static const void *const dispatch_table[256] = {
 
 						// Update program position after the call so the line number
 						// is correct in case the system function queries it
-						m_regs.programPointer++;
+						m_regs.programPointer += 2;
 					}
 					else
 					{
-						m_regs.programPointer++;
+						m_regs.programPointer += 2;
 
 						// TODO: run-time optimize: The true method could be figured out when creating the delegate
 						CallInterfaceMethod(func->funcForDelegate);
@@ -4404,11 +4404,11 @@ static const void *const dispatch_table[256] = {
 
 					// Update program position after the call so the line number
 					// is correct in case the system function queries it
-					m_regs.programPointer++;
+					m_regs.programPointer += 2;
 				}
 				else if (func->funcType == asFUNC_IMPORTED)
 				{
-					m_regs.programPointer++;
+					m_regs.programPointer += 2;
 					int funcId = m_engine->importedFunctions[func->id & ~FUNC_IMPORTED]->boundFunctionId;
 					if (funcId > 0)
 						CallScriptFunction(m_engine->scriptFunctions[funcId]);
@@ -5383,7 +5383,7 @@ void asCContext::CleanArgsOnStack()
 	else if( bc == asBC_CallPtr )
 	{
 		asUINT v;
-		int var = asBC_SWORDARG0(prevInstr);
+		int var = asBC_SWORDARG1(prevInstr);
 
 		// Find the funcdef from the local variable
 		for( v = 0; v < m_currentFunction->scriptData->variables.GetLength(); v++ )

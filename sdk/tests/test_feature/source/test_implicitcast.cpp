@@ -959,8 +959,7 @@ bool Test()
 		asBYTE expect[] = 
 			{
 				asBC_PSF, asBC_CALLSYS,
-				// TODO: optimize: The string object should be constructed before asBC_TYPEID, thus allow asBC_VAR and asBC_GETREF to be optimized to asBC_PSF
-				asBC_SUSPEND, asBC_TYPEID, asBC_VAR, asBC_PSF, asBC_PSF, asBC_CALLSYS, asBC_GETREF, asBC_CALLSYS, asBC_PSF, asBC_CALLSYS, 
+				asBC_SUSPEND, asBC_TYPEID, asBC_PSF, asBC_CALLSYS, asBC_PSF, asBC_PSF, asBC_CALLSYS, asBC_PSF, asBC_CALLSYS, 
 				asBC_SUSPEND, asBC_RET
 			};
 		if( !ValidateByteCode(func, expect) )

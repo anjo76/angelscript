@@ -73,8 +73,12 @@ and the control is returned to the caller, the exception handler will clean up t
 If the function is a class method, then the address of the object instance is pushed on the stack as the last argument, thus allowing the called function to
 always rely on the this pointer to be on position 0 of the stack frame.
 
+Here's a representation of the stack for an object method that returns an object by value and has variadic function arguments:
 
-
-
+<table>
+<tr>
+<td>argN</td><td>...</td><td>arg2</td><td>arg1</td><td>var cnt = N</td><td>ret obj ptr</td><td>this obj ptr</td><td>local variables</td><td>space for preparing next function call</td>
+</tr>
+</table>
 
 */

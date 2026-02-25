@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -1969,7 +1969,7 @@ asCScriptFunction* asCScriptFunction::GetCalledFunction(asDWORD programPos)
 	else if (bc == asBC_CallPtr)
 	{
 		asUINT v;
-		int var = asBC_SWORDARG0(&scriptData->byteCode[programPos]);
+		int var = asBC_SWORDARG1(&scriptData->byteCode[programPos]);
 
 		// Find the funcdef from the local variable
 		for (v = 0; v < scriptData->variables.GetLength(); v++)

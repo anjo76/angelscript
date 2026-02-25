@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/02/08</h2>
+<h2>Version 2.39.0 WIP - 2026/02/25</h2>
 
 <ul>
 <li>Bug fixes
@@ -55,6 +55,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed instantiating delegates for global functions (Thanks Miss)
 <li>Compiler didn't give proper error when passing primitive to function expecting &amp;inout to object (Thanks Wambo)
 <li>When compiling bitwise operator the compiler will try to convert object types to math type (Thanks Violet CLM)
+<li>Fixed loading bytecode that uses variadic functions (Thanks Aleksander Jaronik)
 </ul>
 <li>Library
 <ul>
@@ -73,6 +74,10 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Added asITypeInfo::GetUnderlyingTypeId for retrieving the underlying type for enums and typedefs
 <li>Deprecated asITypeInfo::GetTypedefTypeId
 <li>Deprecated asIScriptFunction::FindNextLineWithCode
+</ul>
+<li>Virtual machine
+<ul>
+<li>Changed asBC_CALLSYS, asBC_ALLOC, and asBC_CallPtr to hold an extra WORD with the arg count for variadic functions
 </ul>
 <li>Script language
 <ul>

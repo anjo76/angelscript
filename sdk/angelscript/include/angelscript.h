@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -1697,11 +1697,14 @@ enum asEBCType
 	asBCTYPE_rW_QW_ARG    = 17,
 	asBCTYPE_W_DW_ARG     = 18,
 	asBCTYPE_rW_W_DW_ARG  = 19,
-	asBCTYPE_rW_DW_DW_ARG = 20
+	asBCTYPE_rW_DW_DW_ARG = 20,
+	asBCTYPE_W_DW_DW_ARG  = 21,
+	asBCTYPE_W_QW_DW_ARG  = 22,
+	asBCTYPE_W_rW_ARG     = 23
 };
 
 // Instruction type sizes
-const int asBCTypeSize[21] =
+const int asBCTypeSize[24] =
 {
 	0, // asBCTYPE_INFO
 	1, // asBCTYPE_NO_ARG
@@ -1723,7 +1726,10 @@ const int asBCTypeSize[21] =
 	3, // asBCTYPE_rW_QW_ARG
 	2, // asBCTYPE_W_DW_ARG
 	3, // asBCTYPE_rW_W_DW_ARG
-	3  // asBCTYPE_rW_DW_DW_ARG
+	3, // asBCTYPE_rW_DW_DW_ARG
+	3, // asBCTYPE_W_DW_DW_ARG
+	4, // asBCTYPE_W_QW_DW_ARG
+	2  // asBCTYPE_W_rW_ARG
 };
 
 // Instruction info
@@ -1736,18 +1742,20 @@ struct asSBCInfo
 };
 
 #ifndef AS_64BIT_PTR
-	#define asBCTYPE_PTR_ARG    asBCTYPE_DW_ARG
-	#define asBCTYPE_PTR_DW_ARG asBCTYPE_DW_DW_ARG
-	#define asBCTYPE_wW_PTR_ARG asBCTYPE_wW_DW_ARG
-	#define asBCTYPE_rW_PTR_ARG asBCTYPE_rW_DW_ARG
+	#define asBCTYPE_PTR_ARG      asBCTYPE_DW_ARG
+	#define asBCTYPE_PTR_DW_ARG   asBCTYPE_DW_DW_ARG
+	#define asBCTYPE_W_PTR_DW_ARG asBCTYPE_W_DW_DW_ARG
+	#define asBCTYPE_wW_PTR_ARG   asBCTYPE_wW_DW_ARG
+	#define asBCTYPE_rW_PTR_ARG   asBCTYPE_rW_DW_ARG
 	#ifndef AS_PTR_SIZE
 		#define AS_PTR_SIZE 1
 	#endif
 #else
-	#define asBCTYPE_PTR_ARG    asBCTYPE_QW_ARG
-	#define asBCTYPE_PTR_DW_ARG asBCTYPE_QW_DW_ARG
-	#define asBCTYPE_wW_PTR_ARG asBCTYPE_wW_QW_ARG
-	#define asBCTYPE_rW_PTR_ARG asBCTYPE_rW_QW_ARG
+	#define asBCTYPE_PTR_ARG      asBCTYPE_QW_ARG
+	#define asBCTYPE_PTR_DW_ARG   asBCTYPE_QW_DW_ARG
+	#define asBCTYPE_W_PTR_DW_ARG asBCTYPE_W_QW_DW_ARG
+	#define asBCTYPE_wW_PTR_ARG   asBCTYPE_wW_QW_ARG
+	#define asBCTYPE_rW_PTR_ARG   asBCTYPE_rW_QW_ARG
 	#ifndef AS_PTR_SIZE
 		#define AS_PTR_SIZE 2
 	#endif
@@ -1819,10 +1827,10 @@ const asSBCInfo asBCInfo[256] =
 	asBCINFO(PopRPtr,	NO_ARG,			-AS_PTR_SIZE),
 	asBCINFO(PshRPtr,	NO_ARG,			AS_PTR_SIZE),
 	asBCINFO(STR,		W_ARG,			1+AS_PTR_SIZE),
-	asBCINFO(CALLSYS,	DW_ARG,			0xFFFF),
+	asBCINFO(CALLSYS,	W_DW_ARG,		0xFFFF),
 	asBCINFO(CALLBND,	DW_ARG,			0xFFFF),
 	asBCINFO(SUSPEND,	NO_ARG,			0),
-	asBCINFO(ALLOC,		PTR_DW_ARG,		0xFFFF),
+	asBCINFO(ALLOC,		W_PTR_DW_ARG,	0xFFFF),
 	asBCINFO(FREE,		wW_PTR_ARG,		0),
 	asBCINFO(LOADOBJ,	rW_ARG,			0),
 	asBCINFO(STOREOBJ,	wW_ARG,			0),
@@ -1934,7 +1942,7 @@ const asSBCInfo asBCInfo[256] =
 	asBCINFO(ChkNullS,	W_ARG,			0),
 	asBCINFO(ClrHi,		NO_ARG,			0),
 	asBCINFO(JitEntry,	PTR_ARG,		0),
-	asBCINFO(CallPtr,	rW_ARG,			0xFFFF),
+	asBCINFO(CallPtr,	W_rW_ARG,		0xFFFF),
 	asBCINFO(FuncPtr,	PTR_ARG,		AS_PTR_SIZE),
 	asBCINFO(LoadThisR,	W_DW_ARG,		0),
 	asBCINFO(PshV8,		rW_ARG,			2),

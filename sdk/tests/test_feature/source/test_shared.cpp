@@ -729,7 +729,7 @@ const char* file2 = "					\
 			TEST_FAILED;
 
 		asDWORD crc32 = ComputeCRC32(&bc1.buffer[0], asUINT(bc1.buffer.size()));
-		if (crc32 != 0x8167134)
+		if (crc32 != 0x59B3E29)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;

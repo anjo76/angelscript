@@ -1185,6 +1185,12 @@ void test()
 		if (r != asEXECUTION_FINISHED)
 			TEST_FAILED;
 
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
 		// Test name conflict within class (funcdef vs funcdef, funcdef vs property, funcdef vs method)
 		bout.buffer = "";
 		mod->AddScriptSection("test",
