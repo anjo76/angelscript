@@ -1109,7 +1109,7 @@ int asCBuilder::ParseDataType(const char *datatype, asCDataType *result, asSName
 	asCScriptNode *dataType = parser.GetScriptNode()->firstChild;
 
 	*result = CreateDataTypeFromNode(dataType, &source, implicitNamespace, true);
-	if( isReturnType )
+	if( isReturnType && numErrors == 0 )
 		*result = ModifyDataTypeFromNode(*result, dataType->next, &source, 0, 0);
 
 	if( numErrors > 0 )
@@ -1369,6 +1369,8 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 
 	// Scoped reference types are allowed to use handle when returned from application functions
 	func->returnType = CreateDataTypeFromNode(node->firstChild, &source, objType ? objType->nameSpace : ns, true, parentClass ? parentClass : objType, true, 0, isTemplate ? &func->templateSubTypes : 0);
+	if( numErrors > 0 )
+		return asINVALID_DECLARATION;
 	func->returnType = ModifyDataTypeFromNode(func->returnType, node->firstChild->next, &source, 0, &autoHandle);
 		
 	if( autoHandle && (!func->returnType.IsObjectHandle() || func->returnType.IsReference()) )
@@ -1415,6 +1417,8 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 		asETypeModifiers inOutFlags;
 		asCDataType type;
 		type = CreateDataTypeFromNode(n, &source, objType ? objType->nameSpace : ns, false, parentClass ? parentClass : objType, true, 0, isTemplate ? &func->templateSubTypes : 0);
+		if (numErrors > 0)
+			return asINVALID_DECLARATION;
 		type = ModifyDataTypeFromNode(type, n->next, &source, &inOutFlags, &autoHandle);
 
 		// Reference types cannot be passed by value to system functions
@@ -6621,7 +6625,7 @@ asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCod
 			}
 
 			// Make sure the sub type can be instantiated
-			if( !dt.CanBeInstantiated() || dt.IsAuto() )
+			if( !dt.CanBeInstantiated() || dt.IsAuto() || dt.GetTokenType() == ttQuestion )
 			{
 				if (reportError)
 				{

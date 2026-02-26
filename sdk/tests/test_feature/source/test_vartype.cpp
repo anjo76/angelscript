@@ -224,6 +224,31 @@ bool Test()
 	asIScriptModule *mod = 0;
 	asIScriptContext *ctx = 0;
 
+	// Test registering void f(?[]&). Must fail with appropriate error message
+	// Reported by Aleksander Jaronik
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterScriptArray(engine, true);
+		r = engine->RegisterGlobalFunction("void func(?[]&)", asFUNCTION(0), asCALL_GENERIC);
+		if (r >= 0)
+			TEST_FAILED;
+		r = engine->RegisterGlobalFunction("void func2(array<?>&)", asFUNCTION(0), asCALL_GENERIC);
+		if (r >= 0)
+			TEST_FAILED;
+		if (bout.buffer != "System function (1, 12) : Error   : Data type can't be '?'\n"
+						   " (0, 0) : Error   : Failed in call to function 'RegisterGlobalFunction' with 'void func(?[]&)' (Code: asINVALID_DECLARATION, -10)\n"
+						   "System function (1, 18) : Error   : Expected data type\n"
+						   "System function (1, 18) : Error   : Instead found '?'\n"
+						   " (0, 0) : Error   : Failed in call to function 'RegisterGlobalFunction' with 'void func2(array<?>&)' (Code: asINVALID_DECLARATION, -10)\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+		engine->ShutDownAndRelease();
+	}
+
 	// Test saving and loading bytecode with variadic functions
 	// Reported by Aleksander Jaronik
 	{
