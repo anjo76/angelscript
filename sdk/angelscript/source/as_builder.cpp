@@ -207,13 +207,13 @@ void asCBuilder::Reset()
 }
 
 #ifndef AS_NO_COMPILER
-int asCBuilder::AddCode(const char *name, const char *code, int codeLength, int lineOffset, int sectionIdx, bool makeCopy)
+int asCBuilder::AddCode(const char *name, asStringView code, int lineOffset, int sectionIdx, bool makeCopy)
 {
 	asCScriptCode *script = asNEW(asCScriptCode);
 	if( script == 0 )
 		return asOUT_OF_MEMORY;
 
-	int r = script->SetCode(name, code, codeLength, makeCopy);
+	int r = script->SetCode(name, code, makeCopy);
 	if( r < 0 )
 	{
 		asDELETE(script, asCScriptCode);
@@ -227,17 +227,17 @@ int asCBuilder::AddCode(const char *name, const char *code, int codeLength, int 
 	return 0;
 }
 
-asCScriptCode *asCBuilder::FindOrAddCode(const char *name, const char *code, size_t length)
+asCScriptCode *asCBuilder::FindOrAddCode(const char *name, asStringView code)
 {
 	for (asUINT n = 0; n < scripts.GetLength(); n++)
-		if( scripts[n]->name == name && scripts[n]->codeLength == length && memcmp(scripts[n]->code, code, length) == 0 )
+		if( scripts[n]->name == name && asStringView(scripts[n]->code,scripts[n]->codeLength) == code)
 			return scripts[n];
 
 	asCScriptCode *script = asNEW(asCScriptCode);
 	if (script == 0)
 		return 0;
 
-	int r = script->SetCode(name, code, length, true);
+	int r = script->SetCode(name, code, true);
 	if (r < 0)
 	{
 		asDELETE(script, asCScriptCode);

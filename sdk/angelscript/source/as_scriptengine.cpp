@@ -1220,7 +1220,7 @@ int asCScriptEngine::ParseNamespace(const char* nameSpace, asCArray<asCString>& 
 
 		for (; pos < ns.GetLength(); pos += len)
 		{
-			t = tok.GetToken(ns.AddressOf() + pos, ns.GetLength() - pos, &len);
+			t = tok.GetToken(asStringView(ns.AddressOf() + pos, ns.GetLength() - pos), &len);
 			if ((expectIdentifier && t != ttIdentifier) || (!expectIdentifier && t != ttScope))
 				return asINVALID_DECLARATION;
 
@@ -1422,7 +1422,7 @@ asETokenClass asCScriptEngine::ParseToken(const char *string, size_t stringLengt
 
 	size_t len;
 	asETokenClass tc;
-	tok.GetToken(string, stringLength, &len, &tc);
+	tok.GetToken(asStringView(string, stringLength), &len, &tc);
 
 	if( tokenLength )
 		*tokenLength = (asUINT)len;
@@ -1696,7 +1696,7 @@ int asCScriptEngine::RegisterInterface(const char *name)
 
 	// Make sure the name is not a reserved keyword
 	size_t tokenLen;
-	int token = tok.GetToken(name, strlen(name), &tokenLen);
+	int token = tok.GetToken(name, &tokenLen);
 	if( token != ttIdentifier || strlen(name) != tokenLen )
 		return ConfigError(asINVALID_NAME, "RegisterInterface", name, 0);
 
@@ -1989,7 +1989,7 @@ int asCScriptEngine::RegisterObjectType(const char *name, int byteSize, asQWORD 
 		{
 			// Make sure the name is not a reserved keyword
 			size_t tokenLen;
-			int token = tok.GetToken(name, typeName.GetLength(), &tokenLen);
+			int token = tok.GetToken(asStringView(name, typeName.GetLength()), &tokenLen);
 			if( token != ttIdentifier || typeName.GetLength() != tokenLen )
 				return ConfigError(asINVALID_NAME, "RegisterObjectType", name, 0);
 
@@ -6184,7 +6184,7 @@ int asCScriptEngine::RegisterTypedef(const char *type, const char *decl)
 	asCDataType dataType;
 
 	//	Create the data type
-	token = tok.GetToken(decl, strlen(decl), &tokenLen);
+	token = tok.GetToken(decl, &tokenLen);
 	switch(token)
 	{
 	case ttBool:
@@ -6211,7 +6211,7 @@ int asCScriptEngine::RegisterTypedef(const char *type, const char *decl)
 	dataType = asCDataType::CreatePrimitive(token, false);
 
 	// Make sure the name is not a reserved keyword
-	token = tok.GetToken(type, strlen(type), &tokenLen);
+	token = tok.GetToken(type, &tokenLen);
 	if( token != ttIdentifier || strlen(type) != tokenLen )
 		return ConfigError(asINVALID_NAME, "RegisterTypedef", type, decl);
 
@@ -6269,7 +6269,7 @@ int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingTy
 
 	// make sure the type is valid
 	size_t tokenLen;
-	eTokenType token = tok.GetToken(underlyingType, strlen(underlyingType), &tokenLen);
+	eTokenType token = tok.GetToken(underlyingType, &tokenLen);
 	
 	if (!(token >= ttUInt && token <= ttUInt64) && !(token >= ttInt && token <= ttInt64))
 		return ConfigError(asINVALID_NAME, "RegisterEnum", underlyingType, 0);
@@ -6295,7 +6295,7 @@ int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingTy
 	}
 
 	// Make sure the name is not a reserved keyword
-	token = tok.GetToken(typeName, strlen(typeName), &tokenLen);
+	token = tok.GetToken(typeName, &tokenLen);
 	if( token != ttIdentifier || strlen(typeName) != tokenLen )
 		return ConfigError(asINVALID_NAME, "RegisterEnum", typeName, 0);
 

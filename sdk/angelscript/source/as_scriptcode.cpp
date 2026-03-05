@@ -58,45 +58,36 @@ asCScriptCode::~asCScriptCode()
 	}
 }
 
-int asCScriptCode::SetCode(const char *in_name, const char *in_code, bool in_makeCopy)
+int asCScriptCode::SetCode(const char *in_name, asStringView in_code, bool in_makeCopy)
 {
-	return SetCode(in_name, in_code, 0, in_makeCopy);
-}
-
-int asCScriptCode::SetCode(const char *in_name, const char *in_code, size_t in_length, bool in_makeCopy)
-{
-	if( !in_code) return asINVALID_ARG;
 	this->name = in_name ? in_name : "";
 	if( !sharedCode && code ) 
 		asDELETEARRAY(code);
 
-	if( in_length == 0 )
-		in_length = strlen(in_code);
 	if( in_makeCopy )
 	{
-		codeLength = in_length;
+		codeLength = in_code.len;
 		sharedCode = false;
-		code = asNEWARRAY(char, in_length);
+		code = asNEWARRAY(char, in_code.len);
 		if( code == 0 )
 			return asOUT_OF_MEMORY;
-		memcpy(code, in_code, in_length);
+		memcpy(code, in_code.string, in_code.len);
 	}
 	else
 	{
-		codeLength = in_length;
-		code = const_cast<char*>(in_code);
+		codeLength = in_code.len;
+		code = const_cast<char*>(in_code.string);
 		sharedCode = true;
 	}
 
 	// Find the positions of each line
 	linePositions.PushLast(0);
-	for( size_t n = 0; n < in_length; n++ )
+	for( size_t n = 0; n < in_code.len; n++ )
 		if( in_code[n] == '\n' ) linePositions.PushLast(n+1);
-	linePositions.PushLast(in_length);
+	linePositions.PushLast(in_code.len);
 
 	return asSUCCESS;
 }
-
 void asCScriptCode::ConvertPosToRowCol(size_t pos, int *row, int *col)
 {
 	if( linePositions.GetLength() == 0 ) 
