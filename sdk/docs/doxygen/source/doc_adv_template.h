@@ -202,7 +202,7 @@ r = engine->RegisterObjectType("myTemplate<float>", 0, asOBJ_REF); assert( r >= 
 r = engine->RegisterObjectBehaviour("myTemplate<float>", asBEHAVE_FACTORY, "myTemplate<float>@ f()", asFUNCTIONPR(myTemplateFloatFactory, (), myTemplateFloat*), asCALL_CDECL); assert( r >= 0 );
 \endcode
 
- 
+
 
 
 
@@ -218,6 +218,6 @@ Once the template function is called, the function can determine the type of the
 r = engine->RegisterGlobalFunction("T Test<T, U>(T t, U u)", asFUNCTION(ScriptTestGen), asCALL_GENERIC); assert( r >= 0 );
 \endcode
 
-
+\note Template functions do not yet support template specializations, so it is not possible to use ordinary functions that have the same function signature.
 
 */
