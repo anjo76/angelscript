@@ -46,13 +46,16 @@ jobs:
 
   Linux_arm64_Clang_AS_USE_NAMESPACE:
     runs-on: ubuntu-24.04-arm
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
     steps:
     - uses: actions/checkout@v4
     - name: build angelscript & test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
         cmake . -DCMAKE_CXX_FLAGS='-DAS_USE_NAMESPACE' -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-        cmake --build .
+        cmake --build . --config ${{ matrix.build_type }}
     - name: run test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
@@ -60,6 +63,9 @@ jobs:
         
   Windows_x86-64_Clang:      
     runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
     steps:
     - uses: actions/checkout@v4
     - name: set up Clang
@@ -73,15 +79,18 @@ jobs:
       run: |
         cd $env:GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
         cmake . -G Ninja -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-        cmake --build . --config Release
+        cmake --build . --config ${{ matrix.build_type }}
     - name: run test_feature
       shell: powershell
       run: |
         cd $env:GITHUB_WORKSPACE/sdk/tests/test_feature/bin
         ./test_feature.exe
 
-  Windows_x86-64_Clang-Cl:      
+  Windows_x86-64_Clang-Cl:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
     steps:
     - uses: actions/checkout@v4
     - name: set up Clang
@@ -89,8 +98,8 @@ jobs:
     - name: build angelscript & test_feature
       run: |
         cd ${{github.workspace}}/sdk/tests/test_feature/projects/cmake
-        cmake . -G Ninja -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --config Release
+        cmake . -G Ninja -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
+        cmake --build . --config ${{ matrix.build_type }}
     - name: run test_feature
       run: |
         cd ${{github.workspace}}/sdk/tests/test_feature/bin
@@ -98,13 +107,16 @@ jobs:
 
   MacOS_arm64_Clang:
     runs-on: macos-latest
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
     steps:
     - uses: actions/checkout@v4
     - name: build angelscript & test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
         cmake .
-        cmake --build .
+        cmake --build . --config ${{ matrix.build_type }}
     - name: run test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
@@ -112,18 +124,19 @@ jobs:
 
   MacOS_x86-64_Clang:
     runs-on: macos-15-intel
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
     steps:
     - uses: actions/checkout@v4
     - name: build angelscript & test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/projects/cmake
         cmake .
-        cmake --build .
+        cmake --build . --config ${{ matrix.build_type }}
     - name: run test_feature
       run: |
         cd $GITHUB_WORKSPACE/sdk/tests/test_feature/bin
-        ./test_feature        
-        
-
+        ./test_feature
 
         
