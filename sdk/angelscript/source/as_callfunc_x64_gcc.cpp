@@ -106,17 +106,17 @@ static asQWORD __attribute__((noinline))
 	// Push the stack parameters, i.e. the arguments that won't be loaded into registers
 		"  movq %%rcx, %%rsi \n"
 		"  testl %%esi, %%esi \n"
-		"  jle endstack \n"
+		"  jle Lendstack \n"
 		"  subl $1, %%esi \n"
 		"  xorl %%edx, %%edx \n"
 		"  leaq 8(, %%rsi, 8), %%rcx \n"
-		"loopstack: \n"
+		"Lloopstack: \n"
 		"  movq 112(%%r10, %%rdx), %%rax \n"
 		"  pushq %%rax \n"
 		"  addq $8, %%rdx \n"
 		"  cmpq %%rcx, %%rdx \n"
-		"  jne loopstack \n"
-		"endstack: \n"
+		"  jne Lloopstack \n"
+		"Lendstack: \n"
 
 	// Populate integer and floating point parameters
 		"  movq %%r10, %%rax \n"
