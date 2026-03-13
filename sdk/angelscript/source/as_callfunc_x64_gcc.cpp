@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -151,16 +151,16 @@ static asQWORD __attribute__((noinline))
 	// Put return value in retQW1 and retQW2, using either RAX:RDX or XMM0:XMM1 depending on type of return value
 		"  movl %5, %%ecx \n"
 		"  testb %%cl, %%cl \n"
-		"  je intret \n"
+		"  je Lintret \n"
 		"  lea %3, %%rax \n"
 		"  movq %%xmm0, (%%rax) \n"
 		"  lea %4, %%rdx \n"
 		"  movq %%xmm1, (%%rdx) \n"
-		"  jmp endcall \n"
-		"intret: \n"
+		"  jmp Lendcall \n"
+		"Lintret: \n"
 		"  movq %%rax, %3 \n"
 		"  movq %%rdx, %4 \n"
-		"endcall: \n"
+		"Lendcall: \n"
 
 		: : "g" ((asQWORD)cnt), "g" (args), "g" (func), "m" (retQW1), "m" (retQW2), "m" (returnFloat)
 		: "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", 
