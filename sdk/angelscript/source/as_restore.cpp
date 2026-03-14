@@ -49,7 +49,7 @@ BEGIN_AS_NAMESPACE
 #define LOAD_FROM_BIT(dst, val, bit) ((dst) = ((val) >> (bit)) & 1)
 
 asCReader::asCReader(asCModule* _module, asIBinaryStream* _stream, asCScriptEngine* _engine)
-	: module(_module), stream(_stream), engine(_engine), error(false), bytesRead(0), lastCompositeProp(0)
+	: module(_module), stream(_stream), engine(_engine), error(false), bytesRead(0), lastCompositeProp(0), noDebugInfo(false)
 {
 }
 
