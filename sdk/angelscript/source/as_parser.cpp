@@ -1029,8 +1029,7 @@ void asCParser::GetToken(sToken *token)
 			token->length = 0;
 		}
 		else
-			token->type = engine->tok.GetToken(&script->code[sourcePos], sourceLength - sourcePos, &token->length);
-
+			token->type = engine->tok.GetToken(asStringView(&script->code[sourcePos], sourceLength - sourcePos), &token->length);
 		token->pos = sourcePos;
 
 		// Update state

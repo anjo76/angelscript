@@ -37,6 +37,55 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "as_config.h"
+
+class asCString;
+struct asStringView {
+	asStringView() : string(""), len(0) {}
+	asStringView(const char *string) : string(string), len(string ? strlen(string) : 0)
+	{
+	}
+	asStringView(char *string) : string(string), len(string ? strlen(string) : 0)
+	{
+	}
+	asStringView(const char *string,size_t len) : string(string), len(len)
+	{
+	}
+	asStringView(char *string,size_t len) : string(string), len(len)
+	{
+	}
+	asStringView(const asCString &cstr);
+	asStringView(asCString &cstr);
+	template <typename String>
+	asStringView(const String &string) : string(string.data()), len(string.size()) {}
+
+
+
+	const char& operator[](size_t i) const
+	{ 
+		asASSERT(i < len);
+		return string[i];
+	}
+	asStringView SubString(size_t start, size_t length = (size_t)(-1)) const
+	{
+		if (start >= len || length == 0)
+			return asStringView();
+
+		if (length == (size_t)(-1))
+			length = GetLength() - start;
+
+		return asStringView(AddressOf() + start, length);
+	}
+	size_t GetLength() const { return len;}
+	const char* AddressOf() const { return string;}
+
+	const char *string;
+	size_t len;
+};
+
+bool operator==(asStringView a, asStringView b);
+bool operator!=(asStringView a, asStringView b);
+
 
 class asCString
 {
@@ -48,7 +97,7 @@ public:
 	asCString(asCString &&);
 	asCString &operator =(asCString &&);
 #endif // c++11
-
+	explicit asCString(asStringView);
 	asCString(const asCString &);
 	asCString(const char *);
 	asCString(const char *, size_t length);
@@ -59,8 +108,7 @@ public:
 	size_t GetLength() const;
 
 	void Concatenate(const char *str, size_t length);
-	asCString &operator +=(const asCString &);
-	asCString &operator +=(const char *);
+	asCString &operator +=(asStringView string);
 	asCString &operator +=(char);
 
 	void Assign(const char *str, size_t length);
@@ -74,9 +122,7 @@ public:
 
 	size_t Format(const char *fmt, ...);
 
-	int Compare(const char *str) const;
-	int Compare(const asCString &str) const;
-	int Compare(const char *str, size_t length) const;
+	int Compare(asStringView str) const;
 
 	char *AddressOf();
 	const char *AddressOf() const;
@@ -94,20 +140,16 @@ protected:
 };
 
 // Helper functions
-
-bool operator ==(const asCString &, const asCString &);
-bool operator !=(const asCString &, const asCString &);
-
-bool operator ==(const asCString &, const char *);
-bool operator !=(const asCString &, const char *);
-
-bool operator ==(const char *, const asCString &);
-bool operator !=(const char *, const asCString &);
+bool operator==(const asCString &, const asCString &);
+bool operator!=(const asCString &, const asCString &);
 
 bool operator <(const asCString &, const asCString &);
 
-asCString operator +(const asCString &, const char *);
-asCString operator +(const char *, const asCString &);
+asCString operator+(const asCString &, asStringView);
+asCString operator+(const asCString &, const char*);
+asCString operator+(const char*, const asCString&);
+
+asCString operator +(asStringView, const asCString &);
 asCString operator +(const asCString &, const asCString &);
 
 // a wrapper for using the pointer of asCString in asCMap
