@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2023 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied 
    warranty. In no event will the authors be held liable for any 
@@ -195,6 +195,7 @@ void asCConfigGroup::RemoveConfiguration(asCScriptEngine *engine, bool notUsed)
 		for( n = asUINT(types.GetLength()); n-- > 0; )
 		{
 			asCTypeInfo *t = types[n];
+			if (!t) continue;
 			asSMapNode<asSNameSpaceNamePair, asCTypeInfo*> *cursor;
 			if( engine->allRegisteredTypes.MoveTo(&cursor, asSNameSpaceNamePair(t->nameSpace, t->name)) &&
 				cursor->value == t )

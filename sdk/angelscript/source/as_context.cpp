@@ -75,6 +75,7 @@ public:
 		memset(instrCount, 0, sizeof(instrCount));
 		memset(instrCount2, 0, sizeof(instrCount2));
 		lastBC = 255;
+		outputDebug = false;
 	}
 
 	~asCDebugStats()
@@ -209,6 +210,19 @@ asCContext::asCContext(asCScriptEngine *engine, bool holdRef)
 	m_regs.ctx                  = this;
 	m_regs.objectRegister       = 0;
 	m_regs.objectType           = 0;
+	m_argsOnStackCacheFunc      = 0;
+	m_argsOnStackCacheProgPos   = 0;
+	m_argumentsSize             = 0;
+	m_doAbort                   = false;
+	m_exceptionCallbackObj      = 0;
+	m_exceptionLine             = 0;
+	m_exceptionColumn           = 0;
+	m_exceptionFunction         = 0;
+	m_exceptionSectionIdx       = 0;
+	m_externalSuspendRequest    = false;
+	m_lineCallbackObj           = 0;
+	m_returnValueSize           = 0;
+	m_stackIndex                = 0;
 }
 
 asCContext::~asCContext()
@@ -3202,7 +3216,7 @@ static const void *const dispatch_table[256] = {
 						m_regs.stackFramePointer = l_fp;
 
 						m_engine->CallFree(mem);
-						*a = 0;
+						if( a ) *a = 0;
 
 						return;
 					}
@@ -5369,7 +5383,7 @@ void asCContext::CleanArgsOnStack()
 
 	// Determine what function was being called
 	asCScriptFunction *func = 0;
-	asBYTE bc = *(asBYTE*)prevInstr;
+	asBYTE bc = prevInstr ? *(asBYTE*)prevInstr : 0;
 	if( bc == asBC_CALL || bc == asBC_CALLSYS || bc == asBC_CALLINTF )
 	{
 		int funcId = asBC_INTARG(prevInstr);

@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -1062,7 +1062,7 @@ asCModule *asCScriptEngine::FindNewOwnerForSharedFunc(asCScriptFunction *in_func
 		// Make sure the function is listed in the module
 		// The compiler may not have done this earlier, since the object
 		// type is shared and originally compiled from another module
-		if (in_func->module->m_scriptFunctions.IndexOf(in_func) < 0)
+		if (in_func->module && in_func->module->m_scriptFunctions.IndexOf(in_func) < 0)
 		{
 			in_func->module->m_scriptFunctions.PushLast(in_func);
 			in_func->AddRefInternal();

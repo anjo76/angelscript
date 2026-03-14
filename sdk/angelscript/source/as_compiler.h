@@ -124,7 +124,7 @@ struct asCExprContext;
 // cleaned up after the result of a function has been evaluated.
 struct asSDeferredParam
 {
-	asSDeferredParam() {argNode = 0; origExpr = 0;}
+	asSDeferredParam() : argNode(0), argInOutFlags(0), origExpr(0) {}
 
 	asCScriptNode  *argNode;
 	asCExprValue    argType;
@@ -185,6 +185,7 @@ struct asSOverloadCandidate
 
 struct asSNamedArgument
 {
+	asSNamedArgument() : ctx(0), match(0) {}
 	asCString name;
 	asCExprContext *ctx;
 	asUINT match;
@@ -250,9 +251,9 @@ struct asSFailedMatch
 	// for asEFM_POSITIONAL_MISMATCH, asEFM_NAMED_DUPLICATE: arg id
 	asUINT               arg;
 	// for asEFM_NAMED_MISSING, asEFM_NAMED_MISMATCH, asEFM_NAMED_DUPLICATE: ptr to argument string
-	const char* argName;
+	const char*          argName;
 	
-	asSFailedMatch() {}
+	asSFailedMatch() : func(0), reason(asEFM_NOT_ENOUGH_ARGS), arg(0), argName(0) {}
 	asSFailedMatch(int func, asEFailedMatchReason reason, asUINT arg = -1) :
 		func(func), reason(reason), arg(arg), argName(NULL) {}
 	asSFailedMatch(int func, asEFailedMatchReason reason, const char* argName) :

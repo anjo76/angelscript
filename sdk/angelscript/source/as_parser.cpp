@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -61,7 +61,7 @@
 
 BEGIN_AS_NAMESPACE
 
-asCParser::asCParser(asCBuilder *builder)
+asCParser::asCParser(asCBuilder *builder) : lastToken()
 {
 	this->builder    = builder;
 	this->engine     = builder->engine;
@@ -70,6 +70,9 @@ asCParser::asCParser(asCBuilder *builder)
 	scriptNode            = 0;
 	checkValidTypes       = false;
 	isParsingAppInterface = false;
+	errorWhileParsing     = false;
+	isSyntaxError         = false;
+	sourcePos             = 0;
 }
 
 asCParser::~asCParser()
