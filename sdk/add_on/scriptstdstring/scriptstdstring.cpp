@@ -642,6 +642,10 @@ static string formatFloat(double value, const string &options, asUINT width, asU
 	return buf;
 }
 
+#if defined(AS_CAN_USE_CPP11)
+using std::to_string;
+#else
+// C++98 doesn't have std::to_string, so let's define our own
 template<class T>
 static std::string to_string(T value)
 {
@@ -649,8 +653,15 @@ static std::string to_string(T value)
 	_ss << value;
 	return _ss.str();
 }
+// stringstream with uint8 treats it a single character rather than a number, so a template specialization is needed
+static std::string to_string(asBYTE value)
+{
+	std::stringstream _ss;
+	_ss << (unsigned int)value;
+	return _ss.str();
+}
+#endif
 
-// TODO: variadic: review
 static void StringFormat(asIScriptGeneric* gen)
 {
 	const string& fmt = *(string*)gen->GetArgAddress(0);
