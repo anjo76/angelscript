@@ -879,6 +879,117 @@ static bool TestEnum()
 		engine->Release();
 	}
 
+
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+
+		mod->AddScriptSection("test",
+			"flag enum MyFlags {                     \n"
+			"  none,                                 \n"
+			"  a,                                    \n"
+			"  b,                                    \n"
+			"  c,                                    \n"
+			"  all = a | b | c,                      \n"
+			"  next = 24,                            \n"
+			"  next32,                               \n"
+			"}                                       \n"
+			"void main() {                           \n"
+			"  assert( none == 0 );                  \n"
+			"  assert( a == 1 );                     \n"
+			"  assert( b == 2 );                     \n"
+			"  assert( c == 4 );                     \n"
+			"  assert( next == 24 );                 \n"
+			"  assert( next32 == 32 );               \n"
+			"  assert( all == 7 );                   \n"
+			"  MyFlags state = a | c;                \n"
+			"  assert( state == 5 );                 \n"
+			"  if(state & a) {} else {assert(false);}\n"
+			"  if(state & b) {assert(false);} else {}\n"
+			"  if(!(state & c)) { assert(false);}    \n"
+			"  state &= ~c;                          \n"
+			"  if(state & c) {assert(false);}        \n"
+			"  state |= c;                           \n"
+			"  if(state & c) {} else {assert(false);}\n"
+			"}                                       \n");
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		r = mod->Build();
+		if( r < 0 ) 
+		{
+			PRINTF("flag enum failed to build.\n");
+			TEST_FAILED;
+		}
+
+		r = ExecuteString(engine, "main()", mod);
+		if( r != asEXECUTION_FINISHED ) 
+		{
+			PRINTF("flag enum logic incorrect at runtime.\n");
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		engine->RegisterEnum("MyFlags","uint32",true);
+		engine->RegisterEnumValue("MyFlags","none",0);
+		engine->RegisterEnumValue("MyFlags","a",1 << 0);
+		engine->RegisterEnumValue("MyFlags","b",1 << 1);
+		engine->RegisterEnumValue("MyFlags","c",1 << 2);
+		engine->RegisterEnumValue("MyFlags","all",1 | 2 | 4);
+
+		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+
+
+		mod->AddScriptSection("test",
+			"void main() {                           \n"
+			"  assert( none == 0 );                  \n"
+			"  assert( a == 1 );                     \n"
+			"  assert( b == 2 );                     \n"
+			"  assert( c == 4 );                     \n"
+			"  assert( all == 7 );                   \n"
+			"  MyFlags state = a | c;                \n"
+			"  assert( state == 5 );                 \n"
+			"  if(state & a) {} else {assert(false);}\n"
+			"  if(state & b) {assert(false);} else {}\n"
+			"  if(!(state & c)) { assert(false);}    \n"
+			"  state &= ~c;                          \n"
+			"  if(state & c) {assert(false);}        \n"
+			"  state |= c;                           \n"
+			"  if(state & c) {} else {assert(false);}\n"
+			"}                                       \n");
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		r = mod->Build();
+		if( r < 0 ) 
+		{
+			PRINTF("flag enum failed to build. %s\n",bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		r = ExecuteString(engine, "main()", mod);
+		if( r != asEXECUTION_FINISHED ) 
+		{
+
+			PRINTF("flag enum logic incorrect at runtime.\n");
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
+
+
 	// Success
 	return fail;
 }
