@@ -2602,12 +2602,13 @@ asCScriptNode *asCParser::ParseScript(bool inBlock)
 			sToken tStart;
 			GetToken(&tStart);
 
-			// Optimize by skipping tokens 'shared', 'external', 'final', 'abstract' so they don't have to be checked in every condition
+			// Optimize by skipping tokens 'shared', 'external', 'final', 'abstract' , 'flag' so they don't have to be checked in every condition
 			sToken t1 = tStart;
 			while (IdentifierIs(t1, SHARED_TOKEN) ||
 				IdentifierIs(t1, EXTERNAL_TOKEN) ||
 				IdentifierIs(t1, FINAL_TOKEN) ||
-				IdentifierIs(t1, ABSTRACT_TOKEN))
+				IdentifierIs(t1, ABSTRACT_TOKEN) || 
+				IdentifierIs(t1,FLAG_TOKEN))
 				GetToken(&t1);
 			RewindTo(&tStart);
 
@@ -2836,9 +2837,10 @@ asCScriptNode *asCParser::ParseEnumeration()
 
 	// Optional 'shared' and 'external' token
 	GetToken(&token);
+
 	while( IdentifierIs(token, SHARED_TOKEN) ||
-		   IdentifierIs(token, EXTERNAL_TOKEN) )
-	{
+		   IdentifierIs(token, EXTERNAL_TOKEN) ||
+		   IdentifierIs(token, FLAG_TOKEN)) {
 		RewindTo(&token);
 		node->AddChildLast(ParseIdentifier());
 		if( isSyntaxError ) return node;
@@ -2951,13 +2953,9 @@ asCScriptNode *asCParser::ParseEnumeration()
 
 		if( token.type == ttAssignment )
 		{
-			asCScriptNode	*tmp;
-
 			RewindTo(&token);
 
-			tmp = SuperficiallyParseVarInit();
-
-			node->AddChildLast(tmp);
+			node->AddChildLast(SuperficiallyParseVarInit());
 			if( isSyntaxError ) return node;
 			GetToken(&token);
 		}

@@ -6258,7 +6258,7 @@ asITypeInfo *asCScriptEngine::GetTypedefByIndex(asUINT index) const
 }
 
 // interface
-int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingType)
+int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingType, bool isFlags)
 {
 	//	Check the name
 	if( NULL == typeName )
@@ -6303,7 +6303,7 @@ int asCScriptEngine::RegisterEnum(const char* typeName, const char* underlyingTy
 	if( r < 0 )
 		return ConfigError(asNAME_TAKEN, "RegisterEnum", typeName, 0);
 
-	asCEnumType *st = asNEW(asCEnumType)(this);
+	asCEnumType *st = asNEW(asCEnumType)(this, isFlags);
 	if( st == 0 )
 		return ConfigError(asOUT_OF_MEMORY, "RegisterEnum", typeName, 0);
 
