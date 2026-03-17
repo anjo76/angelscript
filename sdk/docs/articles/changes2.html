@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/03/16</h2>
+<h2>Version 2.39.0 WIP - 2026/03/17</h2>
 
 <ul>
 <li>Bug fixes
@@ -57,6 +57,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed loading bytecode that uses variadic functions (Thanks Aleksander Jaronik)
 <li>Declaring a type as ?[] will no longer be silently accepted (Thanks Aleksander Jaronik)
 <li>Fixed exception handling with native calling convention and clang on MacOS x86-64 (Thanks pollend)
+<li>Fixed crash in compiler when compiling a call to an imported function with the wrong types (Thanks Miss)
 </ul>
 <li>Library
 <ul>

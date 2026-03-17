@@ -6469,7 +6469,7 @@ void asCCompiler::PrintMatchingFuncs(asCArray<int> &funcs, asCScriptNode *node, 
 						msg.Format(TXT_TOO_MANY_ARGUMENTS);
 						break;
 					case asEFM_POSITIONAL_MISMATCH:
-						if (func->parameterNames[(*failedReasons)[f].arg].GetLength() == 0)
+						if (func->parameterNames.GetLength() <= (*failedReasons)[f].arg || func->parameterNames[(*failedReasons)[f].arg].GetLength() == 0)
 							msg.Format(TXT_ARGUMENT_TYPE_ERROR_i, (*failedReasons)[f].arg + 1); // use one-indexed parameters, like other compilers (msvc, clang)
 						else
 							msg.Format(TXT_ARGUMENT_TYPE_ERROR_s, func->parameterNames[(*failedReasons)[f].arg].AddressOf());
