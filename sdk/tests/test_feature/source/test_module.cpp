@@ -306,7 +306,7 @@ bool Test()
 		RegisterScriptArray(engine, false);
 
 		int allocBeforeEverything = GetAllocedMem();
-
+		UNUSED_VAR(allocBeforeEverything); // used for debugging purposes, but not needed for the test
 		int allocAfterFirstIteration = 0;
 		int allocAfterLastIteration = 0;
 
