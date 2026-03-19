@@ -201,9 +201,9 @@ protected:
 
 	struct ci_less
 	{
-		static int tolower_impl(unsigned char c)
+		static char tolower_impl(unsigned char c)
 		{
-			return std::tolower(c);
+			return static_cast<char>(std::tolower(c));
 		}
 		static std::string str_tolower(std::string s)
 		{
