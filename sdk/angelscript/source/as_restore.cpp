@@ -49,7 +49,7 @@ BEGIN_AS_NAMESPACE
 #define LOAD_FROM_BIT(dst, val, bit) ((dst) = ((val) >> (bit)) & 1)
 
 asCReader::asCReader(asCModule* _module, asIBinaryStream* _stream, asCScriptEngine* _engine)
-	: module(_module), stream(_stream), engine(_engine), error(false), bytesRead(0), lastCompositeProp(0), noDebugInfo(false)
+	: module(_module), stream(_stream), engine(_engine), error(false), bytesRead(0), noDebugInfo(false), lastCompositeProp(0)
 {
 }
 
@@ -2113,9 +2113,9 @@ asQWORD asCReader::ReadEncodedUInt64()
 		ReadData(&b, 1); i += asQWORD(b) << 48;
 		ReadData(&b, 1); i += asQWORD(b) << 40;
 		ReadData(&b, 1); i += asQWORD(b) << 32;
-		ReadData(&b, 1); i += asUINT(b) << 24;
-		ReadData(&b, 1); i += asUINT(b) << 16;
-		ReadData(&b, 1); i += asUINT(b) << 8;
+		ReadData(&b, 1); i += asQWORD(b) << 24;
+		ReadData(&b, 1); i += asQWORD(b) << 16;
+		ReadData(&b, 1); i += asQWORD(b) << 8;
 		ReadData(&b, 1); i += b;
 	}
 	else if( (b & 0x7E) == 0x7E )
@@ -2123,44 +2123,44 @@ asQWORD asCReader::ReadEncodedUInt64()
 		i = asQWORD(b & 0x01) << 48;
 		ReadData(&b, 1); i += asQWORD(b) << 40;
 		ReadData(&b, 1); i += asQWORD(b) << 32;
-		ReadData(&b, 1); i += asUINT(b) << 24;
-		ReadData(&b, 1); i += asUINT(b) << 16;
-		ReadData(&b, 1); i += asUINT(b) << 8;
+		ReadData(&b, 1); i += asQWORD(b) << 24;
+		ReadData(&b, 1); i += asQWORD(b) << 16;
+		ReadData(&b, 1); i += asQWORD(b) << 8;
 		ReadData(&b, 1); i += b;
 	}
 	else if( (b & 0x7C) == 0x7C )
 	{
 		i = asQWORD(b & 0x03) << 40;
 		ReadData(&b, 1); i += asQWORD(b) << 32;
-		ReadData(&b, 1); i += asUINT(b) << 24;
-		ReadData(&b, 1); i += asUINT(b) << 16;
-		ReadData(&b, 1); i += asUINT(b) << 8;
+		ReadData(&b, 1); i += asQWORD(b) << 24;
+		ReadData(&b, 1); i += asQWORD(b) << 16;
+		ReadData(&b, 1); i += asQWORD(b) << 8;
 		ReadData(&b, 1); i += b;
 	}
 	else if( (b & 0x78) == 0x78 )
 	{
 		i = asQWORD(b & 0x07) << 32;
-		ReadData(&b, 1); i += asUINT(b) << 24;
-		ReadData(&b, 1); i += asUINT(b) << 16;
-		ReadData(&b, 1); i += asUINT(b) << 8;
+		ReadData(&b, 1); i += asQWORD(b) << 24;
+		ReadData(&b, 1); i += asQWORD(b) << 16;
+		ReadData(&b, 1); i += asQWORD(b) << 8;
 		ReadData(&b, 1); i += b;
 	}
 	else if( (b & 0x70) == 0x70 )
 	{
-		i = asUINT(b & 0x0F) << 24;
-		ReadData(&b, 1); i += asUINT(b) << 16;
-		ReadData(&b, 1); i += asUINT(b) << 8;
+		i = asQWORD(b & 0x0F) << 24;
+		ReadData(&b, 1); i += asQWORD(b) << 16;
+		ReadData(&b, 1); i += asQWORD(b) << 8;
 		ReadData(&b, 1); i += b;
 	}
 	else if( (b & 0x60) == 0x60 )
 	{
-		i = asUINT(b & 0x1F) << 16;
-		ReadData(&b, 1); i += asUINT(b) << 8;
+		i = asQWORD(b & 0x1F) << 16;
+		ReadData(&b, 1); i += asQWORD(b) << 8;
 		ReadData(&b, 1); i += b;
 	}
 	else if( (b & 0x40) == 0x40 )
 	{
-		i = asUINT(b & 0x3F) << 8;
+		i = asQWORD(b & 0x3F) << 8;
 		ReadData(&b, 1); i += b;
 	}
 	else
@@ -3333,7 +3333,7 @@ void asCReader::TranslateFunction(asCScriptFunction *func)
 }
 
 asCReader::SListAdjuster::SListAdjuster(asCReader* rd, asDWORD* bc, asCObjectType* listType) :
-	reader(rd), allocMemBC(bc), maxOffset(0), patternType(listType), repeatCount(0), lastOffset(-1), nextOffset(0), patternNode(0), nextTypeId(-1)
+	reader(rd), allocMemBC(bc), maxOffset(0), patternType(listType), repeatCount(0), lastOffset(-1), nextOffset(0), lastAdjustedOffset(0), patternNode(0), nextTypeId(-1)
 {
 	asASSERT( patternType && (patternType->flags & asOBJ_LIST_PATTERN) );
 
@@ -5348,7 +5348,7 @@ void asCWriter::WriteByteCode(asCScriptFunction *func)
 
 				// Translate string constants into indices
 				// Leave the first bit clear to signal string constant
-				*(asPWORD*)(tmpBC + 1) = FindStringConstantIndex(*(void**)(tmpBC + 1)) << 1;
+				*(asPWORD*)(tmpBC + 1) = asUINT(FindStringConstantIndex(*(void**)(tmpBC + 1)) << 1);
 			}
 		}
 		else if( c == asBC_JMP    ||	// DW_ARG
@@ -5940,6 +5940,9 @@ int asCWriter::FindObjectPropIndex(short offset, int typeId, asDWORD *bc)
 		{
 			// This is a potential composite property. Need to check the following instructions to be sure
 			objProp = objType->properties[n];
+			asASSERT(objProp);
+			if (objProp == 0)
+				continue;
 			asDWORD *bcTemp = bc;
 			bcTemp += asBCTypeSize[asBCInfo[*(asBYTE*)bcTemp].type];
 			if (objProp->isCompositeIndirect)
