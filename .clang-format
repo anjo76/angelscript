@@ -1,0 +1,70 @@
+---
+Language: Cpp
+Standard: c++03
+BasedOnStyle: LLVM
+ReflowComments: false 
+SortIncludes: false
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: ForIndentation
+
+
+ColumnLimit: 0 # this when 0 prevents clangformat from fixing manual line breaks
+MaxEmptyLinesToKeep: 50
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterControlStatement: true
+  AfterFunction: true
+  AfterClass: true   
+  AfterStruct: true      
+  AfterUnion: true       
+  AfterNamespace: false  
+  BeforeElse: true       
+  AfterExternBlock: false
+  AfterCaseLabel: true
+SpacesInParentheses: false # for 'if( x )'
+SpaceBeforeParens: Custom
+SpaceBeforeParensOptions:
+  AfterControlStatements: false
+  AfterFunctionDefinitionName: false
+  AfterPlacementOperator: true
+
+SpacesInConditionalStatement: true
+BreakTemplateDeclarations: No
+AlignConsecutiveDeclarations: true
+AlignConsecutiveAssignments:
+  Enabled: true
+  AcrossEmptyLines: false
+  AcrossComments: false
+  AlignCompound: true
+  PadOperators: true
+
+PointerAlignment: Right # int *ptr
+DerivePointerAlignment: false
+
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceAroundPointerQualifiers: Both
+
+AllowShortBlocksOnASingleLine: Always
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+
+IndentCaseLabels: true
+IndentPPDirectives: BeforeHash
+PPIndentWidth: 4
+NamespaceIndentation: None
+IndentAccessModifiers: false
+AccessModifierOffset: -4
+StatementMacros:
+  - BEGIN_AS_NAMESPACE
+  - END_AS_NAMESPACE
+
+WhitespaceSensitiveMacros:
+  - asASSERT
+
+QualifierAlignment: Custom
+QualifierOrder: ['static', 'inline', 'constexpr', 'const', 'volatile', 'type']

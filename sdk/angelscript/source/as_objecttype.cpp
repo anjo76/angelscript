@@ -53,19 +53,19 @@ asCObjectType::asCObjectType() : asCTypeInfo()
 	acceptRefSubType   = true;
 
 #ifdef WIP_16BYTE_ALIGN
-	alignment  = 4;
+	alignment = 4;
 #endif
 }
 
 asCObjectType::asCObjectType(asCScriptEngine *in_engine) : asCTypeInfo(in_engine)
 {
-	derivedFrom  = 0;
+	derivedFrom = 0;
 
 	acceptValueSubType = true;
-	acceptRefSubType = true;
+	acceptRefSubType   = true;
 
 #ifdef WIP_16BYTE_ALIGN
-	alignment  = 4;
+	alignment = 4;
 #endif
 }
 
@@ -78,7 +78,7 @@ asUINT asCObjectType::GetChildFuncdefCount() const
 // interface
 asITypeInfo *asCObjectType::GetChildFuncdef(asUINT index) const
 {
-	if (index >= childFuncDefs.GetLength())
+	if( index >= childFuncDefs.GetLength() )
 		return 0;
 
 	return childFuncDefs[index];
@@ -107,18 +107,18 @@ void asCObjectType::DestroyInternal()
 	templateSubTypes.SetLength(0);
 
 	// Clear the child types
-	for (asUINT n = 0; n < childFuncDefs.GetLength(); n++)
+	for( asUINT n = 0; n < childFuncDefs.GetLength(); n++ )
 	{
 		asCFuncdefType *func = childFuncDefs[n];
-		if (func)
+		if( func )
 		{
 			func->parentClass = 0;
-			if (isTemplateInstance)
+			if( isTemplateInstance )
 			{
-				// Any child funcdefs that have been created as part of the template 
+				// Any child funcdefs that have been created as part of the template
 				// instantiation must be destroyed too
 				// TODO: Before destroying the funcdef, make sure no external references to it is held
-				if (func->externalRefCount.get() == 0)
+				if( func->externalRefCount.get() == 0 )
 				{
 					func->DestroyInternal();
 					engine->RemoveFuncdef(func);
@@ -311,12 +311,12 @@ asIScriptFunction *asCObjectType::GetMethodByDecl(const char *decl, bool getVirt
 
 	// Get the module from one of the methods, but it will only be
 	// used to allow the parsing of types not already known by the object.
-	// It is possible for object types to be orphaned, e.g. by discarding 
-	// the module that created it. In this case it is still possible to 
+	// It is possible for object types to be orphaned, e.g. by discarding
+	// the module that created it. In this case it is still possible to
 	// find the methods, but any type not known by the object will result in
 	// an invalid declaration.
 	asCModule *mod = engine->scriptFunctions[methods[0]]->module;
-	int id = engine->GetMethodIdByDecl(this, decl, mod);
+	int        id  = engine->GetMethodIdByDecl(this, decl, mod);
 	if( id <= 0 )
 		return 0;
 
@@ -357,11 +357,11 @@ int asCObjectType::GetProperty(asUINT index, const char **out_name, int *out_typ
 		*out_isReference = prop->type.IsReference();
 	if( out_accessMask )
 		*out_accessMask = prop->accessMask;
-	if (out_compositeOffset)
+	if( out_compositeOffset )
 		*out_compositeOffset = prop->compositeOffset;
-	if (out_isCompositeIndirect)
+	if( out_isCompositeIndirect )
 		*out_isCompositeIndirect = prop->isCompositeIndirect;
-	if (out_isConst)
+	if( out_isConst )
 		*out_isConst = prop->type.IsReadOnly();
 
 	return 0;
@@ -389,25 +389,25 @@ const char *asCObjectType::GetPropertyDeclaration(asUINT index, bool includeName
 
 asITypeInfo *asCObjectType::GetBaseType() const
 {
-	return derivedFrom; 
+	return derivedFrom;
 }
 
 asUINT asCObjectType::GetBehaviourCount() const
 {
 	// Count the number of behaviours (except factory functions)
 	asUINT count = 0;
-	
-	if( beh.destruct )               count++;
-	if( beh.addref )                 count++;
-	if( beh.release )                count++;
-	if( beh.gcGetRefCount )          count++;
-	if( beh.gcSetFlag )              count++;
-	if( beh.gcGetFlag )              count++;
-	if( beh.gcEnumReferences )       count++;
-	if( beh.gcReleaseAllReferences ) count++; 
-	if( beh.templateCallback )       count++;
-	if( beh.listFactory )            count++;
-	if( beh.getWeakRefFlag )         count++;
+
+	if( beh.destruct ) count++;
+	if( beh.addref ) count++;
+	if( beh.release ) count++;
+	if( beh.gcGetRefCount ) count++;
+	if( beh.gcSetFlag ) count++;
+	if( beh.gcGetFlag ) count++;
+	if( beh.gcEnumReferences ) count++;
+	if( beh.gcReleaseAllReferences ) count++;
+	if( beh.templateCallback ) count++;
+	if( beh.listFactory ) count++;
+	if( beh.getWeakRefFlag ) count++;
 
 	// For reference types, the factories are also stored in the constructor
 	// list, so it is sufficient to enumerate only those
@@ -422,7 +422,7 @@ asIScriptFunction *asCObjectType::GetBehaviourByIndex(asUINT index, asEBehaviour
 	asUINT count = 0;
 
 	if( beh.destruct && count++ == index ) // only increase count if the behaviour is registered
-	{ 
+	{
 		if( outBehaviour ) *outBehaviour = asBEHAVE_DESTRUCT;
 		return engine->scriptFunctions[beh.destruct];
 	}
@@ -477,7 +477,7 @@ asIScriptFunction *asCObjectType::GetBehaviourByIndex(asUINT index, asEBehaviour
 
 	if( beh.listFactory && count++ == index )
 	{
-		if( outBehaviour ) 
+		if( outBehaviour )
 		{
 			if( flags & asOBJ_VALUE )
 				*outBehaviour = asBEHAVE_LIST_CONSTRUCT;
@@ -501,7 +501,7 @@ asIScriptFunction *asCObjectType::GetBehaviourByIndex(asUINT index, asEBehaviour
 		if( outBehaviour ) *outBehaviour = asBEHAVE_CONSTRUCT;
 		return engine->scriptFunctions[beh.constructors[index - count]];
 	}
-	else 
+	else
 		count += (asUINT)beh.constructors.GetLength();
 
 	return 0;
@@ -539,12 +539,12 @@ asCObjectProperty *asCObjectType::AddPropertyToClass(const asCString &propName, 
 			propSize = dt.GetSizeInMemoryBytes();
 		else
 		{
-			propSize = dt.GetSizeOnStackDWords()*4;
+			propSize = dt.GetSizeOnStackDWords() * 4;
 			if( !dt.IsObjectHandle() )
 				prop->type.MakeReference(true);
 		}
 	}
-	else if (dt.IsFuncdef())
+	else if( dt.IsFuncdef() )
 	{
 		// Funcdefs don't have a size, as they must always be stored as handles
 		asASSERT(dt.IsObjectHandle());
@@ -558,8 +558,8 @@ asCObjectProperty *asCObjectType::AddPropertyToClass(const asCString &propName, 
 	if( propSize == 2 && (size & 1) ) size += 1;
 	if( propSize > 2 && (size & 3) ) size += 4 - (size & 3);
 #else
-	asUINT alignment = dt.GetAlignment();
-	const asUINT propSizeAlignmentDifference = size & (alignment-1);
+	asUINT       alignment                   = dt.GetAlignment();
+	const asUINT propSizeAlignmentDifference = size & (alignment - 1);
 	if( propSizeAlignmentDifference != 0 )
 	{
 		size += (alignment - propSizeAlignmentDifference);
@@ -568,8 +568,8 @@ asCObjectProperty *asCObjectType::AddPropertyToClass(const asCString &propName, 
 	asASSERT((size % alignment) == 0);
 #endif
 
-	prop->byteOffset = size;
-	size += propSize;
+	prop->byteOffset  = size;
+	size             += propSize;
 
 	properties.PushLast(prop);
 
@@ -590,7 +590,7 @@ void asCObjectType::ReleaseAllProperties()
 {
 	for( asUINT n = 0; n < properties.GetLength(); n++ )
 	{
-		if( properties[n] ) 
+		if( properties[n] )
 		{
 			if( flags & asOBJ_SCRIPT_OBJECT )
 			{
@@ -611,7 +611,7 @@ void asCObjectType::ReleaseAllProperties()
 					type->ReleaseInternal();
 			}
 
-			asDELETE(properties[n],asCObjectProperty);
+			asDELETE(properties[n], asCObjectProperty);
 		}
 	}
 
@@ -625,7 +625,7 @@ void asCObjectType::ReleaseAllFunctions()
 	beh.copyfactory = 0;
 	for( asUINT a = 0; a < beh.factories.GetLength(); a++ )
 	{
-		if( engine->scriptFunctions[beh.factories[a]] ) 
+		if( engine->scriptFunctions[beh.factories[a]] )
 			engine->scriptFunctions[beh.factories[a]]->ReleaseInternal();
 	}
 	beh.factories.SetLength(0);
@@ -634,7 +634,7 @@ void asCObjectType::ReleaseAllFunctions()
 	beh.copyconstruct = 0;
 	for( asUINT b = 0; b < beh.constructors.GetLength(); b++ )
 	{
-		if( engine->scriptFunctions[beh.constructors[b]] ) 
+		if( engine->scriptFunctions[beh.constructors[b]] )
 			engine->scriptFunctions[beh.constructors[b]]->ReleaseInternal();
 	}
 	beh.constructors.SetLength(0);
@@ -649,7 +649,7 @@ void asCObjectType::ReleaseAllFunctions()
 
 	if( beh.destruct )
 		engine->scriptFunctions[beh.destruct]->ReleaseInternal();
-	beh.destruct  = 0;
+	beh.destruct = 0;
 
 	if( beh.copy )
 		engine->scriptFunctions[beh.copy]->ReleaseInternal();
@@ -657,7 +657,7 @@ void asCObjectType::ReleaseAllFunctions()
 
 	for( asUINT c = 0; c < methods.GetLength(); c++ )
 	{
-		if( engine->scriptFunctions[methods[c]] ) 
+		if( engine->scriptFunctions[methods[c]] )
 			engine->scriptFunctions[methods[c]]->ReleaseInternal();
 	}
 	methods.SetLength(0);
@@ -698,12 +698,9 @@ void asCObjectType::ReleaseAllFunctions()
 		engine->scriptFunctions[beh.gcSetFlag]->ReleaseInternal();
 	beh.gcSetFlag = 0;
 
-	if ( beh.getWeakRefFlag )
+	if( beh.getWeakRefFlag )
 		engine->scriptFunctions[beh.getWeakRefFlag]->ReleaseInternal();
 	beh.getWeakRefFlag = 0;
 }
 
 END_AS_NAMESPACE
-
-
-

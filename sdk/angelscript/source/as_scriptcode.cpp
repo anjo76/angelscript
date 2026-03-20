@@ -45,15 +45,15 @@ BEGIN_AS_NAMESPACE
 asCScriptCode::asCScriptCode()
 {
 	lineOffset = 0;
-	code = 0;
+	code       = 0;
 	codeLength = 0;
 	sharedCode = false;
-	idx = 0;
+	idx        = 0;
 }
 
 asCScriptCode::~asCScriptCode()
 {
-	if( !sharedCode && code ) 
+	if( !sharedCode && code )
 	{
 		asDELETEARRAY(code);
 	}
@@ -66,9 +66,9 @@ int asCScriptCode::SetCode(const char *in_name, const char *in_code, bool in_mak
 
 int asCScriptCode::SetCode(const char *in_name, const char *in_code, size_t in_length, bool in_makeCopy)
 {
-	if( !in_code) return asINVALID_ARG;
+	if( !in_code ) return asINVALID_ARG;
 	this->name = in_name ? in_name : "";
-	if( !sharedCode && code ) 
+	if( !sharedCode && code )
 		asDELETEARRAY(code);
 
 	if( in_length == 0 )
@@ -77,7 +77,7 @@ int asCScriptCode::SetCode(const char *in_name, const char *in_code, size_t in_l
 	{
 		codeLength = in_length;
 		sharedCode = false;
-		code = asNEWARRAY(char, in_length);
+		code       = asNEWARRAY(char, in_length);
 		if( code == 0 )
 			return asOUT_OF_MEMORY;
 		memcpy(code, in_code, in_length);
@@ -85,14 +85,14 @@ int asCScriptCode::SetCode(const char *in_name, const char *in_code, size_t in_l
 	else
 	{
 		codeLength = in_length;
-		code = const_cast<char*>(in_code);
+		code       = const_cast<char *>(in_code);
 		sharedCode = true;
 	}
 
 	// Find the positions of each line
 	linePositions.PushLast(0);
 	for( size_t n = 0; n < in_length; n++ )
-		if( in_code[n] == '\n' ) linePositions.PushLast(n+1);
+		if( in_code[n] == '\n' ) linePositions.PushLast(n + 1);
 	linePositions.PushLast(in_length);
 
 	return asSUCCESS;
@@ -100,7 +100,7 @@ int asCScriptCode::SetCode(const char *in_name, const char *in_code, size_t in_l
 
 void asCScriptCode::ConvertPosToRowCol(size_t pos, int *row, int *col)
 {
-	if( linePositions.GetLength() == 0 ) 
+	if( linePositions.GetLength() == 0 )
 	{
 		if( row ) *row = lineOffset;
 		if( col ) *col = 1;
@@ -110,9 +110,9 @@ void asCScriptCode::ConvertPosToRowCol(size_t pos, int *row, int *col)
 	// Do a binary search in the buffer
 	int max = (int)linePositions.GetLength() - 1;
 	int min = 0;
-	int i = max/2;
+	int i   = max / 2;
 
-	for(;;)
+	for( ;; )
 	{
 		if( linePositions[i] < pos )
 		{
@@ -120,7 +120,7 @@ void asCScriptCode::ConvertPosToRowCol(size_t pos, int *row, int *col)
 			if( min == i ) break;
 
 			min = i;
-			i = (max + min)/2;
+			i   = (max + min) / 2;
 		}
 		else if( linePositions[i] > pos )
 		{
@@ -128,7 +128,7 @@ void asCScriptCode::ConvertPosToRowCol(size_t pos, int *row, int *col)
 			if( max == i ) break;
 
 			max = i;
-			i = (max + min)/2;
+			i   = (max + min) / 2;
 		}
 		else
 		{

@@ -61,14 +61,17 @@ inline asPWORD FuncPtrToUInt(asFUNCTION_t func)
 {
 	// A little trickery as the C++ standard doesn't allow direct
 	// conversion between function pointer and data pointer
-	union { asFUNCTION_t func; asPWORD idx; } u;
+	union
+	{
+		asFUNCTION_t func;
+		asPWORD      idx;
+	} u;
 	u.func = func;
 
 	return u.idx;
 }
 
-enum internalCallConv
-{
+enum internalCallConv {
 	ICC_GENERIC_FUNC,
 	ICC_GENERIC_FUNC_RETURNINMEM, // never used
 	ICC_CDECL,
@@ -97,31 +100,31 @@ enum internalCallConv
 
 struct asSSystemFunctionInterface
 {
-	asFUNCTION_t         func;
-	int                  baseOffset;
-	internalCallConv     callConv;
-	bool                 hostReturnInMemory;
-	bool                 hostReturnFloat;
-	int                  hostReturnSize;
-	int                  paramSize;
-	bool                 takesObjByVal;
-	asCArray<bool>       paramAutoHandles; // TODO: Should be able to remove this array. Perhaps the flags can be stored together with the inOutFlags in asCScriptFunction?
-	bool                 returnAutoHandle;
-	int                  compositeOffset;
-	bool                 isCompositeIndirect;
-	void                *auxiliary; // can be used for functors, e.g. by asCALL_THISCALL_ASGLOBAL or asCALL_THISCALL_OBJFIRST
+	asFUNCTION_t     func;
+	int              baseOffset;
+	internalCallConv callConv;
+	bool             hostReturnInMemory;
+	bool             hostReturnFloat;
+	int              hostReturnSize;
+	int              paramSize;
+	bool             takesObjByVal;
+	asCArray<bool>   paramAutoHandles; // TODO: Should be able to remove this array. Perhaps the flags can be stored together with the inOutFlags in asCScriptFunction?
+	bool             returnAutoHandle;
+	int              compositeOffset;
+	bool             isCompositeIndirect;
+	void            *auxiliary; // can be used for functors, e.g. by asCALL_THISCALL_ASGLOBAL or asCALL_THISCALL_OBJFIRST
 
 	struct SClean
 	{
-		asCObjectType *ot; // argument type for clean up
-		short op;          // clean up operation: 0 = release, 1 = free, 2 = destruct then free
-		short off;         // argument offset on the stack
+		asCObjectType *ot;  // argument type for clean up
+		short          op;  // clean up operation: 0 = release, 1 = free, 2 = destruct then free
+		short          off; // argument offset on the stack
 	};
-	asCArray<SClean>     cleanArgs;
+	asCArray<SClean> cleanArgs;
 
 	asSSystemFunctionInterface()
-	{ 
-		Clear(); 
+	{
+		Clear();
 	}
 
 	asSSystemFunctionInterface(const asSSystemFunctionInterface &in)
@@ -163,8 +166,8 @@ struct asSSystemFunctionInterface
 		isCompositeIndirect = in.isCompositeIndirect;
 		auxiliary           = in.auxiliary;
 
-		cleanArgs           = in.cleanArgs;
-		paramAutoHandles    = in.paramAutoHandles;
+		cleanArgs        = in.cleanArgs;
+		paramAutoHandles = in.paramAutoHandles;
 
 		return *this;
 	}
@@ -173,4 +176,3 @@ struct asSSystemFunctionInterface
 END_AS_NAMESPACE
 
 #endif
-

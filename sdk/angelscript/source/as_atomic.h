@@ -33,7 +33,7 @@
 // as_atomic.h
 //
 // The asCAtomic class provides methods for performing threadsafe
-// operations on a single dword, e.g. reference counting and 
+// operations on a single dword, e.g. reference counting and
 // bitfields.
 //
 

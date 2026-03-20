@@ -53,7 +53,7 @@ class asCThreadManager : public asIThreadManager
 {
 public:
 	static asCThreadLocalData *GetLocalData();
-	static int CleanupLocalData();
+	static int                 CleanupLocalData();
 
 	static int  Prepare(asIThreadManager *externalThreadMgr);
 	static void Unprepare();
@@ -74,16 +74,16 @@ protected:
 	int refCount;
 
 #ifndef AS_NO_THREADS
-#if defined(_MSC_VER) && defined(AS_WINDOWS_THREADS) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+	#if defined(_MSC_VER) && defined(AS_WINDOWS_THREADS) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
 	// On Windows Store we must use MSVC specific thread variables for thread
 	// local storage, as the TLS API isn't available. On desktop we can't use
 	// this as it may cause problems if the library is used in a dll.
 	// ref: http://msdn.microsoft.com/en-us/library/2s9wt68x.aspx
 	// ref: http://msdn.microsoft.com/en-us/library/9w1sdazb.aspx
 	__declspec(thread) static asCThreadLocalData *tld;
-#else
+	#else
 	asDWORD mtlsKey; //Multi-thread local storage key
-#endif
+	#endif
 	DECLARECRITICALSECTION(criticalSection)
 #else
 	asCThreadLocalData *tld;
@@ -98,7 +98,7 @@ class asCThreadLocalData
 {
 public:
 	asCArray<asIScriptContext *> activeContexts;
-	asCString string;
+	asCString                    string;
 
 protected:
 	friend class asCThreadManager;

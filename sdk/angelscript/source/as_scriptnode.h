@@ -44,8 +44,7 @@
 
 BEGIN_AS_NAMESPACE
 
-enum eScriptNode
-{
+enum eScriptNode {
 	snUndefined,
 	snScript,
 	snFunction,
@@ -100,8 +99,8 @@ enum eScriptNode
 struct sToken
 {
 	eTokenType type;
-	size_t pos;
-	size_t length;
+	size_t     pos;
+	size_t     length;
 };
 
 class asCScriptEngine;
@@ -111,7 +110,7 @@ class asCScriptNode
 public:
 	asCScriptNode(eScriptNode nodeType);
 
-	void Destroy(asCScriptEngine *engine);
+	void           Destroy(asCScriptEngine *engine);
 	asCScriptNode *CreateCopy(asCScriptEngine *engine);
 
 	void SetToken(sToken *token);
@@ -121,9 +120,9 @@ public:
 	void UpdateSourcePos(size_t pos, size_t length);
 
 	eScriptNode nodeType;
-	eTokenType tokenType;
-	size_t tokenPos;
-	size_t tokenLength;
+	eTokenType  tokenType;
+	size_t      tokenPos;
+	size_t      tokenLength;
 
 	asCScriptNode *parent;
 	asCScriptNode *next;
@@ -133,7 +132,9 @@ public:
 
 protected:
 	// Must call Destroy instead
-	~asCScriptNode() {}
+	~asCScriptNode()
+	{
+	}
 };
 
 END_AS_NAMESPACE

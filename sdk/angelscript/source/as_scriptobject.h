@@ -66,16 +66,16 @@ public:
 
 protected:
 	mutable asCAtomic refCount;
-	bool      value;
+	bool              value;
 	DECLARECRITICALSECTION(mutable lock)
 };
 
 class asCScriptObject : public asIScriptObject
 {
 public:
-//===================================
-// From asIScriptObject
-//===================================
+	//===================================
+	// From asIScriptObject
+	//===================================
 
 	// Memory management
 	int                    AddRef() const;
@@ -83,8 +83,8 @@ public:
 	asILockableSharedBool *GetWeakRefFlag() const;
 
 	// Type info
-	int            GetTypeId() const;
-	asITypeInfo   *GetObjectType() const;
+	int          GetTypeId() const;
+	asITypeInfo *GetObjectType() const;
 
 	// Class properties
 	asUINT      GetPropertyCount() const;
@@ -100,9 +100,9 @@ public:
 	void *SetUserData(void *data, asPWORD type = 0);
 	void *GetUserData(asPWORD type = 0) const;
 
-//====================================
-// Internal
-//====================================
+	//====================================
+	// Internal
+	//====================================
 	asCScriptObject(asCObjectType *objType, bool doInitialize = true);
 	virtual ~asCScriptObject();
 
@@ -118,25 +118,25 @@ public:
 
 	// Used for properties
 	void *AllocateUninitializedObject(asCObjectType *objType, asCScriptEngine *engine);
-	void FreeObject(void *ptr, asCObjectType *objType, asCScriptEngine *engine);
-	void CopyObject(const void *src, void *dst, asCObjectType *objType, asCScriptEngine *engine);
-	void CopyHandle(asPWORD *src, asPWORD *dst, asCObjectType *objType, asCScriptEngine *engine);
-	int  CopyFromAs(const asCScriptObject *other, asCObjectType *objType);
+	void  FreeObject(void *ptr, asCObjectType *objType, asCScriptEngine *engine);
+	void  CopyObject(const void *src, void *dst, asCObjectType *objType, asCScriptEngine *engine);
+	void  CopyHandle(asPWORD *src, asPWORD *dst, asCObjectType *objType, asCScriptEngine *engine);
+	int   CopyFromAs(const asCScriptObject *other, asCObjectType *objType);
 
 	void CallDestructor();
 
-//=============================================
-// Properties
-//=============================================
+	//=============================================
+	// Properties
+	//=============================================
 public:
-	// This is public to allow external code (e.g. JIT compiler) to do asOFFSET to 
+	// This is public to allow external code (e.g. JIT compiler) to do asOFFSET to
 	// access the members directly without having to modify the code to add friend
-	asCObjectType* objType;
+	asCObjectType *objType;
 
 protected:
 	mutable asCAtomic refCount;
-	mutable asBYTE    gcFlag:1;
-	mutable asBYTE    hasRefCountReachedZero:1;
+	mutable asBYTE    gcFlag : 1;
+	mutable asBYTE    hasRefCountReachedZero : 1;
 	bool              isDestructCalled;
 
 	// Most script classes instances won't have neither the weakRefFlags nor
@@ -152,7 +152,7 @@ protected:
 	mutable SExtra *extra;
 };
 
-void ScriptObject_Construct(asCObjectType *objType, asCScriptObject *self);
+void             ScriptObject_Construct(asCObjectType *objType, asCScriptObject *self);
 asCScriptObject &ScriptObject_Assignment(asCScriptObject *other, asCScriptObject *self);
 
 void ScriptObject_ConstructUnitialized(asCObjectType *objType, asCScriptObject *self);

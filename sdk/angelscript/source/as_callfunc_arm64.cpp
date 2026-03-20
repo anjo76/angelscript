@@ -38,7 +38,7 @@
 //
 // Adapted for Apple M1/M2 by Sam Tupy in Jan 2024
 //
-// ref for Apple ABI: https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms 
+// ref for Apple ABI: https://developer.apple.com/documentation/xcode/writing-arm64-code-for-apple-platforms
 //
 
 
@@ -55,8 +55,8 @@
 
 // ARM64 targets use has no software floating-point ABI, it's all hardware (or totally disabled)
 
-#define HFA_RET_REGISTERS   4 // s0-s3/d0-d3
-#define GP_ARG_REGISTERS    8 // x0-x7
+#define HFA_RET_REGISTERS 4   // s0-s3/d0-d3
+#define GP_ARG_REGISTERS 8    // x0-x7
 #define FLOAT_ARG_REGISTERS 8 // v0-v7
 
 BEGIN_AS_NAMESPACE
@@ -74,35 +74,30 @@ extern "C" void GetHFAReturnDouble(asQWORD *out1, asQWORD *out2, asQWORD returnS
 extern "C" void GetHFAReturnFloat(asQWORD *out1, asQWORD *out2, asQWORD returnSize);
 
 extern "C" asQWORD CallARM64RetInMemory(
-	const asQWORD *gpRegArgs,    asQWORD numGPRegArgs,
-	const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
-	const asQWORD *stackArgs,    asQWORD numStackArgs,
-	void *retPointer,            asFUNCTION_t func
-);
+    const asQWORD *gpRegArgs, asQWORD numGPRegArgs,
+    const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
+    const asQWORD *stackArgs, asQWORD numStackArgs,
+    void *retPointer, asFUNCTION_t func);
 extern "C" double CallARM64Double(
-	const asQWORD *gpRegArgs,    asQWORD numGPRegArgs,
-	const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
-	const asQWORD *stackArgs,    asQWORD numStackArgs,
-	asFUNCTION_t func
-);
+    const asQWORD *gpRegArgs, asQWORD numGPRegArgs,
+    const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
+    const asQWORD *stackArgs, asQWORD numStackArgs,
+    asFUNCTION_t func);
 extern "C" float CallARM64Float(
-	const asQWORD *gpRegArgs,    asQWORD numGPRegArgs,
-	const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
-	const asQWORD *stackArgs,    asQWORD numStackArgs,
-	asFUNCTION_t func
-);
+    const asQWORD *gpRegArgs, asQWORD numGPRegArgs,
+    const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
+    const asQWORD *stackArgs, asQWORD numStackArgs,
+    asFUNCTION_t func);
 extern "C" asQWORD CallARM64(
-	const asQWORD *gpRegArgs,    asQWORD numGPRegArgs,
-	const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
-	const asQWORD *stackArgs,    asQWORD numStackArgs,
-	asFUNCTION_t func
-);
+    const asQWORD *gpRegArgs, asQWORD numGPRegArgs,
+    const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
+    const asQWORD *stackArgs, asQWORD numStackArgs,
+    asFUNCTION_t func);
 extern "C" asQWORD CallARM64Ret128(
-	const asQWORD *gpRegArgs,    asQWORD numGPRegArgs,
-	const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
-	const asQWORD *stackArgs,    asQWORD numStackArgs,
-	asQWORD *higherQWORD,        asFUNCTION_t func
-);
+    const asQWORD *gpRegArgs, asQWORD numGPRegArgs,
+    const asQWORD *floatRegArgs, asQWORD numFloatRegArgs,
+    const asQWORD *stackArgs, asQWORD numStackArgs,
+    asQWORD *higherQWORD, asFUNCTION_t func);
 
 //
 // If it's possible to fit in registers,
@@ -110,15 +105,15 @@ extern "C" asQWORD CallARM64Ret128(
 //
 static inline bool IsRegisterHFA(const asCDataType &type)
 {
-	const asCTypeInfo *const typeInfo = type.GetTypeInfo();
+	const asCTypeInfo * const typeInfo = type.GetTypeInfo();
 
 	if( typeInfo == 0 ||
-		(typeInfo->flags & asOBJ_APP_CLASS_ALLFLOATS) == 0 ||
-		type.IsObjectHandle() || type.IsReference() )
+	    (typeInfo->flags & asOBJ_APP_CLASS_ALLFLOATS) == 0 ||
+	    type.IsObjectHandle() || type.IsReference() )
 		return false;
 
-	const bool doubles = (typeInfo->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
-	const int maxAllowedSize = doubles ? sizeof(double) * HFA_RET_REGISTERS : sizeof(float) * HFA_RET_REGISTERS;
+	const bool doubles        = (typeInfo->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
+	const int  maxAllowedSize = doubles ? sizeof(double) * HFA_RET_REGISTERS : sizeof(float) * HFA_RET_REGISTERS;
 
 	return type.GetSizeInMemoryBytes() <= maxAllowedSize;
 }
@@ -132,44 +127,44 @@ static inline bool IsRegisterHFAParameter(const asCDataType &type, const asQWORD
 	if( !IsRegisterHFA(type) )
 		return false;
 
-	const bool doubles = (type.GetTypeInfo()->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
-	const int registersUsed = type.GetSizeInMemoryDWords() / (doubles ? sizeof(double) : sizeof(float));
+	const bool doubles       = (type.GetTypeInfo()->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
+	const int  registersUsed = type.GetSizeInMemoryDWords() / (doubles ? sizeof(double) : sizeof(float));
 
 	return numFloatRegArgs + registersUsed <= FLOAT_ARG_REGISTERS;
 }
 
 #if defined(AS_IPHONE) || defined(AS_MAC)
-static inline void PadAppleStack(asQWORD* const argsArray, asQWORD& numArgs, asQWORD& stackDispositionBytes, asUINT argSize)
+static inline void PadAppleStack(asQWORD * const argsArray, asQWORD &numArgs, asQWORD &stackDispositionBytes, asUINT argSize)
 {
-	if(stackDispositionBytes == 0) return;
+	if( stackDispositionBytes == 0 ) return;
 	asUINT padBytes = argSize - (stackDispositionBytes % argSize);
-	if(padBytes > 0 && padBytes != argSize)
+	if( padBytes > 0 && padBytes != argSize )
 	{
-		memset( ((asBYTE*)&argsArray[numArgs]) + stackDispositionBytes, 0, padBytes);
+		memset(((asBYTE *)&argsArray[numArgs]) + stackDispositionBytes, 0, padBytes);
 		stackDispositionBytes += padBytes;
 	}
 	numArgs += stackDispositionBytes / sizeof(asQWORD);
-	if(stackDispositionBytes >= sizeof(asQWORD))
-		stackDispositionBytes -= sizeof(asQWORD) * (stackDispositionBytes / sizeof(asQWORD) );
+	if( stackDispositionBytes >= sizeof(asQWORD) )
+		stackDispositionBytes -= sizeof(asQWORD) * (stackDispositionBytes / sizeof(asQWORD));
 }
 #endif
 
 asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, void *obj, asDWORD *args, void *retPointer, asQWORD &retQW2, void *secondObject)
 {
-	asCScriptEngine *engine = context->m_engine;
-	const asSSystemFunctionInterface *const sysFunc = descr->sysFuncIntf;
-	const asCDataType &retType = descr->returnType;
-	const asCTypeInfo *const retTypeInfo = retType.GetTypeInfo();
-	asFUNCTION_t func = sysFunc->func;
-	int callConv = sysFunc->callConv;
-	asQWORD       retQW     = 0;
+	asCScriptEngine                         *engine      = context->m_engine;
+	const asSSystemFunctionInterface * const sysFunc     = descr->sysFuncIntf;
+	const asCDataType                       &retType     = descr->returnType;
+	const asCTypeInfo * const                retTypeInfo = retType.GetTypeInfo();
+	asFUNCTION_t                             func        = sysFunc->func;
+	int                                      callConv    = sysFunc->callConv;
+	asQWORD                                  retQW       = 0;
 
-	asQWORD       gpRegArgs[GP_ARG_REGISTERS];
-	asQWORD       floatRegArgs[FLOAT_ARG_REGISTERS];
-	asQWORD       stackArgs[64]; // It's how many x64 users can have
-	asQWORD       numGPRegArgs    = 0;
-	asQWORD       numFloatRegArgs = 0;
-	asQWORD       numStackArgs    = 0;
+	asQWORD gpRegArgs[GP_ARG_REGISTERS];
+	asQWORD floatRegArgs[FLOAT_ARG_REGISTERS];
+	asQWORD stackArgs[64]; // It's how many x64 users can have
+	asQWORD numGPRegArgs    = 0;
+	asQWORD numFloatRegArgs = 0;
+	asQWORD numStackArgs    = 0;
 #if defined(AS_IPHONE) || defined(AS_MAC)
 	asQWORD stackDispositionBytes = 0; // Apple silikin aligns arguments on the stack by the size of their type instead of by 8 bytes like standard arm.
 #endif
@@ -177,7 +172,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 
 	// Optimization to avoid check 12 values (all ICC_ that contains THISCALL)
 	if( (callConv >= ICC_THISCALL && callConv <= ICC_VIRTUAL_THISCALL_RETURNINMEM) ||
-		(callConv >= ICC_THISCALL_OBJLAST && callConv <= ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM) )
+	    (callConv >= ICC_THISCALL_OBJLAST && callConv <= ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM) )
 	{
 		// Add the object pointer as the first parameter
 		gpRegArgs[numGPRegArgs++] = (asQWORD)obj;
@@ -189,59 +184,59 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 		gpRegArgs[numGPRegArgs++] = (asQWORD)obj;
 	}
 	else if( callConv == ICC_THISCALL_OBJFIRST || callConv == ICC_THISCALL_OBJFIRST_RETURNINMEM ||
-		callConv == ICC_VIRTUAL_THISCALL_OBJFIRST || callConv == ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM )
+	         callConv == ICC_VIRTUAL_THISCALL_OBJFIRST || callConv == ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM )
 	{
 		// Add the object pointer as the first parameter
 		gpRegArgs[numGPRegArgs++] = (asQWORD)secondObject;
 	}
 
 	if( callConv == ICC_VIRTUAL_THISCALL || callConv == ICC_VIRTUAL_THISCALL_RETURNINMEM || callConv == ICC_VIRTUAL_THISCALL_OBJFIRST ||
-	callConv == ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM || callConv == ICC_VIRTUAL_THISCALL_OBJLAST || callConv == ICC_VIRTUAL_THISCALL_OBJLAST_RETURNINMEM )
+	    callConv == ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM || callConv == ICC_VIRTUAL_THISCALL_OBJLAST || callConv == ICC_VIRTUAL_THISCALL_OBJLAST_RETURNINMEM )
 	{
 		// Get virtual function table from the object pointer
-		vftable = *(asFUNCTION_t**)obj;
-		func = vftable[FuncPtrToUInt(func)/sizeof(void*)];
+		vftable = *(asFUNCTION_t **)obj;
+		func    = vftable[FuncPtrToUInt(func) / sizeof(void *)];
 	}
 
 	asUINT argsPos = 0;
 	for( asUINT n = 0; n < descr->parameterTypes.GetLength(); n++ )
 	{
-		const asCDataType &parmType = descr->parameterTypes[n];
-		const asCTypeInfo *const parmTypeInfo = parmType.GetTypeInfo();
+		const asCDataType        &parmType     = descr->parameterTypes[n];
+		const asCTypeInfo * const parmTypeInfo = parmType.GetTypeInfo();
 
 		if( parmType.IsObject() && !parmType.IsObjectHandle() && !parmType.IsReference() )
 		{
 			const asUINT parmDWords = parmType.GetSizeInMemoryDWords();
 			const asUINT parmQWords = (parmDWords >> 1) + (parmDWords & 1);
 
-			const bool passedAsPointer = parmQWords <= 2;
-			const bool fitsInRegisters = passedAsPointer ? (numGPRegArgs < GP_ARG_REGISTERS) : (numGPRegArgs + parmQWords <= GP_ARG_REGISTERS);
-			asQWORD *const argsArray = fitsInRegisters ? gpRegArgs : stackArgs;
-			asQWORD &numArgs = fitsInRegisters ? numGPRegArgs : numStackArgs;
+			const bool      passedAsPointer = parmQWords <= 2;
+			const bool      fitsInRegisters = passedAsPointer ? (numGPRegArgs < GP_ARG_REGISTERS) : (numGPRegArgs + parmQWords <= GP_ARG_REGISTERS);
+			asQWORD * const argsArray       = fitsInRegisters ? gpRegArgs : stackArgs;
+			asQWORD        &numArgs         = fitsInRegisters ? numGPRegArgs : numStackArgs;
 
 			if( (parmTypeInfo->flags & COMPLEX_MASK) )
 			{
 #if defined(AS_IPHONE) || defined(AS_MAC)
-				if(!fitsInRegisters) PadAppleStack(argsArray, numArgs, stackDispositionBytes, sizeof(asQWORD));
+				if( !fitsInRegisters ) PadAppleStack(argsArray, numArgs, stackDispositionBytes, sizeof(asQWORD));
 #endif
-				argsArray[numArgs++] = *(asQWORD*)&args[argsPos];
-				argsPos += AS_PTR_SIZE;
+				argsArray[numArgs++]  = *(asQWORD *)&args[argsPos];
+				argsPos              += AS_PTR_SIZE;
 			}
 			else if( IsRegisterHFAParameter(parmType, numFloatRegArgs) )
 			{
 				if( (parmTypeInfo->flags & asOBJ_APP_CLASS_ALIGN8) != 0 )
 				{
-					const asQWORD *const contents = *(asQWORD**)&args[argsPos];
+					const asQWORD * const contents = *(asQWORD **)&args[argsPos];
 					for( asUINT i = 0; i < parmQWords; i++ )
-						floatRegArgs[numFloatRegArgs++] = *(asQWORD*)&contents[i];
+						floatRegArgs[numFloatRegArgs++] = *(asQWORD *)&contents[i];
 				}
 				else
 				{
-					const asDWORD *const contents = *(asDWORD**)&args[argsPos];
+					const asDWORD * const contents = *(asDWORD **)&args[argsPos];
 					for( asUINT i = 0; i < parmDWords; i++ )
-						floatRegArgs[numFloatRegArgs++] = *(asDWORD*)&contents[i];
+						floatRegArgs[numFloatRegArgs++] = *(asDWORD *)&contents[i];
 				}
-				engine->CallFree(*(char**)(args+argsPos));
+				engine->CallFree(*(char **)(args + argsPos));
 				argsPos += AS_PTR_SIZE;
 			}
 			else
@@ -249,22 +244,22 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 				// Copy the object's memory to the buffer
 				asUINT parmBytes = parmType.GetSizeInMemoryBytes();
 #if defined(AS_IPHONE) || defined(AS_MAC)
-				if(!fitsInRegisters)
+				if( !fitsInRegisters )
 				{
 					PadAppleStack(argsArray, numArgs, stackDispositionBytes, parmBytes);
-					memcpy( ((asBYTE*)&argsArray[numArgs]) + stackDispositionBytes, *(void**)(args+argsPos), parmBytes);
+					memcpy(((asBYTE *)&argsArray[numArgs]) + stackDispositionBytes, *(void **)(args + argsPos), parmBytes);
 					stackDispositionBytes += parmBytes;
 					// numArgs will be fixed on next call to PadAppleStack.
 				}
 				else
 #endif
 				{
-					memcpy(&argsArray[numArgs], *(void**)(args+argsPos), parmBytes);
+					memcpy(&argsArray[numArgs], *(void **)(args + argsPos), parmBytes);
 					numArgs += parmQWords;
 				}
 
 				// Delete the original memory
-				engine->CallFree(*(char**)(args+argsPos));
+				engine->CallFree(*(char **)(args + argsPos));
 				argsPos += AS_PTR_SIZE;
 			}
 		}
@@ -274,7 +269,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 #if defined(AS_IPHONE) || defined(AS_MAC)
 			{
 				PadAppleStack(stackArgs, numStackArgs, stackDispositionBytes, sizeof(float));
-				memcpy( ((asBYTE*)&stackArgs[numStackArgs]) + stackDispositionBytes, &args[argsPos], sizeof(float));
+				memcpy(((asBYTE *)&stackArgs[numStackArgs]) + stackDispositionBytes, &args[argsPos], sizeof(float));
 				stackDispositionBytes += sizeof(float);
 			}
 #else
@@ -290,56 +285,56 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 #if defined(AS_IPHONE) || defined(AS_MAC)
 			{
 				PadAppleStack(stackArgs, numStackArgs, stackDispositionBytes, sizeof(asQWORD));
-				memcpy( ((asBYTE*)&stackArgs[numStackArgs]) + stackDispositionBytes, (asQWORD*)&args[argsPos], sizeof(asQWORD));
+				memcpy(((asBYTE *)&stackArgs[numStackArgs]) + stackDispositionBytes, (asQWORD *)&args[argsPos], sizeof(asQWORD));
 				stackDispositionBytes += sizeof(asQWORD);
 			}
 #else
-				stackArgs[numStackArgs++] = *(asQWORD*)&args[argsPos];
+				stackArgs[numStackArgs++] = *(asQWORD *)&args[argsPos];
 #endif
 			else
-				floatRegArgs[numFloatRegArgs++] = *(asQWORD*)&args[argsPos];
+				floatRegArgs[numFloatRegArgs++] = *(asQWORD *)&args[argsPos];
 			argsPos += 2;
 		}
-		else if (parmType.GetTokenType() == ttQuestion)
+		else if( parmType.GetTokenType() == ttQuestion )
 		{
 			// Copy the reference and the type id as separate arguments
-			// 
+			//
 			// First the reference
-			bool fitsInRegisters = numGPRegArgs + 1 <= GP_ARG_REGISTERS;
-			asQWORD* argsArray = fitsInRegisters ? gpRegArgs : stackArgs;
-			asQWORD* numArgs = fitsInRegisters ? &numGPRegArgs : &numStackArgs;
+			bool     fitsInRegisters = numGPRegArgs + 1 <= GP_ARG_REGISTERS;
+			asQWORD *argsArray       = fitsInRegisters ? gpRegArgs : stackArgs;
+			asQWORD *numArgs         = fitsInRegisters ? &numGPRegArgs : &numStackArgs;
 #if defined(AS_IPHONE) || defined(AS_MAC)
-			if (!fitsInRegisters)
+			if( !fitsInRegisters )
 			{
 				asUINT parmBytes = AS_PTR_SIZE * 4;
 				PadAppleStack(argsArray, *numArgs, stackDispositionBytes, parmBytes);
-				memcpy(((asBYTE*)&argsArray[*numArgs]) + stackDispositionBytes, (void*)(args + argsPos), parmBytes);
+				memcpy(((asBYTE *)&argsArray[*numArgs]) + stackDispositionBytes, (void *)(args + argsPos), parmBytes);
 				stackDispositionBytes += parmBytes;
 			}
 			else
 #endif
 			{
-				memcpy(&argsArray[*numArgs], (void*)(args + argsPos), AS_PTR_SIZE * 4);
+				memcpy(&argsArray[*numArgs], (void *)(args + argsPos), AS_PTR_SIZE * 4);
 				(*numArgs) += 1;
 			}
 			argsPos += AS_PTR_SIZE;
 
 			// Then the type id
 			fitsInRegisters = numGPRegArgs + 1 <= GP_ARG_REGISTERS;
-			argsArray = fitsInRegisters ? gpRegArgs : stackArgs;
-			numArgs = fitsInRegisters ? &numGPRegArgs : &numStackArgs;
+			argsArray       = fitsInRegisters ? gpRegArgs : stackArgs;
+			numArgs         = fitsInRegisters ? &numGPRegArgs : &numStackArgs;
 #if defined(AS_IPHONE) || defined(AS_MAC)
-			if (!fitsInRegisters)
+			if( !fitsInRegisters )
 			{
 				asUINT parmBytes = 4;
 				PadAppleStack(argsArray, *numArgs, stackDispositionBytes, parmBytes);
-				memcpy(((asBYTE*)&argsArray[*numArgs]) + stackDispositionBytes, (void*)(args + argsPos), parmBytes);
+				memcpy(((asBYTE *)&argsArray[*numArgs]) + stackDispositionBytes, (void *)(args + argsPos), parmBytes);
 				stackDispositionBytes += parmBytes;
 			}
 			else
 #endif
 			{
-				memcpy(&argsArray[*numArgs], (void*)(args + argsPos), 4);
+				memcpy(&argsArray[*numArgs], (void *)(args + argsPos), 4);
 				(*numArgs) += 1;
 			}
 			argsPos += 1;
@@ -350,21 +345,21 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			const asUINT parmDWords = parmType.GetSizeOnStackDWords();
 			const asUINT parmQWords = (parmDWords >> 1) + (parmDWords & 1);
 
-			const bool fitsInRegisters = numGPRegArgs + parmQWords <= GP_ARG_REGISTERS;
-			asQWORD *const argsArray = fitsInRegisters ? gpRegArgs : stackArgs;
-			asQWORD &numArgs = fitsInRegisters ? numGPRegArgs : numStackArgs;
+			const bool      fitsInRegisters = numGPRegArgs + parmQWords <= GP_ARG_REGISTERS;
+			asQWORD * const argsArray       = fitsInRegisters ? gpRegArgs : stackArgs;
+			asQWORD        &numArgs         = fitsInRegisters ? numGPRegArgs : numStackArgs;
 #if defined(AS_IPHONE) || defined(AS_MAC)
-			if(!fitsInRegisters)
+			if( !fitsInRegisters )
 			{
 				asUINT parmBytes = parmType.GetSizeInMemoryBytes();
 				PadAppleStack(argsArray, numArgs, stackDispositionBytes, parmBytes);
-				memcpy( ((asBYTE*)&argsArray[numArgs]) + stackDispositionBytes, (void*)(args+argsPos), parmBytes);
+				memcpy(((asBYTE *)&argsArray[numArgs]) + stackDispositionBytes, (void *)(args + argsPos), parmBytes);
 				stackDispositionBytes += parmBytes;
 			}
 			else
 #endif
 			{
-				memcpy(&argsArray[numArgs], (void*)(args+argsPos), parmDWords * 4);
+				memcpy(&argsArray[numArgs], (void *)(args + argsPos), parmDWords * 4);
 				numArgs += parmQWords;
 			}
 
@@ -383,7 +378,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			stackArgs[numStackArgs++] = (asQWORD)obj;
 	}
 	else if( callConv == ICC_THISCALL_OBJLAST || callConv == ICC_THISCALL_OBJLAST_RETURNINMEM ||
-		callConv == ICC_VIRTUAL_THISCALL_OBJLAST || callConv == ICC_VIRTUAL_THISCALL_OBJLAST_RETURNINMEM )
+	         callConv == ICC_VIRTUAL_THISCALL_OBJLAST || callConv == ICC_VIRTUAL_THISCALL_OBJLAST_RETURNINMEM )
 	{
 		// Add the object pointer as the last parameter
 		if( numGPRegArgs < GP_ARG_REGISTERS )
@@ -406,7 +401,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			if( structSize <= sizeof(double) * 2 )
 				GetHFAReturnDouble(&retQW, &retQW2, structSize);
 			else
-				GetHFAReturnDouble((asQWORD*)retPointer, ((asQWORD*)retPointer) + 1, structSize);
+				GetHFAReturnDouble((asQWORD *)retPointer, ((asQWORD *)retPointer) + 1, structSize);
 		}
 		else
 			GetHFAReturnFloat(&retQW, &retQW2, structSize);
@@ -414,9 +409,9 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	else if( sysFunc->hostReturnFloat )
 	{
 		if( sysFunc->hostReturnSize == 1 )
-			*(float*)&retQW = CallARM64Float(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
+			*(float *)&retQW = CallARM64Float(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
 		else
-			*(double*)&retQW = CallARM64Double(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
+			*(double *)&retQW = CallARM64Double(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
 	}
 	else if( sysFunc->hostReturnInMemory )
 		retQW = CallARM64RetInMemory(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, retPointer, func);
@@ -435,7 +430,3 @@ END_AS_NAMESPACE
 
 #endif // AS_ARM64
 #endif // AS_MAX_PORTABILITY
-
-
-
-

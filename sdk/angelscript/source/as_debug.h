@@ -51,19 +51,19 @@
 
 #if !defined(_MSC_VER) && (defined(__GNUC__) || defined(AS_MARMALADE))
 
-#ifdef __ghs__ 
-// WIIU defines __GNUC__ but types are not defined here in 'conventional' way 
+#ifdef __ghs__
+// WIIU defines __GNUC__ but types are not defined here in 'conventional' way
 #include <types.h>
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-typedef signed int int32_t;
-typedef unsigned int uint32_t;
-typedef signed long long int64_t;
+typedef signed char        int8_t;
+typedef unsigned char      uint8_t;
+typedef signed short       int16_t;
+typedef unsigned short     uint16_t;
+typedef signed int         int32_t;
+typedef unsigned int       uint32_t;
+typedef signed long long   int64_t;
 typedef unsigned long long uint64_t;
-typedef float float32_t;
-typedef double float64_t;
+typedef float              float32_t;
+typedef double             float64_t;
 #else
 // Define mkdir for GNUC
 #include <sys/stat.h>
@@ -131,10 +131,10 @@ public:
 			__int64 ticks;
 			QueryPerformanceCounter((LARGE_INTEGER *)&ticks);
 
-			return double(ticks)/ticksPerSecond - timeOffset;
+			return double(ticks) / ticksPerSecond - timeOffset;
 		}
-		
-		return double(timeGetTime())/1000.0 - timeOffset;
+
+		return double(timeGetTime()) / 1000.0 - timeOffset;
 	}
 
 	double Begin(const char *name)
@@ -164,9 +164,9 @@ public:
 		{
 			cursor->value.time += elapsed;
 			cursor->value.count++;
-			if( cursor->value.max < elapsed ) 
+			if( cursor->value.max < elapsed )
 				cursor->value.max = elapsed;
-			if( cursor->value.min > elapsed ) 
+			if( cursor->value.min > elapsed )
 				cursor->value.min = elapsed;
 		}
 		else
@@ -185,18 +185,18 @@ public:
 		// Compensate for the time spent writing to the file
 		timeOffset += GetTime() - time;
 	}
-	
+
 protected:
 	void WriteSummary()
 	{
 		// Write the analyzed info into a file for inspection
 		_mkdir("AS_DEBUG");
 		FILE *fp;
-		#if _MSC_VER >= 1500 && !defined(AS_MARMALADE)
-			fopen_s(&fp, "AS_DEBUG/profiling_summary.txt", "wt");
-		#else
-			fp = fopen("AS_DEBUG/profiling_summary.txt", "wt");
-		#endif
+#if _MSC_VER >= 1500 && !defined(AS_MARMALADE)
+		fopen_s(&fp, "AS_DEBUG/profiling_summary.txt", "wt");
+#else
+		fp = fopen("AS_DEBUG/profiling_summary.txt", "wt");
+#endif
 		if( fp == 0 )
 			return;
 
@@ -207,11 +207,11 @@ protected:
 		while( cursor )
 		{
 			asCString key = cursor->key;
-			int count;
-			int n = key.FindLast("|", &count);
+			int       count;
+			int       n = key.FindLast("|", &count);
 			if( count )
 			{
-				key = asCString("                                               ", count) + key.SubString(n+1);
+				key = asCString("                                               ", count) + key.SubString(n + 1);
 			}
 
 			fprintf(fp, "%-60s %10d %15.6f %15.6f %15.6f %15.6f\n", key.AddressOf(), cursor->value.count, cursor->value.time, cursor->value.time / cursor->value.count, cursor->value.max, cursor->value.min);
@@ -222,9 +222,9 @@ protected:
 		fclose(fp);
 	}
 
-	double  timeOffset;
-	double  ticksPerSecond;
-	bool    usePerformance;
+	double timeOffset;
+	double ticksPerSecond;
+	bool   usePerformance;
 
 	asCString                    key;
 	asCMap<asCString, TimeCount> map;
@@ -238,7 +238,7 @@ public:
 	CProfilerScope(const char *name)
 	{
 		this->name = name;
-		beginTime = g_profiler.Begin(name);
+		beginTime  = g_profiler.Begin(name);
 	}
 
 	~CProfilerScope()
@@ -258,7 +258,7 @@ END_AS_NAMESPACE
 #else // !(_MSC_VER && AS_PROFILE)
 
 // Define it so nothing is done
-#define TimeIt(x) 
+#define TimeIt(x)
 
 #endif // !(_MSC_VER && AS_PROFILE)
 
@@ -266,5 +266,3 @@ END_AS_NAMESPACE
 
 
 #endif // defined(AS_DEBUG_H)
-
-

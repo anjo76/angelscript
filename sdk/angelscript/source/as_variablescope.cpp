@@ -40,13 +40,13 @@
 
 #ifndef AS_NO_COMPILER
 
-#include "as_variablescope.h"
+	#include "as_variablescope.h"
 
 BEGIN_AS_NAMESPACE
 
 asCVariableScope::asCVariableScope(asCVariableScope *parent)
 {
-	this->parent    = parent;
+	this->parent = parent;
 	Reset();
 }
 
@@ -57,13 +57,13 @@ asCVariableScope::~asCVariableScope()
 
 void asCVariableScope::Reset()
 {
-	isBreakScope = false;
+	isBreakScope    = false;
 	isContinueScope = false;
 
 	for( asUINT n = 0; n < variables.GetLength(); n++ )
-		if( variables[n] ) 
+		if( variables[n] )
 		{
-			asDELETE(variables[n],sVariable);
+			asDELETE(variables[n], sVariable);
 		}
 	variables.SetLength(0);
 }
@@ -138,5 +138,3 @@ sVariable *asCVariableScope::GetVariableByOffset(int offset)
 END_AS_NAMESPACE
 
 #endif // AS_NO_COMPILER
-
-

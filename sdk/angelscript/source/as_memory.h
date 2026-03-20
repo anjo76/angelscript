@@ -63,7 +63,7 @@ typedef void *(*asALLOCALIGNEDFUNCDEBUG_t)(size_t, size_t, const char *, unsigne
 const int MAX_TYPE_ALIGNMENT = 16;
 
 // Utility function used for assertions.
-bool isAligned(const void* const pointer, asUINT alignment);
+bool isAligned(const void * const pointer, asUINT alignment);
 
 #endif // WIP_16BYTE_ALIGN
 
@@ -71,39 +71,49 @@ bool isAligned(const void* const pointer, asUINT alignment);
 
 #ifndef AS_DEBUG
 
-	#define asNEW(x)        new(userAlloc(sizeof(x))) x
-	#define asDELETE(ptr,x) {void *tmp = ptr; (ptr)->~x(); userFree(tmp);}
+	#define asNEW(x) new (userAlloc(sizeof(x))) x
+	#define asDELETE(ptr, x) \
+		{                    \
+			void *tmp = ptr; \
+			(ptr)->~x();     \
+			userFree(tmp);   \
+		}
 
-	#define asNEWARRAY(x,cnt)  (x*)userAlloc(sizeof(x)*cnt)
+	#define asNEWARRAY(x, cnt) (x *)userAlloc(sizeof(x) * cnt)
 	#define asDELETEARRAY(ptr) userFree(ptr)
 
-#ifdef WIP_16BYTE_ALIGN
-	#define asNEWARRAYALIGNED(x,cnt, alignment)  (x*)userAllocAligned(sizeof(x)*cnt, alignment)
-	#define asDELETEARRAYALIGNED(ptr) userFreeAligned(ptr)
-#endif
+	#ifdef WIP_16BYTE_ALIGN
+		#define asNEWARRAYALIGNED(x, cnt, alignment) (x *)userAllocAligned(sizeof(x) * cnt, alignment)
+		#define asDELETEARRAYALIGNED(ptr) userFreeAligned(ptr)
+	#endif
 
 #else
 
 	#ifdef __GNUC__
-	// Disable the warning about casting to incompatible function type
-	// This is a bit of a hack, but it works perfectly because we're just passing
-	// a couple of primitives extra, and the called function can safely ignore them if not needed
-	#pragma GCC diagnostic ignored "-Wcast-function-type"
+		// Disable the warning about casting to incompatible function type
+		// This is a bit of a hack, but it works perfectly because we're just passing
+		// a couple of primitives extra, and the called function can safely ignore them if not needed
+		#pragma GCC diagnostic ignored "-Wcast-function-type"
 	#endif
 
-	typedef void *(*asALLOCFUNCDEBUG_t)(size_t, const char *, unsigned int);
+typedef void *(*asALLOCFUNCDEBUG_t)(size_t, const char *, unsigned int);
 
-	#define asNEW(x)        new((reinterpret_cast<asALLOCFUNCDEBUG_t>(userAlloc))(sizeof(x), __FILE__, __LINE__)) x
-	#define asDELETE(ptr,x) {void *tmp = ptr; (ptr)->~x(); userFree(tmp);}
+	#define asNEW(x) new ((reinterpret_cast<asALLOCFUNCDEBUG_t>(userAlloc))(sizeof(x), __FILE__, __LINE__)) x
+	#define asDELETE(ptr, x) \
+		{                    \
+			void *tmp = ptr; \
+			(ptr)->~x();     \
+			userFree(tmp);   \
+		}
 
-	#define asNEWARRAY(x,cnt)  (x*)(reinterpret_cast<asALLOCFUNCDEBUG_t>(userAlloc))(sizeof(x)*cnt, __FILE__, __LINE__)
+	#define asNEWARRAY(x, cnt) (x *)(reinterpret_cast<asALLOCFUNCDEBUG_t>(userAlloc))(sizeof(x) * cnt, __FILE__, __LINE__)
 	#define asDELETEARRAY(ptr) userFree(ptr)
 
-#ifdef WIP_16BYTE_ALIGN
-	//TODO: Equivalent of debug allocation function with alignment?
-	#define asNEWARRAYALIGNED(x,cnt, alignment)  (x*)userAllocAligned(sizeof(x)*cnt, alignment)
-	#define asDELETEARRAYALIGNED(ptr) userFreeAligned(ptr)
-#endif
+	#ifdef WIP_16BYTE_ALIGN
+		//TODO: Equivalent of debug allocation function with alignment?
+		#define asNEWARRAYALIGNED(x, cnt, alignment) (x *)userAllocAligned(sizeof(x) * cnt, alignment)
+		#define asDELETEARRAYALIGNED(ptr) userFreeAligned(ptr)
+	#endif
 
 #endif
 
@@ -124,11 +134,11 @@ public:
 	void FreeUnusedMemory();
 
 	void *AllocScriptNode();
-	void FreeScriptNode(void *ptr);
+	void  FreeScriptNode(void *ptr);
 
 #ifndef AS_NO_COMPILER
 	void *AllocByteInstruction();
-	void FreeByteInstruction(void *ptr);
+	void  FreeByteInstruction(void *ptr);
 #endif
 
 protected:

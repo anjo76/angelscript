@@ -40,8 +40,8 @@
 
 #ifndef AS_NO_COMPILER
 
-#include "as_outputbuffer.h"
-#include "as_scriptengine.h"
+	#include "as_outputbuffer.h"
+	#include "as_scriptengine.h"
 
 BEGIN_AS_NAMESPACE
 
@@ -54,9 +54,9 @@ void asCOutputBuffer::Clear()
 {
 	for( asUINT n = 0; n < messages.GetLength(); n++ )
 	{
-		if( messages[n] ) 
+		if( messages[n] )
 		{
-			asDELETE(messages[n],message_t);
+			asDELETE(messages[n], message_t);
 		}
 	}
 	messages.SetLength(0);
@@ -69,10 +69,10 @@ void asCOutputBuffer::Callback(asSMessageInfo *msg)
 		return;
 
 	msgInfo->section = msg->section;
-	msgInfo->row = msg->row;
-	msgInfo->col = msg->col;
-	msgInfo->type = msg->type;
-	msgInfo->msg = msg->message;
+	msgInfo->row     = msg->row;
+	msgInfo->col     = msg->col;
+	msgInfo->type    = msg->type;
+	msgInfo->msg     = msg->message;
 
 	messages.PushLast(msgInfo);
 }
@@ -106,4 +106,3 @@ void asCOutputBuffer::SendToCallback(asCScriptEngine *engine, asSSystemFunctionI
 END_AS_NAMESPACE
 
 #endif // AS_NO_COMPILER
-

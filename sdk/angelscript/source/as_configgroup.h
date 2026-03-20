@@ -58,7 +58,7 @@ public:
 	int Release();
 
 	asCTypeInfo *FindType(const char *name);
-	void RefConfigGroup(asCConfigGroup *group);
+	void         RefConfigGroup(asCConfigGroup *group);
 
 	bool HasLiveObjects();
 	void RemoveConfiguration(asCScriptEngine *engine, bool notUsed = false);
@@ -67,16 +67,16 @@ public:
 	void AddReferencesForType(asCScriptEngine *engine, asCTypeInfo *type);
 
 	asCString groupName;
-	int refCount;
+	int       refCount;
 
-	asCArray<asCTypeInfo*>       types;
-	asCArray<asCScriptFunction*> scriptFunctions;
-	asCArray<asCGlobalProperty*> globalProps;
-	asCArray<asCConfigGroup*>    referencedConfigGroups;
+	asCArray<asCTypeInfo *>       types;
+	asCArray<asCScriptFunction *> scriptFunctions;
+	asCArray<asCGlobalProperty *> globalProps;
+	asCArray<asCConfigGroup *>    referencedConfigGroups;
 
-	// This array holds the generated template instances that are used 
+	// This array holds the generated template instances that are used
 	// by the config group as part of function signature or property
-	asCArray<asCObjectType*>     generatedTemplateInstances;
+	asCArray<asCObjectType *> generatedTemplateInstances;
 };
 
 END_AS_NAMESPACE

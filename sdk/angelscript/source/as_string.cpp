@@ -30,12 +30,12 @@
 
 #include "as_config.h"
 
-#include <stdarg.h>		// va_list, va_start(), etc
-#include <stdlib.h>		// strtod(), strtol()
-#include <string.h>		// some compilers declare memcpy() here
+#include <stdarg.h> // va_list, va_start(), etc
+#include <stdlib.h> // strtod(), strtol()
+#include <string.h> // some compilers declare memcpy() here
 
 #if !defined(AS_NO_MEMORY_H)
-#include <memory.h>
+	#include <memory.h>
 #endif
 
 #include "as_string.h"
@@ -43,14 +43,14 @@
 
 asCString::asCString()
 {
-	length = 0;
+	length   = 0;
 	local[0] = 0;
 }
 
 // Copy constructor
 asCString::asCString(const asCString &str)
 {
-	length = 0;
+	length   = 0;
 	local[0] = 0;
 
 	Assign(str.AddressOf(), str.length);
@@ -68,17 +68,17 @@ asCString::asCString(asCString &&str) noexcept
 	else
 	{
 		dynamic = str.dynamic;
-		length = str.length;
+		length  = str.length;
 	}
 
 	str.dynamic = 0;
-	str.length = 0;
+	str.length  = 0;
 }
 #endif // c++11
 
 asCString::asCString(const char *str, size_t len)
 {
-	length = 0;
+	length   = 0;
 	local[0] = 0;
 
 	Assign(str, len);
@@ -86,7 +86,7 @@ asCString::asCString(const char *str, size_t len)
 
 asCString::asCString(const char *str)
 {
-	length = 0;
+	length   = 0;
 	local[0] = 0;
 
 	size_t len = strlen(str);
@@ -95,7 +95,7 @@ asCString::asCString(const char *str)
 
 asCString::asCString(char ch)
 {
-	length = 0;
+	length   = 0;
 	local[0] = 0;
 
 	Assign(&ch, 1);
@@ -134,7 +134,7 @@ void asCString::Allocate(size_t len, bool keepData)
 {
 	// If we stored the capacity of the dynamically allocated buffer it would be possible
 	// to save some memory allocations if a string decreases in size then increases again,
-	// but this would require extra bytes in the string object itself, or a decrease of 
+	// but this would require extra bytes in the string object itself, or a decrease of
 	// the static buffer, which in turn would mean extra memory is needed. I've tested each
 	// of these options, and it turned out that the current choice is what best balanced
 	// the number of allocations against the size of the allocations.
@@ -142,7 +142,7 @@ void asCString::Allocate(size_t len, bool keepData)
 	if( len > 11 && len > length )
 	{
 		// Allocate a new dynamic buffer if the new one is larger than the old
-		char *buf = asNEWARRAY(char,len+1);
+		char *buf = asNEWARRAY(char, len + 1);
 		if( buf == 0 )
 		{
 			// Out of memory. Return without modifying anything
@@ -188,7 +188,7 @@ void asCString::Assign(const char *str, size_t len)
 	AddressOf()[length] = 0;
 }
 
-asCString &asCString::operator =(const char *str)
+asCString &asCString::operator=(const char *str)
 {
 	size_t len = str ? strlen(str) : 0;
 	Assign(str, len);
@@ -196,7 +196,7 @@ asCString &asCString::operator =(const char *str)
 	return *this;
 }
 
-asCString &asCString::operator =(const asCString &str)
+asCString &asCString::operator=(const asCString &str)
 {
 	Assign(str.AddressOf(), str.length);
 
@@ -204,7 +204,7 @@ asCString &asCString::operator =(const asCString &str)
 }
 
 #ifdef AS_CAN_USE_CPP11
-asCString &asCString::operator =(asCString &&str) noexcept
+asCString &asCString::operator=(asCString &&str) noexcept
 {
 	if( this != &str )
 	{
@@ -213,7 +213,7 @@ asCString &asCString::operator =(asCString &&str) noexcept
 			asDELETEARRAY(dynamic);
 		}
 
-		if ( str.length <= 11 )
+		if( str.length <= 11 )
 		{
 			length = str.length;
 
@@ -223,18 +223,18 @@ asCString &asCString::operator =(asCString &&str) noexcept
 		else
 		{
 			dynamic = str.dynamic;
-			length = str.length;
+			length  = str.length;
 		}
 
 		str.dynamic = 0;
-		str.length = 0;
+		str.length  = 0;
 	}
 
 	return *this;
 }
 #endif // c++11
 
-asCString &asCString::operator =(char ch)
+asCString &asCString::operator=(char ch)
 {
 	Assign(&ch, 1);
 
@@ -250,7 +250,7 @@ void asCString::Concatenate(const char *str, size_t len)
 	AddressOf()[length] = 0;
 }
 
-asCString &asCString::operator +=(const char *str)
+asCString &asCString::operator+=(const char *str)
 {
 	size_t len = strlen(str);
 	Concatenate(str, len);
@@ -258,14 +258,14 @@ asCString &asCString::operator +=(const char *str)
 	return *this;
 }
 
-asCString &asCString::operator +=(const asCString &str)
+asCString &asCString::operator+=(const asCString &str)
 {
 	Concatenate(str.AddressOf(), str.length);
 
 	return *this;
 }
 
-asCString &asCString::operator +=(char ch)
+asCString &asCString::operator+=(char ch)
 {
 	Concatenate(&ch, 1);
 
@@ -284,8 +284,8 @@ size_t asCString::Format(const char *format, ...)
 	va_start(args, format);
 
 	const size_t startSize = 1024;
-	char tmp[startSize];
-	int r = asVSNPRINTF(tmp, startSize-1, format, args);
+	char         tmp[startSize];
+	int          r = asVSNPRINTF(tmp, startSize - 1, format, args);
 
 	if( r > 0 && r < int(startSize) )
 	{
@@ -296,7 +296,7 @@ size_t asCString::Format(const char *format, ...)
 		// TODO: For some reason this doesn't work properly on Linux. Perhaps the
 		//       problem is related to vsnprintf not keeping the state of va_arg.
 		//       Perhaps I need to rewrite this in some way to keep the state
-		size_t n = startSize*2;
+		size_t    n = startSize * 2;
 		asCString str; // Use temporary string in case the current buffer is a parameter
 		str.Allocate(n, false);
 
@@ -314,14 +314,14 @@ size_t asCString::Format(const char *format, ...)
 	return length;
 }
 
-char &asCString::operator [](size_t index) 
+char &asCString::operator[](size_t index)
 {
 	asASSERT(index < length);
 
 	return AddressOf()[index];
 }
 
-const char &asCString::operator [](size_t index) const
+const char &asCString::operator[](size_t index) const
 {
 	asASSERT(index < length);
 
@@ -365,7 +365,7 @@ size_t asCString::RecalculateLength()
 
 int asCString::FindLast(const char *str, int *count) const
 {
-	// There is no strstr that starts from the end, so 
+	// There is no strstr that starts from the end, so
 	// we'll iterate until we find the last occurrance.
 	// This shouldn't cause a performance problem because
 	// it is not expected that this will be done very often,
@@ -374,8 +374,8 @@ int asCString::FindLast(const char *str, int *count) const
 	if( count ) *count = 0;
 
 	const char *last = 0;
-	const char *curr = AddressOf()-1;
-	while( (curr = strstr(curr+1, str)) != 0 )
+	const char *curr = AddressOf() - 1;
+	while( (curr = strstr(curr + 1, str)) != 0 )
 	{
 		if( count ) (*count)++;
 		last = curr;
@@ -390,61 +390,61 @@ int asCString::FindLast(const char *str, int *count) const
 //-----------------------------------------------------------------------------
 // Helper functions
 
-bool operator ==(const asCString &a, const char *b)
+bool operator==(const asCString &a, const char *b)
 {
 	return a.Compare(b) == 0;
 }
 
-bool operator !=(const asCString &a, const char *b)
+bool operator!=(const asCString &a, const char *b)
 {
 	return a.Compare(b) != 0;
 }
 
-bool operator ==(const asCString &a, const asCString &b)
+bool operator==(const asCString &a, const asCString &b)
 {
 	return a.Compare(b) == 0;
 }
 
-bool operator !=(const asCString &a, const asCString &b)
+bool operator!=(const asCString &a, const asCString &b)
 {
 	return a.Compare(b) != 0;
 }
 
-bool operator ==(const char *a, const asCString &b)
+bool operator==(const char *a, const asCString &b)
 {
 	return b.Compare(a) == 0;
 }
 
-bool operator !=(const char *a, const asCString &b)
+bool operator!=(const char *a, const asCString &b)
 {
 	return b.Compare(a) != 0;
 }
 
-bool operator <(const asCString &a, const asCString &b)
+bool operator<(const asCString &a, const asCString &b)
 {
 	return a.Compare(b) < 0;
 }
 
-asCString operator +(const asCString &a, const asCString &b)
+asCString operator+(const asCString &a, const asCString &b)
 {
-	asCString res = a;
-	res += b;
+	asCString res  = a;
+	res           += b;
 
 	return res;
 }
 
-asCString operator +(const char *a, const asCString &b)
+asCString operator+(const char *a, const asCString &b)
 {
-	asCString res = a;
-	res += b;
+	asCString res  = a;
+	res           += b;
 
 	return res;
 }
 
-asCString operator +(const asCString &a, const char *b)
+asCString operator+(const asCString &a, const char *b)
 {
-	asCString res = a;
-	res += b;
+	asCString res  = a;
+	res           += b;
 
 	return res;
 }
@@ -452,17 +452,17 @@ asCString operator +(const asCString &a, const char *b)
 // wrapper class
 
 asCStringPointer::asCStringPointer()
-	: string(0), length(0), cstring(0)
+    : string(0), length(0), cstring(0)
 {
 }
 
 asCStringPointer::asCStringPointer(const char *str, size_t len)
-	: string(str), length(len), cstring(0)
+    : string(str), length(len), cstring(0)
 {
 }
 
 asCStringPointer::asCStringPointer(asCString *cstr)
-	: string(0), length(0), cstring(cstr)
+    : string(0), length(0), cstring(cstr)
 {
 }
 
@@ -476,12 +476,12 @@ size_t asCStringPointer::GetLength() const
 	return string ? length : cstring->GetLength();
 }
 
-bool asCStringPointer::operator==(const asCStringPointer& other) const
+bool asCStringPointer::operator==(const asCStringPointer &other) const
 {
 	return asCompareStrings(AddressOf(), GetLength(), other.AddressOf(), other.GetLength()) == 0;
 }
 
-bool asCStringPointer::operator<(const asCStringPointer& other) const
+bool asCStringPointer::operator<(const asCStringPointer &other) const
 {
 	return asCompareStrings(AddressOf(), GetLength(), other.AddressOf(), other.GetLength()) < 0;
 }

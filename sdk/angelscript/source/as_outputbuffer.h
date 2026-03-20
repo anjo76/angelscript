@@ -44,8 +44,8 @@
 
 #ifndef AS_NO_COMPILER
 
-#include "as_string.h"
-#include "as_array.h"
+	#include "as_string.h"
+	#include "as_array.h"
 
 BEGIN_AS_NAMESPACE
 
@@ -55,24 +55,29 @@ class asCScriptEngine;
 class asCOutputBuffer
 {
 public:
-	~asCOutputBuffer ();
-	void Clear();
-	void Callback(asSMessageInfo *msg);
-	static void CDeclCallback(asSMessageInfo* msg, asCOutputBuffer* buf) { buf->Callback(msg); }
+	~asCOutputBuffer();
+	void        Clear();
+	void        Callback(asSMessageInfo *msg);
+	static void CDeclCallback(asSMessageInfo *msg, asCOutputBuffer *buf)
+	{
+		buf->Callback(msg);
+	}
 	void Append(asCOutputBuffer &in);
 	void SendToCallback(asCScriptEngine *engine, asSSystemFunctionInterface *func, void *obj);
 
 	struct message_t
 	{
-		message_t() : row(0), col(0), type(asMSGTYPE_INFORMATION) {}
-		asCString section;
-		int row;
-		int col;
+		message_t() : row(0), col(0), type(asMSGTYPE_INFORMATION)
+		{
+		}
+		asCString  section;
+		int        row;
+		int        col;
 		asEMsgType type;
-		asCString msg;
+		asCString  msg;
 	};
 
-	asCArray<message_t*> messages;
+	asCArray<message_t *> messages;
 };
 
 END_AS_NAMESPACE

@@ -55,8 +55,8 @@ class asCContext : public asIScriptContext
 {
 public:
 	// Memory management
-	int  AddRef() const;
-	int  Release() const;
+	int AddRef() const;
+	int Release() const;
 
 	// Miscellaneous
 	asIScriptEngine *GetEngine() const;
@@ -102,7 +102,7 @@ public:
 	int                SetException(const char *descr, bool allowCatch = true);
 	int                GetExceptionLineNumber(int *column, const char **sectionName);
 	asIScriptFunction *GetExceptionFunction();
-	const char *       GetExceptionString();
+	const char        *GetExceptionString();
 	bool               WillExceptionBeCaught();
 	int                SetExceptionCallback(const asSFuncPtr &callback, void *obj, int callConv);
 	void               ClearExceptionCallback();
@@ -114,18 +114,18 @@ public:
 	asIScriptFunction *GetFunction(asUINT stackLevel);
 	int                GetLineNumber(asUINT stackLevel, int *column, const char **sectionName);
 	int                GetVarCount(asUINT stackLevel);
-	int                GetVar(asUINT varIndex, asUINT stackLevel, const char** name, int* typeId, asETypeModifiers* typeModifiers, bool* isVarOnHeap, int* stackOffset);
+	int                GetVar(asUINT varIndex, asUINT stackLevel, const char **name, int *typeId, asETypeModifiers *typeModifiers, bool *isVarOnHeap, int *stackOffset);
 #ifdef AS_DEPRECATED
-	const char        *GetVarName(asUINT varIndex, asUINT stackLevel);
+	const char *GetVarName(asUINT varIndex, asUINT stackLevel);
 #endif
-	const char        *GetVarDeclaration(asUINT varIndex, asUINT stackLevel, bool includeNamespace);
+	const char *GetVarDeclaration(asUINT varIndex, asUINT stackLevel, bool includeNamespace);
 #ifdef AS_DEPRECATED
-	int                GetVarTypeId(asUINT varIndex, asUINT stackLevel);
+	int GetVarTypeId(asUINT varIndex, asUINT stackLevel);
 #endif
 	void              *GetAddressOfVar(asUINT varIndex, asUINT stackLevel, bool dontDereference, bool returnAddressOfUnitializedObjects);
 	bool               IsVarInScope(asUINT varIndex, asUINT stackLevel);
 	int                GetThisTypeId(asUINT stackLevel);
-    void              *GetThisPointer(asUINT stackLevel);
+	void              *GetThisPointer(asUINT stackLevel);
 	asIScriptFunction *GetSystemFunction();
 
 	// User data
@@ -136,27 +136,27 @@ public:
 	int StartDeserialization();
 	int FinishDeserialization();
 	int PushFunction(asIScriptFunction *func, void *obj);
-	int GetStateRegisters(asUINT stackLevel, asIScriptFunction** callingSystemFunction, asIScriptFunction** initialFunction, asDWORD* origStackPointer, asDWORD* argumentsSize, asQWORD* valueRegister, void** objectRegister, asITypeInfo** objectTypeRegister);
-	int GetCallStateRegisters(asUINT stackLevel, asDWORD* stackFramePointer, asIScriptFunction** currentFunction, asDWORD* programPointer, asDWORD* stackPointer, asDWORD* stackIndex);
-	int SetStateRegisters(asUINT stackLevel, asIScriptFunction* callingSystemFunction, asIScriptFunction* initialFunction, asDWORD origStackPointer, asDWORD argumentsSize, asQWORD valueRegister, void* objectRegister, asITypeInfo* objectTypeRegister);
-	int SetCallStateRegisters(asUINT stackLevel, asDWORD stackFramePointer, asIScriptFunction* currentFunction, asDWORD programPointer, asDWORD stackPointer, asDWORD stackIndex);
+	int GetStateRegisters(asUINT stackLevel, asIScriptFunction **callingSystemFunction, asIScriptFunction **initialFunction, asDWORD *origStackPointer, asDWORD *argumentsSize, asQWORD *valueRegister, void **objectRegister, asITypeInfo **objectTypeRegister);
+	int GetCallStateRegisters(asUINT stackLevel, asDWORD *stackFramePointer, asIScriptFunction **currentFunction, asDWORD *programPointer, asDWORD *stackPointer, asDWORD *stackIndex);
+	int SetStateRegisters(asUINT stackLevel, asIScriptFunction *callingSystemFunction, asIScriptFunction *initialFunction, asDWORD origStackPointer, asDWORD argumentsSize, asQWORD valueRegister, void *objectRegister, asITypeInfo *objectTypeRegister);
+	int SetCallStateRegisters(asUINT stackLevel, asDWORD stackFramePointer, asIScriptFunction *currentFunction, asDWORD programPointer, asDWORD stackPointer, asDWORD stackIndex);
 	int GetArgsOnStackCount(asUINT stackLevel);
-	int GetArgOnStack(asUINT stackLevel, asUINT arg, int* typeId, asUINT *flags, void** address);
+	int GetArgOnStack(asUINT stackLevel, asUINT arg, int *typeId, asUINT *flags, void **address);
 
 public:
 	// Internal public functions
 	asCContext(asCScriptEngine *engine, bool holdRef);
 	virtual ~asCContext();
-	asCScriptFunction *GetRealFunc(asCScriptFunction * m_currentFunction, void ** objType);
-	int DeserializeProgramPointer(int programPointer, asCScriptFunction * currentFunction, void * object, asDWORD *& p, asCScriptFunction *& realFunc);
+	asCScriptFunction *GetRealFunc(asCScriptFunction *m_currentFunction, void **objType);
+	int                DeserializeProgramPointer(int programPointer, asCScriptFunction *currentFunction, void *object, asDWORD *&p, asCScriptFunction *&realFunc);
 
-//protected:
+	//protected:
 	friend class asCScriptEngine;
 
 	void CallLineCallback();
 	void CallExceptionCallback();
 
-	int  CallGeneric(asCScriptFunction *func);
+	int CallGeneric(asCScriptFunction *func);
 #ifndef AS_NO_EXCEPTIONS
 	void HandleAppException();
 #endif
@@ -178,7 +178,7 @@ public:
 	void SetProgramPointer();
 
 	bool ReserveStackSpace(asUINT size);
-	int DetermineStackIndex(asDWORD *ptr) const;
+	int  DetermineStackIndex(asDWORD *ptr) const;
 
 	asDWORD *DeserializeStackPointer(asDWORD);
 	asDWORD  SerializeStackPointer(asDWORD *) const;
@@ -202,7 +202,7 @@ public:
 	asCScriptFunction *m_callingSystemFunction;
 
 	// The call stack holds program pointer, stack pointer, etc for caller functions
-	asCArray<size_t>    m_callStack;
+	asCArray<size_t> m_callStack;
 
 	// Dynamically growing local stack
 	asCArray<asDWORD *> m_stackBlocks;
@@ -230,16 +230,16 @@ public:
 	// Cache for GetArgsOnStack
 	asCArray<int>      m_argsOnStackCache;
 	asUINT             m_argsOnStackCacheProgPos;
-	asCScriptFunction* m_argsOnStackCacheFunc;
+	asCScriptFunction *m_argsOnStackCacheFunc;
 
 	// callbacks
 	bool                       m_lineCallback;
 	asSSystemFunctionInterface m_lineCallbackFunc;
-	void *                     m_lineCallbackObj;
+	void                      *m_lineCallbackObj;
 
 	bool                       m_exceptionCallback;
 	asSSystemFunctionInterface m_exceptionCallbackFunc;
-	void *                     m_exceptionCallbackObj;
+	void                      *m_exceptionCallbackObj;
 
 	asCArray<asPWORD> m_userData;
 
@@ -255,10 +255,10 @@ const int RESERVE_STACK = 2 * AS_PTR_SIZE;
 const int CALLSTACK_FRAME_SIZE = 9;
 
 // TODO: Move these to as_utils.h
-int     as_powi(int base, int exponent, bool& isOverflow);
-asDWORD as_powu(asDWORD base, asDWORD exponent, bool& isOverflow);
-asINT64 as_powi64(asINT64 base, asINT64 exponent, bool& isOverflow);
-asQWORD as_powu64(asQWORD base, asQWORD exponent, bool& isOverflow);
+int     as_powi(int base, int exponent, bool &isOverflow);
+asDWORD as_powu(asDWORD base, asDWORD exponent, bool &isOverflow);
+asINT64 as_powi64(asINT64 base, asINT64 exponent, bool &isOverflow);
+asQWORD as_powu64(asQWORD base, asQWORD exponent, bool &isOverflow);
 
 // Optional template version of powi if overflow detection is not used.
 #if 0

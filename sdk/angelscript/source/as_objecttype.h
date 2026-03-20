@@ -50,24 +50,24 @@ BEGIN_AS_NAMESPACE
 
 struct asSTypeBehaviour
 {
-	asSTypeBehaviour() 
+	asSTypeBehaviour()
 	{
-		factory = 0;
-		listFactory = 0;
-		copyfactory = 0;
-		construct = 0; 
-		copyconstruct = 0;
-		destruct = 0; 
-		copy = 0; 
-		addref = 0; 
-		release = 0; 
-		gcGetRefCount = 0; 
-		gcSetFlag = 0; 
-		gcGetFlag = 0; 
-		gcEnumReferences = 0; 
+		factory                = 0;
+		listFactory            = 0;
+		copyfactory            = 0;
+		construct              = 0;
+		copyconstruct          = 0;
+		destruct               = 0;
+		copy                   = 0;
+		addref                 = 0;
+		release                = 0;
+		gcGetRefCount          = 0;
+		gcSetFlag              = 0;
+		gcGetFlag              = 0;
+		gcEnumReferences       = 0;
 		gcReleaseAllReferences = 0;
-		templateCallback = 0;
-		getWeakRefFlag = 0;
+		templateCallback       = 0;
+		getWeakRefFlag         = 0;
 	}
 
 	int factory;
@@ -134,28 +134,28 @@ public:
 	bool IsInterface() const;
 
 	asCObjectProperty *AddPropertyToClass(const asCString &name, const asCDataType &dt, bool isPrivate, bool isProtected, bool isInherited);
-	void ReleaseAllProperties();
+	void               ReleaseAllProperties();
 
 #ifdef WIP_16BYTE_ALIGN
-	int                          alignment;
+	int alignment;
 #endif
-	asCArray<asCObjectProperty*> properties;
-	asCArray<int>                methods;
+	asCArray<asCObjectProperty *> properties;
+	asCArray<int>                 methods;
 
 	// TODO: These are not used by template types. Should perhaps create a derived class to save memory on ordinary object types
-	asCArray<asCObjectType*>     interfaces;
-	asCArray<asUINT>             interfaceVFTOffsets;
-	asCObjectType *              derivedFrom;
-	asCArray<asCScriptFunction*> virtualFunctionTable;
+	asCArray<asCObjectType *>     interfaces;
+	asCArray<asUINT>              interfaceVFTOffsets;
+	asCObjectType                *derivedFrom;
+	asCArray<asCScriptFunction *> virtualFunctionTable;
 
 	// Used for funcdefs declared as members of class.
 	// TODO: child funcdef: Should be possible to enumerate these from application
-	asCArray<asCFuncdefType*> childFuncDefs;
+	asCArray<asCFuncdefType *> childFuncDefs;
 
 	asSTypeBehaviour beh;
 
 	// Used for template types
-	asCArray<asCDataType> templateSubTypes;   // increases refCount for typeinfo held in datatype
+	asCArray<asCDataType> templateSubTypes; // increases refCount for typeinfo held in datatype
 	bool                  acceptValueSubType;
 	bool                  acceptRefSubType;
 

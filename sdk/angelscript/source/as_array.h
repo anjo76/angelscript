@@ -32,12 +32,12 @@
 #define AS_ARRAY_H
 
 #if !defined(AS_NO_MEMORY_H)
-#include <memory.h>
+	#include <memory.h>
 #endif
 #include <string.h> // some compilers declare memcpy() here
 
 #ifdef _MSC_VER
-#pragma warning(disable:4345) // warning about a change in how the code is handled in this version
+	#pragma warning(disable : 4345) // warning about a change in how the code is handled in this version
 #endif
 
 BEGIN_AS_NAMESPACE
@@ -50,29 +50,29 @@ public:
 	explicit asCArray(asUINT reserve);
 	~asCArray();
 
-	void   Allocate(asUINT numElements, bool keepData);
-	void   AllocateNoConstruct(asUINT numElements, bool keepData);
+	void          Allocate(asUINT numElements, bool keepData);
+	void          AllocateNoConstruct(asUINT numElements, bool keepData);
 	inline asUINT GetCapacity() const;
 
-	void PushLast(const T &element);
-	inline T    PopLast();
+	void     PushLast(const T &element);
+	inline T PopLast();
 
-	bool   SetLength(asUINT numElements);
-	bool   SetLengthNoConstruct(asUINT numElements);
+	bool          SetLength(asUINT numElements);
+	bool          SetLengthNoConstruct(asUINT numElements);
 	inline void   SetLengthNoAllocate(asUINT numElements);
 	inline asUINT GetLength() const;
 
-	void         Copy(const T*, asUINT count);
-	asCArray<T> &operator =(const asCArray<T> &);
+	void         Copy(const T *, asUINT count);
+	asCArray<T> &operator=(const asCArray<T> &);
 	void         SwapWith(asCArray<T> &other);
 
-	inline const T &operator [](asUINT index) const;
-	inline T       &operator [](asUINT index);
+	inline const T &operator[](asUINT index) const;
+	inline T       &operator[](asUINT index);
 	inline T       *AddressOf();
 	inline const T *AddressOf() const;
 
 	bool Concatenate(const asCArray<T> &);
-	void Concatenate(T*, unsigned int count);
+	void Concatenate(T *, unsigned int count);
 
 	bool Exists(const T &element) const;
 	int  IndexOf(const T &element) const;
@@ -84,14 +84,14 @@ public:
 	bool operator!=(const asCArray<T> &) const;
 
 public:
-	// These are public to allow external code (e.g. JIT compiler) to do asOFFSET to 
+	// These are public to allow external code (e.g. JIT compiler) to do asOFFSET to
 	// access the members directly without having to modify the code to add friend
-	T      *array;
-	asUINT  length;                  // 32bits is enough for all uses of this array
-	asUINT  maxLength;
+	T     *array;
+	asUINT length; // 32bits is enough for all uses of this array
+	asUINT maxLength;
 
 protected:
-	char    buf[2*4*AS_PTR_SIZE];    // Avoid dynamically allocated memory for tiny arrays
+	char buf[2 * 4 * AS_PTR_SIZE]; // Avoid dynamically allocated memory for tiny arrays
 };
 
 // Implementation
@@ -140,7 +140,7 @@ template <class T>
 asCArray<T>::~asCArray(void)
 {
 	// Allocating a zero length array will free all memory
-	Allocate(0,0);
+	Allocate(0, 0);
 }
 
 template <class T>
@@ -150,7 +150,7 @@ inline asUINT asCArray<T>::GetLength() const
 }
 
 template <class T>
-inline const T &asCArray<T>::operator [](asUINT index) const
+inline const T &asCArray<T>::operator[](asUINT index) const
 {
 	asASSERT(index < length);
 
@@ -158,7 +158,7 @@ inline const T &asCArray<T>::operator [](asUINT index) const
 }
 
 template <class T>
-inline T &asCArray<T>::operator [](asUINT index)
+inline T &asCArray<T>::operator[](asUINT index)
 {
 	asASSERT(index < length);
 
@@ -173,7 +173,7 @@ void asCArray<T>::PushLast(const T &element)
 		if( maxLength == 0 )
 			Allocate(1, false);
 		else
-			Allocate(2*maxLength, true);
+			Allocate(2 * maxLength, true);
 
 		if( length == maxLength )
 		{
@@ -205,13 +205,13 @@ void asCArray<T>::Allocate(asUINT numElements, bool keepData)
 	T *tmp = 0;
 	if( numElements )
 	{
-		if( sizeof(T)*numElements <= sizeof(buf) )
+		if( sizeof(T) * numElements <= sizeof(buf) )
 			// Use the internal buffer
-			tmp = reinterpret_cast<T*>(buf);
+			tmp = reinterpret_cast<T *>(buf);
 		else
 		{
 			// Allocate the array and construct each of the elements
-			tmp = asNEWARRAY(T,numElements);
+			tmp = asNEWARRAY(T, numElements);
 			if( tmp == 0 )
 			{
 				// Out of memory. Return without doing anything
@@ -234,7 +234,7 @@ void asCArray<T>::Allocate(asUINT numElements, bool keepData)
 	}
 
 	if( array )
-	{	
+	{
 		asUINT oldLength = length;
 
 		if( array == tmp )
@@ -268,12 +268,12 @@ void asCArray<T>::Allocate(asUINT numElements, bool keepData)
 			for( asUINT n = 0; n < oldLength; n++ )
 				array[n].~T();
 
-			if( array != reinterpret_cast<T*>(buf) )
+			if( array != reinterpret_cast<T *>(buf) )
 				asDELETEARRAY(array);
 		}
 	}
 
-	array = tmp;
+	array     = tmp;
 	maxLength = numElements;
 }
 
@@ -290,13 +290,13 @@ void asCArray<T>::AllocateNoConstruct(asUINT numElements, bool keepData)
 	if( numElements )
 	{
 		asASSERT(asQWORD(numElements) * sizeof(T) <= 2147483647);
-		if( sizeof(T)*numElements <= sizeof(buf) )
+		if( sizeof(T) * numElements <= sizeof(buf) )
 			// Use the internal buffer
-			tmp = reinterpret_cast<T*>(buf);
+			tmp = reinterpret_cast<T *>(buf);
 		else
 		{
 			// Allocate the array and construct each of the elements
-			tmp = asNEWARRAY(T,numElements);
+			tmp = asNEWARRAY(T, numElements);
 			if( tmp == 0 )
 			{
 				// Out of memory. Return without doing anything
@@ -324,17 +324,17 @@ void asCArray<T>::AllocateNoConstruct(asUINT numElements, bool keepData)
 				if( length > numElements )
 					length = numElements;
 
-				memcpy(tmp, array, sizeof(T)*length);
+				memcpy(tmp, array, sizeof(T) * length);
 			}
 			else
 				length = 0;
 
-			if( array != reinterpret_cast<T*>(buf) )
+			if( array != reinterpret_cast<T *>(buf) )
 				asDELETEARRAY(array);
 		}
 	}
 
-	array = tmp;
+	array     = tmp;
 	maxLength = numElements;
 }
 
@@ -405,7 +405,7 @@ void asCArray<T>::Copy(const T *data, asUINT count)
 }
 
 template <class T>
-asCArray<T> &asCArray<T>::operator =(const asCArray<T> &copy)
+asCArray<T> &asCArray<T>::operator=(const asCArray<T> &copy)
 {
 	Copy(copy.array, copy.length);
 
@@ -415,31 +415,31 @@ asCArray<T> &asCArray<T>::operator =(const asCArray<T> &copy)
 template <class T>
 void asCArray<T>::SwapWith(asCArray<T> &other)
 {
-	T      *tmpArray = array;
-	asUINT  tmpLength = length;
-	asUINT  tmpMaxLength = maxLength;
-	char    tmpBuf[sizeof(buf)];
+	T     *tmpArray     = array;
+	asUINT tmpLength    = length;
+	asUINT tmpMaxLength = maxLength;
+	char   tmpBuf[sizeof(buf)];
 	memcpy(tmpBuf, buf, sizeof(buf));
 
-	array = other.array;
-	length = other.length;
+	array     = other.array;
+	length    = other.length;
 	maxLength = other.maxLength;
 	memcpy(buf, other.buf, sizeof(buf));
 
-	other.array = tmpArray;
-	other.length = tmpLength;
+	other.array     = tmpArray;
+	other.length    = tmpLength;
 	other.maxLength = tmpMaxLength;
 	memcpy(other.buf, tmpBuf, sizeof(buf));
 
 	// If the data is in the internal buffer, then the array pointer must refer to it
-	if( array == reinterpret_cast<T*>(other.buf) )
-		array = reinterpret_cast<T*>(buf);
-	if( other.array == reinterpret_cast<T*>(buf) )
-		other.array = reinterpret_cast<T*>(other.buf);
+	if( array == reinterpret_cast<T *>(other.buf) )
+		array = reinterpret_cast<T *>(buf);
+	if( other.array == reinterpret_cast<T *>(buf) )
+		other.array = reinterpret_cast<T *>(other.buf);
 }
 
 template <class T>
-bool asCArray<T>::operator ==(const asCArray<T> &other) const
+bool asCArray<T>::operator==(const asCArray<T> &other) const
 {
 	if( length != other.length ) return false;
 
@@ -451,7 +451,7 @@ bool asCArray<T>::operator ==(const asCArray<T> &other) const
 }
 
 template <class T>
-bool asCArray<T>::operator !=(const asCArray<T> &other) const
+bool asCArray<T>::operator!=(const asCArray<T> &other) const
 {
 	return !(*this == other);
 }
@@ -472,7 +472,7 @@ bool asCArray<T>::Concatenate(const asCArray<T> &other)
 	}
 
 	for( asUINT n = 0; n < other.length; n++ )
-		array[length+n] = other.array[n];
+		array[length + n] = other.array[n];
 
 	length += other.length;
 
@@ -481,7 +481,7 @@ bool asCArray<T>::Concatenate(const asCArray<T> &other)
 }
 
 template <class T>
-void asCArray<T>::Concatenate(T* other, unsigned int count)
+void asCArray<T>::Concatenate(T *other, unsigned int count)
 {
 	for( unsigned int c = 0; c < count; c++ )
 		PushLast(other[c]);
@@ -507,8 +507,8 @@ void asCArray<T>::RemoveIndex(asUINT index)
 {
 	if( index < length )
 	{
-		for( asUINT n = index; n < length-1; n++ )
-			array[n] = array[n+1];
+		for( asUINT n = index; n < length - 1; n++ )
+			array[n] = array[n + 1];
 
 		PopLast();
 	}

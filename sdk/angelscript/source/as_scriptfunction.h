@@ -58,7 +58,9 @@ struct asSNameSpace;
 
 struct asSScriptVariable
 {
-	asSScriptVariable() : type(), stackOffset(0), onHeap(false), declaredAtProgramPos(0) {}
+	asSScriptVariable() : type(), stackOffset(0), onHeap(false), declaredAtProgramPos(0)
+	{
+	}
 	asCString   name;
 	asCDataType type;
 	int         stackOffset;
@@ -66,8 +68,7 @@ struct asSScriptVariable
 	asUINT      declaredAtProgramPos : 31;
 };
 
-enum asEListPatternNodeType
-{
+enum asEListPatternNodeType {
 	asLPT_REPEAT,
 	asLPT_REPEAT_SAME,
 	asLPT_START,
@@ -77,51 +78,69 @@ enum asEListPatternNodeType
 
 struct asSListPatternNode
 {
-	asSListPatternNode(asEListPatternNodeType t) : type(t), next(0) {}
+	asSListPatternNode(asEListPatternNodeType t) : type(t), next(0)
+	{
+	}
 	virtual ~asSListPatternNode() {};
-	virtual asSListPatternNode *Duplicate() { return asNEW(asSListPatternNode)(type); }
-	asEListPatternNodeType  type;
-	asSListPatternNode     *next;
+	virtual asSListPatternNode *Duplicate()
+	{
+		return asNEW(asSListPatternNode)(type);
+	}
+	asEListPatternNodeType type;
+	asSListPatternNode    *next;
 };
 
 struct asSListPatternDataTypeNode : public asSListPatternNode
 {
-	asSListPatternDataTypeNode(const asCDataType &dt) : asSListPatternNode(asLPT_TYPE), dataType(dt) {}
-	asSListPatternNode *Duplicate() { return asNEW(asSListPatternDataTypeNode)(dataType); }
+	asSListPatternDataTypeNode(const asCDataType &dt) : asSListPatternNode(asLPT_TYPE), dataType(dt)
+	{
+	}
+	asSListPatternNode *Duplicate()
+	{
+		return asNEW(asSListPatternDataTypeNode)(dataType);
+	}
 	asCDataType dataType;
 };
 
-enum asEObjVarInfoOption
-{
-	asOBJ_UNINIT,	// object is uninitialized/destroyed
-	asOBJ_INIT,		// object is initialized
-	asBLOCK_BEGIN,	// scope block begins
-	asBLOCK_END,	// scope block ends
-	asOBJ_VARDECL	// object variable is declared (but not necessarily initialized)
+enum asEObjVarInfoOption {
+	asOBJ_UNINIT,  // object is uninitialized/destroyed
+	asOBJ_INIT,    // object is initialized
+	asBLOCK_BEGIN, // scope block begins
+	asBLOCK_END,   // scope block ends
+	asOBJ_VARDECL  // object variable is declared (but not necessarily initialized)
 };
 
-enum asEFuncTrait
-{
-	asTRAIT_CONSTRUCTOR = 1<<0,  // method
-	asTRAIT_DESTRUCTOR  = 1<<1,  // method
-	asTRAIT_CONST       = 1<<2,  // method
-	asTRAIT_PRIVATE     = 1<<3,  // method
-	asTRAIT_PROTECTED   = 1<<4,  // method
-	asTRAIT_FINAL       = 1<<5,  // method
-	asTRAIT_OVERRIDE    = 1<<6,  // method
-	asTRAIT_SHARED      = 1<<7,  // function
-	asTRAIT_EXTERNAL    = 1<<8,  // function
-	asTRAIT_EXPLICIT    = 1<<9,  // method
-	asTRAIT_PROPERTY    = 1<<10, // method/function
-	asTRAIT_DELETED     = 1<<11, // method
-	asTRAIT_VARIADIC    = 1<<12  // method/function
+enum asEFuncTrait {
+	asTRAIT_CONSTRUCTOR = 1 << 0,  // method
+	asTRAIT_DESTRUCTOR  = 1 << 1,  // method
+	asTRAIT_CONST       = 1 << 2,  // method
+	asTRAIT_PRIVATE     = 1 << 3,  // method
+	asTRAIT_PROTECTED   = 1 << 4,  // method
+	asTRAIT_FINAL       = 1 << 5,  // method
+	asTRAIT_OVERRIDE    = 1 << 6,  // method
+	asTRAIT_SHARED      = 1 << 7,  // function
+	asTRAIT_EXTERNAL    = 1 << 8,  // function
+	asTRAIT_EXPLICIT    = 1 << 9,  // method
+	asTRAIT_PROPERTY    = 1 << 10, // method/function
+	asTRAIT_DELETED     = 1 << 11, // method
+	asTRAIT_VARIADIC    = 1 << 12  // method/function
 };
 
 struct asSFunctionTraits
 {
-	asSFunctionTraits() : traits(0) {}
-	void SetTrait(asEFuncTrait trait, bool set) { if (set) traits |= trait; else traits &= ~trait; }
-	bool GetTrait(asEFuncTrait trait) const { return (traits & trait) ? true : false; }
+	asSFunctionTraits() : traits(0)
+	{
+	}
+	void SetTrait(asEFuncTrait trait, bool set)
+	{
+		if( set ) traits |= trait;
+		else traits &= ~trait;
+	}
+	bool GetTrait(asEFuncTrait trait) const
+	{
+		return (traits & trait) ? true : false;
+	}
+
 protected:
 	asDWORD traits;
 };
@@ -152,92 +171,119 @@ class asCScriptFunction : public asIScriptFunction
 {
 public:
 	// From asIScriptFunction
-	asIScriptEngine     *GetEngine() const;
+	asIScriptEngine *GetEngine() const;
 
 	// Memory management
 	int AddRef() const;
 	int Release() const;
 
 	// Miscellaneous
-	int                  GetId() const;
-	asEFuncType          GetFuncType() const;
-	const char          *GetModuleName() const;
-	asIScriptModule     *GetModule() const;
+	int              GetId() const;
+	asEFuncType      GetFuncType() const;
+	const char      *GetModuleName() const;
+	asIScriptModule *GetModule() const;
 #ifdef AS_DEPRECATED
 	// deprecated since 2025-04-25, 2.38.0
-	const char          *GetScriptSectionName() const;
+	const char *GetScriptSectionName() const;
 #endif
-	const char          *GetConfigGroup() const;
-	asDWORD              GetAccessMask() const;
-	void                *GetAuxiliary() const;
+	const char *GetConfigGroup() const;
+	asDWORD     GetAccessMask() const;
+	void       *GetAuxiliary() const;
 
 	// Function signature
-	asITypeInfo         *GetObjectType() const;
-	const char          *GetObjectName() const;
-	const char          *GetName() const;
-	const char          *GetNamespace() const;
-	const char          *GetDeclaration(bool includeObjectName = true, bool includeNamespace = false, bool includeParamNames = false) const;
-	bool                 IsReadOnly() const;
-	bool                 IsPrivate() const;
-	bool                 IsProtected() const;
-	bool                 IsFinal() const;
-	bool                 IsOverride() const;
-	bool                 IsShared() const;
-	bool                 IsExplicit() const;
-	bool                 IsProperty() const;
-	bool                 IsVariadic() const;
-	asUINT               GetParamCount() const;
-	int                  GetParam(asUINT index, int *typeId, asDWORD *flags = 0, const char **name = 0, const char **defaultArg = 0) const;
-	int                  GetReturnTypeId(asDWORD *flags = 0) const;
+	asITypeInfo *GetObjectType() const;
+	const char  *GetObjectName() const;
+	const char  *GetName() const;
+	const char  *GetNamespace() const;
+	const char  *GetDeclaration(bool includeObjectName = true, bool includeNamespace = false, bool includeParamNames = false) const;
+	bool         IsReadOnly() const;
+	bool         IsPrivate() const;
+	bool         IsProtected() const;
+	bool         IsFinal() const;
+	bool         IsOverride() const;
+	bool         IsShared() const;
+	bool         IsExplicit() const;
+	bool         IsProperty() const;
+	bool         IsVariadic() const;
+	asUINT       GetParamCount() const;
+	int          GetParam(asUINT index, int *typeId, asDWORD *flags = 0, const char **name = 0, const char **defaultArg = 0) const;
+	int          GetReturnTypeId(asDWORD *flags = 0) const;
 
 	// Template functions
 	asUINT       GetSubTypeCount() const;
 	int          GetSubTypeId(asUINT subTypeIndex = 0) const;
-	asITypeInfo* GetSubType(asUINT subTypeIndex = 0) const;
+	asITypeInfo *GetSubType(asUINT subTypeIndex = 0) const;
 
 	// Type id for function pointers
-	int                  GetTypeId() const;
-	bool                 IsCompatibleWithTypeId(int typeId) const;
+	int  GetTypeId() const;
+	bool IsCompatibleWithTypeId(int typeId) const;
 
 	// Delegates
-	void                *GetDelegateObject() const;
-	asITypeInfo         *GetDelegateObjectType() const;
-	asIScriptFunction   *GetDelegateFunction() const;
+	void              *GetDelegateObject() const;
+	asITypeInfo       *GetDelegateObjectType() const;
+	asIScriptFunction *GetDelegateFunction() const;
 
 	// Debug information
-	asUINT               GetVarCount() const;
-	int                  GetVar(asUINT index, const char **name, int *typeId = 0) const;
-	const char *         GetVarDecl(asUINT index, bool includeNamespace = false) const;
+	asUINT      GetVarCount() const;
+	int         GetVar(asUINT index, const char **name, int *typeId = 0) const;
+	const char *GetVarDecl(asUINT index, bool includeNamespace = false) const;
 #ifdef AS_DEPRECATED
 	// deprecated since 2025-11-14, 2.39.0
-	int                  FindNextLineWithCode(int line) const;
+	int FindNextLineWithCode(int line) const;
 #endif
-	int                  GetDeclaredAt(const char** scriptSection, int* row, int* col) const;
-	int                  GetLineEntryCount() const;
-	int                  GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const;
+	int GetDeclaredAt(const char **scriptSection, int *row, int *col) const;
+	int GetLineEntryCount() const;
+	int GetLineEntry(asUINT index, int *row, int *col, const char **sectionName, const asDWORD **byteCode) const;
 
 	// For JIT compilation
-	asDWORD *            GetByteCode(asUINT *length = 0);
-	int                  SetJITFunction(asJITFunction jitFunc);
-	asJITFunction        GetJITFunction() const;
+	asDWORD      *GetByteCode(asUINT *length = 0);
+	int           SetJITFunction(asJITFunction jitFunc);
+	asJITFunction GetJITFunction() const;
 
 	// User data
-	void                *SetUserData(void *userData, asPWORD type);
-	void                *GetUserData(asPWORD type) const;
+	void *SetUserData(void *userData, asPWORD type);
+	void *GetUserData(asPWORD type) const;
 
 public:
 	//-----------------------------------
 	// Internal methods
 
-	void SetShared(bool set) { traits.SetTrait(asTRAIT_SHARED, set); }
-	void SetReadOnly(bool set) { traits.SetTrait(asTRAIT_CONST, set); }
-	void SetFinal(bool set) { traits.SetTrait(asTRAIT_FINAL, set); }
-	void SetOverride(bool set) { traits.SetTrait(asTRAIT_OVERRIDE, set); }
-	void SetExplicit(bool set) { traits.SetTrait(asTRAIT_EXPLICIT, set); }
-	void SetProtected(bool set) { traits.SetTrait(asTRAIT_PROTECTED, set); }
-	void SetPrivate(bool set) { traits.SetTrait(asTRAIT_PRIVATE, set); }
-	void SetProperty(bool set) { traits.SetTrait(asTRAIT_PROPERTY, set); }
-	void SetVariadic(bool set) { traits.SetTrait(asTRAIT_VARIADIC, set); }
+	void SetShared(bool set)
+	{
+		traits.SetTrait(asTRAIT_SHARED, set);
+	}
+	void SetReadOnly(bool set)
+	{
+		traits.SetTrait(asTRAIT_CONST, set);
+	}
+	void SetFinal(bool set)
+	{
+		traits.SetTrait(asTRAIT_FINAL, set);
+	}
+	void SetOverride(bool set)
+	{
+		traits.SetTrait(asTRAIT_OVERRIDE, set);
+	}
+	void SetExplicit(bool set)
+	{
+		traits.SetTrait(asTRAIT_EXPLICIT, set);
+	}
+	void SetProtected(bool set)
+	{
+		traits.SetTrait(asTRAIT_PROTECTED, set);
+	}
+	void SetPrivate(bool set)
+	{
+		traits.SetTrait(asTRAIT_PRIVATE, set);
+	}
+	void SetProperty(bool set)
+	{
+		traits.SetTrait(asTRAIT_PROPERTY, set);
+	}
+	void SetVariadic(bool set)
+	{
+		traits.SetTrait(asTRAIT_VARIADIC, set);
+	}
 	bool IsFactory() const;
 
 	asCScriptFunction(asCScriptEngine *engine, asCModule *mod, asEFuncType funcType);
@@ -248,7 +294,7 @@ public:
 	int AddRefInternal();
 	int ReleaseInternal();
 
-	void     DestroyHalfCreated();
+	void DestroyHalfCreated();
 
 	// TODO: operator==
 	// TODO: The asIScriptFunction should provide operator== and operator!= that should do a
@@ -258,9 +304,9 @@ public:
 	//       Perhaps reusing 'auto' to mean the same type as the object
 	//bool      operator==(const asCScriptFunction &other) const;
 
-	void      DestroyInternal();
+	void DestroyInternal();
 
-	void      AddVariable(const asCString &name, const asCDataType &type, int stackOffset, bool onHeap);
+	void AddVariable(const asCString &name, const asCDataType &type, int stackOffset, bool onHeap);
 
 	int       GetSpaceNeededForArguments();
 	int       GetSpaceNeededForReturnValue();
@@ -276,23 +322,23 @@ public:
 
 	asCTypeInfo *GetTypeInfoOfLocalVar(short varOffset);
 
-	void      MakeDelegate(asCScriptFunction *func, void *obj);
+	void MakeDelegate(asCScriptFunction *func, void *obj);
 
-	int       RegisterListPattern(const char *decl, asCScriptNode *listPattern);
-	int       ParseListPattern(asSListPatternNode *&target, const char *decl, asCScriptNode *listPattern);
+	int RegisterListPattern(const char *decl, asCScriptNode *listPattern);
+	int ParseListPattern(asSListPatternNode *&target, const char *decl, asCScriptNode *listPattern);
 
-	bool      DoesReturnOnStack() const;
+	bool DoesReturnOnStack() const;
 
-	void      JITCompile();
+	void JITCompile();
 
-	void      AddReferences();
-	void      ReleaseReferences();
+	void AddReferences();
+	void ReleaseReferences();
 
-	void      AllocateScriptFunctionData();
-	void      DeallocateScriptFunctionData();
+	void AllocateScriptFunctionData();
+	void DeallocateScriptFunctionData();
 
-	asCScriptFunction* FindNextFunctionCalled(asUINT startSearchFromProgramPos, int *stackDelta, asUINT *outProgramPos);
-	asCScriptFunction* GetCalledFunction(asDWORD programPos);
+	asCScriptFunction *FindNextFunctionCalled(asUINT startSearchFromProgramPos, int *stackDelta, asUINT *outProgramPos);
+	asCScriptFunction *GetCalledFunction(asDWORD programPos);
 
 	asCGlobalProperty *GetPropertyByGlobalVarPtr(void *gvarPtr);
 
@@ -305,43 +351,43 @@ public:
 
 	// Don't allow the script function to be copied
 private:
-	asCScriptFunction(const asCScriptFunction&);
+	asCScriptFunction(const asCScriptFunction &);
 
 public:
 	//-----------------------------------
 	// Properties
 
-	mutable asCAtomic            externalRefCount; // Used for external referneces
-	        asCAtomic            internalRefCount; // Used for internal references
-	mutable bool                 gcFlag;
-	asCScriptEngine             *engine;
-	asCModule                   *module;
+	mutable asCAtomic externalRefCount; // Used for external referneces
+	asCAtomic         internalRefCount; // Used for internal references
+	mutable bool      gcFlag;
+	asCScriptEngine  *engine;
+	asCModule        *module;
 
-	asCArray<asPWORD>            userData;
+	asCArray<asPWORD> userData;
 
 	// Function signature
-	asCString                    name;
-	asCDataType                  returnType;
-	asCArray<asCDataType>        parameterTypes;
-	asCArray<asCDataType>        templateSubTypes; // Increase ref of template subtypes
-	asCArray<asCString>          parameterNames;
-	asCArray<asETypeModifiers>   inOutFlags;
-	asCArray<asCString *>        defaultArgs;
-	asSFunctionTraits            traits;
-	asCObjectType               *objectType;
-	int                          signatureId;
+	asCString                  name;
+	asCDataType                returnType;
+	asCArray<asCDataType>      parameterTypes;
+	asCArray<asCDataType>      templateSubTypes; // Increase ref of template subtypes
+	asCArray<asCString>        parameterNames;
+	asCArray<asETypeModifiers> inOutFlags;
+	asCArray<asCString *>      defaultArgs;
+	asSFunctionTraits          traits;
+	asCObjectType             *objectType;
+	int                        signatureId;
 
-	int                          id;
+	int id;
 
-	asEFuncType                  funcType;
-	asDWORD                      accessMask;
+	asEFuncType funcType;
+	asDWORD     accessMask;
 
 	// Namespace will be null for funcdefs that are declared as child funcdefs
 	// of a class. In this case the namespace shall be taken from the parentClass
 	// in the funcdefType
-	asSNameSpace                *nameSpace;
+	asSNameSpace *nameSpace;
 
-	asCFuncdefType              *funcdefType; // Doesn't increase refCount
+	asCFuncdefType *funcdefType; // Doesn't increase refCount
 
 	// Used by asFUNC_DELEGATE
 	void              *objForDelegate;
@@ -354,46 +400,46 @@ public:
 	struct ScriptFunctionData
 	{
 		// Bytecode for the script function
-		asCArray<asDWORD>               byteCode;
+		asCArray<asDWORD> byteCode;
 
 		// The stack space needed for the local variables
-		asDWORD                         variableSpace;
+		asDWORD variableSpace;
 
 		// Holds information on scope for object variables on the stack
 		asCArray<asSObjectVariableInfo> objVariableInfo;
 
 		// Holds information on try/catch blocks for exception handling
-		asCArray<asSTryCatchInfo>       tryCatchInfo;
+		asCArray<asSTryCatchInfo> tryCatchInfo;
 
 		// The stack needed to execute the function
-		int                             stackNeeded;
+		int stackNeeded;
 
 		// JIT compiled code of this function
-		asJITFunction                   jitFunction;
+		asJITFunction jitFunction;
 
 		// Holds type information on both explicitly declared variables and temporary variables
 		// Used during exception handling, byte code serialization, debugging, and context serialization
-		asCArray<asSScriptVariable*>    variables;
+		asCArray<asSScriptVariable *> variables;
 
 		// Store position, line number pairs for debug information
-		asCArray<int>                   lineNumbers;
+		asCArray<int> lineNumbers;
 		// Store the script section where the code was declared
-		int                             scriptSectionIdx;
+		int scriptSectionIdx;
 		// Store the location where the function was declared  (row in the lower 20 bits, and column in the upper 12)
-		int                             declaredAt;
+		int declaredAt;
 		// Store position/index pairs if the bytecode is compiled from multiple script sections
-		asCArray<int>                   sectionIdxs;
+		asCArray<int> sectionIdxs;
 	};
-	ScriptFunctionData          *scriptData;
+	ScriptFunctionData *scriptData;
 
 	// Stub functions and delegates don't own the object and parameters
-	bool                         dontCleanUpOnException;
+	bool dontCleanUpOnException;
 
 	// Used by asFUNC_VIRTUAL
-	int                          vfTableIdx;
+	int vfTableIdx;
 
 	// Used by asFUNC_SYSTEM
-	asSSystemFunctionInterface  *sysFuncIntf;
+	asSSystemFunctionInterface *sysFuncIntf;
 };
 
 const char * const DELEGATE_FACTORY = "$dlgte";
