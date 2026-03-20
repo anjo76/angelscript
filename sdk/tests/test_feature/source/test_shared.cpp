@@ -2,6 +2,7 @@
 
 namespace TestShared
 {
+using namespace std;
 
 bool Test()
 {
@@ -9,6 +10,99 @@ bool Test()
 	CBufferedOutStream bout;
 	asIScriptEngine* engine;
 	int r;
+
+	// Test shared global property accessors
+	// Reported by Sam Tupy
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule* mod1 = engine->GetModule("test1", asGM_ALWAYS_CREATE);
+		// TODO: The syntax for virtual properties doesn't work with shared. Add support for this
+		mod1->AddScriptSection("test1", R"(
+//			shared string TryMe { 
+//				get { return tryme; } 
+//				set { tryme = value; } 
+//			}
+			// shared functions cannot access non-shared variables, so fake it with a hardcoded value
+			shared string get_TryMe() property { return "test"; }
+			shared void set_TryMe(string &in value) property { assert( value == "test" ); }
+			)");
+		r = mod1->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asIScriptModule* mod2 = engine->GetModule("test2", asGM_ALWAYS_CREATE);
+		mod2->AddScriptSection("test2", R"(
+//			external shared string TryMe { get; set; }
+			external shared string get_TryMe() property;
+			external shared void set_TryMe(string &in value) property;
+			void main() {
+				TryMe = "test";
+				string test = TryMe;
+				assert( test == "test" );
+			}
+			)");
+		r = mod2->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "main()", mod2);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		CBytecodeStream stream1((string("AS_DEBUG/bc_1") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+		r = mod1->SaveByteCode(&stream1);
+		if( r < 0 )
+			TEST_FAILED;
+
+		CBytecodeStream stream2((string("AS_DEBUG/bc_2") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+		r = mod2->SaveByteCode(&stream2);
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		// Test loading the bytecode
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		mod1 = engine->GetModule("test1", asGM_ALWAYS_CREATE);
+		r = mod1->LoadByteCode(&stream1);
+		if( r < 0 )
+			TEST_FAILED;
+
+		mod2 = engine->GetModule("test2", asGM_ALWAYS_CREATE);
+		r = mod2->LoadByteCode(&stream2);
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "main()", mod2);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test memory management on shared entities
 	// https://www.gamedev.net/forums/topic/718724-shared-types-refcounting-bug/5470582/

@@ -2590,6 +2590,9 @@ int asCCompiler::CompileDefaultAndNamedArgs(asCScriptNode *node, asCArray<asCExp
 		for( asUINT n = 0; n < namedArgs->GetLength(); ++n )
 		{
 			asSNamedArgument &named = (*namedArgs)[n];
+			asASSERT( named.ctx);
+			if( named.ctx == 0 )
+				continue;
 			named.ctx->bc.GetVarsUsed(reservedVariables);
 
 			// Find the right spot to put it in
@@ -10885,8 +10888,11 @@ int asCCompiler::CompileExpressionTerm(asCScriptNode *node, asCExprContext *ctx)
 
 	// Compile the value node
 	asCScriptNode *vnode = node->firstChild;
-	while( vnode->nodeType != snExprValue )
+	while( vnode && vnode->nodeType != snExprValue )
 		vnode = vnode->next;
+	asASSERT(vnode);
+	if( vnode == 0 )
+		return -1;
 
 	asCExprContext v(engine);
 	int r = CompileExpressionValue(vnode, &v); 
@@ -17488,25 +17494,17 @@ void asCCompiler::CompileBooleanOperator(asCScriptNode *node, asCExprContext *lc
 		}
 		else
 		{
-#if AS_SIZEOF_BOOL == 1
 			asBYTE v = 0;
 			if( op == ttAnd )
-				v = lctx->type.GetConstantB() && rctx->type.GetConstantB();
+				v = (lctx->type.GetConstantB() && rctx->type.GetConstantB()) ? 1 : 0;
 			else if( op == ttOr )
-				v = lctx->type.GetConstantB() || rctx->type.GetConstantB();
+				v = (lctx->type.GetConstantB() || rctx->type.GetConstantB()) ? 1 : 0;
 
 			// Remember the result
 			ctx->type.isConstant = true;
+#if AS_SIZEOF_BOOL == 1
 			ctx->type.SetConstantB(v);
 #else
-			asDWORD v = 0;
-			if( op == ttAnd )
-				v = lctx->type.GetConstantDW() && rctx->type.GetConstantDW();
-			else if( op == ttOr )
-				v = lctx->type.GetConstantDW() || rctx->type.GetConstantDW();
-
-			// Remember the result
-			ctx->type.isConstant = true;
 			ctx->type.SetConstantDW(v);
 #endif
 		}
