@@ -4919,7 +4919,14 @@ void asCCompiler::CompileIfStatement(asCScriptNode *inode, bool *hasReturn, asCB
 		// else, allow value types to be converted to bool using 'bool opImplConv()'
 		else if (expr.type.dataType.GetTypeInfo() && (expr.type.dataType.GetTypeInfo()->GetFlags() & asOBJ_VALUE))
 			ImplicitConversion(&expr, asCDataType::CreatePrimitive(ttBool, false), inode, asIC_IMPLICIT_CONV);
-
+		if(expr.type.dataType.IsEnumType())
+		{
+			const asCEnumType *et = CastToEnumType(expr.type.dataType.GetTypeInfo());
+			if (et->isFlags)
+			{
+				ImplicitConversion(&expr, asCDataType::CreatePrimitive(ttBool, false), inode, asIC_IMPLICIT_CONV);
+			}
+		}
 		if (!expr.type.dataType.IsEqualExceptRefAndConst(asCDataType::CreatePrimitive(ttBool, true)))
 		{
 			asCString str;
@@ -7378,9 +7385,21 @@ asUINT asCCompiler::ImplicitConvPrimitiveToPrimitive(asCExprContext *ctx, const 
 	asUINT cost = asCC_NO_CONV;
 	if (to.IsBooleanType() || ctx->type.dataType.IsBooleanType())
 	{
-		// conversions to/from bool are not allowed. A ternary (expr?1:0) should be used instead
-		// If at any time support for this is added, then remember that booleans can be different size on different platforms
-		return asCC_NO_CONV;
+		// allow flagenums to be implicitly converted to bool.
+		if (to.IsBooleanType() && ctx->type.dataType.IsEnumType())
+		{
+			asCEnumType *et = CastToEnumType(ctx->type.dataType.GetTypeInfo());
+			if (et->isFlags)
+				cost = asCC_ENUM_DIFF_SIZE_CONV; 
+			else
+				return asCC_NO_CONV;
+		} 
+		else 
+		{
+			// conversions to/from bool are not allowed. A ternary (expr?1:0) should be used instead
+			// If at any time support for this is added, then remember that booleans can be different size on different platforms
+			return asCC_NO_CONV;
+		}
 	}
 	else if( (to.IsIntegerType() || to.IsUnsignedType()) && (ctx->type.dataType.IsFloatType() || ctx->type.dataType.IsDoubleType()) )
 		cost = asCC_FLOAT_TO_INT_CONV;
@@ -7411,6 +7430,20 @@ asUINT asCCompiler::ImplicitConvPrimitiveToPrimitive(asCExprContext *ctx, const 
 	if( generateCode )
 	{
 		// When generating the code the decision has already been made, so we don't bother determining the cost
+
+		if (to.IsBooleanType() && ctx->type.dataType.IsEnumType())
+		{
+			if (ctx->type.isConstant)
+				ctx->type.SetConstantB(to, ctx->type.GetConstantQW() != 0);
+			else
+			{
+				ConvertToTempVariable(ctx);
+				ctx->bc.InstrSHORT(asBC_iTOb, (short)ctx->type.stackOffset);
+
+				ctx->type.dataType = to; 
+			}
+			return cost; // handled it already
+		}
 
 		// Convert smaller types to 32bit first
 		int s = ctx->type.dataType.GetSizeInMemoryBytes();
@@ -9220,9 +9253,30 @@ void asCCompiler::ImplicitConversionConstant(asCExprContext *from, const asCData
 
 	// References cannot be constants
 	if( from->type.dataType.IsReference() ) return;
-
-	if((to.IsEnumType() && convType == asIC_EXPLICIT_VAL_CAST))
+	
+	if(to.IsBooleanType() && from->type.dataType.IsEnumType() == 2)
 	{
+		if (from->type.dataType.IsUnsignedType() || from->type.dataType.IsIntegerType())
+		{
+			asQWORD qw;
+		
+			if (from->type.dataType.GetSizeInMemoryBytes() == 1)
+				qw = from->type.GetConstantB();
+			else if (from->type.dataType.GetSizeInMemoryBytes() == 2)
+				qw = from->type.GetConstantW();
+			else if (from->type.dataType.GetSizeInMemoryBytes() == 4)
+				qw = from->type.GetConstantDW();
+			else
+				qw = from->type.GetConstantQW();
+		
+			if (to.GetSizeInMemoryBytes() == 1)
+				from->type.SetConstantB(to, qw != 0);
+		}
+	}
+	else if((to.IsEnumType() && convType == asIC_EXPLICIT_VAL_CAST))
+	{
+		
+
 		if( from->type.dataType.IsFloatType() ||
 			from->type.dataType.IsDoubleType() ||
 			from->type.dataType.IsUnsignedType() ||
@@ -13754,13 +13808,18 @@ int asCCompiler::CompileExpressionPreOp(asCScriptNode *node, asCExprContext *ctx
 	}
 	else if( op == ttNot )
 	{
+		asCDataType originalType = ctx->type.dataType;
+		asCEnumType *et = CastToEnumType(originalType.GetTypeInfo());
+		bool isFlag = (et && et->isFlags);
+
 		// If turned on, allow the compiler to use either 'bool opImplConv()' or 'bool opConv()' on the type
 		if (engine->ep.boolConversionMode == 1)
 			ImplicitConversion(ctx, asCDataType::CreatePrimitive(ttBool, false), node, asIC_EXPLICIT_VAL_CAST);
 		// else, allow value types to be converted to bool using 'bool opImplConv()'
 		else if (ctx->type.dataType.GetTypeInfo() && (ctx->type.dataType.GetTypeInfo()->GetFlags() & asOBJ_VALUE))
 			ImplicitConversion(ctx, asCDataType::CreatePrimitive(ttBool, false), node, asIC_IMPLICIT_CONV);
-
+		else if(isFlag)
+			ImplicitConversion(ctx, asCDataType::CreatePrimitive(ttBool, false), node, asIC_IMPLICIT_CONV);
 		if( ctx->type.dataType.IsEqualExceptRefAndConst(asCDataType::CreatePrimitive(ttBool, true)) )
 		{
 			if( ctx->type.isConstant )
@@ -13789,6 +13848,10 @@ int asCCompiler::CompileExpressionPreOp(asCScriptNode *node, asCExprContext *ctx
 	}
 	else if( op == ttBitNot )
 	{
+		asCDataType originalType = ctx->type.dataType;
+		asCEnumType *et = CastToEnumType(originalType.GetTypeInfo());
+		bool isFlag = (et && et->isFlags);
+		
 		if( ProcessPropertyGetAccessor(ctx, node) < 0 )
 			return -1;
 
@@ -13826,6 +13889,9 @@ int asCCompiler::CompileExpressionPreOp(asCScriptNode *node, asCExprContext *ctx
 					ctx->type.SetConstantDW(~ctx->type.GetConstantDW());
 				else
 					ctx->type.SetConstantQW(~ctx->type.GetConstantQW());
+
+				if(isFlag)
+					ctx->type.dataType = originalType;
 				return 0;
 			}
 
@@ -13836,6 +13902,9 @@ int asCCompiler::CompileExpressionPreOp(asCScriptNode *node, asCExprContext *ctx
 				ctx->bc.InstrSHORT(asBC_BNOT, (short)ctx->type.stackOffset);
 			else
 				ctx->bc.InstrSHORT(asBC_BNOT64, (short)ctx->type.stackOffset);
+
+			if(isFlag)
+				ctx->type.dataType = originalType;
 		}
 		else
 		{
@@ -15931,7 +16000,19 @@ int asCCompiler::CompileOperator(asCScriptNode *node, asCExprContext *lctx, asCE
 			op == ttBitShiftRight      || op == ttShiftRightLAssign ||
 			op == ttBitShiftRightArith || op == ttShiftRightAAssign )
 		{
+			asCDataType originalEnumType;
+			bool isFlags = false;
+			if (lctx->type.dataType.IsEnumType() && 
+				rctx->type.dataType.IsEnumType() && 
+				lctx->type.dataType.GetTypeInfo() == rctx->type.dataType.GetTypeInfo())
+			{
+				isFlags = CastToEnumType(lctx->type.dataType.GetTypeInfo())->isFlags;
+				originalEnumType = lctx->type.dataType;
+			}
 			CompileBitwiseOperator(node, lctx, rctx, ctx, op);
+			if (isFlags) {
+				ctx->type.dataType = originalEnumType;
+			}
 			return 0;
 		}
 
