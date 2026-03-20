@@ -53,8 +53,12 @@ struct asSNameSpace;
 class asCObjectProperty
 {
 public:
-	asCObjectProperty() : byteOffset(0), accessMask(0xFFFFFFFF), compositeOffset(0), isCompositeIndirect(false), isPrivate(false), isProtected(false), isInherited(false) {}
-	asCObjectProperty(const asCObjectProperty &o) : name(o.name), type(o.type), byteOffset(o.byteOffset), accessMask(o.accessMask), compositeOffset(o.compositeOffset), isCompositeIndirect(o.isCompositeIndirect), isPrivate(o.isPrivate), isProtected(o.isProtected), isInherited(o.isInherited) {}
+	asCObjectProperty() : byteOffset(0), accessMask(0xFFFFFFFF), compositeOffset(0), isCompositeIndirect(false), isPrivate(false), isProtected(false), isInherited(false)
+	{
+	}
+	asCObjectProperty(const asCObjectProperty &o) : name(o.name), type(o.type), byteOffset(o.byteOffset), accessMask(o.accessMask), compositeOffset(o.compositeOffset), isCompositeIndirect(o.isCompositeIndirect), isPrivate(o.isPrivate), isProtected(o.isProtected), isInherited(o.isInherited)
+	{
+	}
 	asCString   name;
 	asCDataType type;
 	int         byteOffset;
@@ -81,21 +85,21 @@ public:
 	void  SetRegisteredAddress(void *p);
 	void *GetRegisteredAddress() const;
 
-	asCString          name;
-	asCDataType        type;
-	asUINT             id;
-	asSNameSpace      *nameSpace;
+	asCString     name;
+	asCDataType   type;
+	asUINT        id;
+	asSNameSpace *nameSpace;
 
-	void SetInitFunc(asCScriptFunction *initFunc);
+	void               SetInitFunc(asCScriptFunction *initFunc);
 	asCScriptFunction *GetInitFunc();
 
-//protected:
+	//protected:
 	// This is only stored for registered properties, and keeps the pointer given by the application
-	void       *realAddress;
+	void *realAddress;
 
-	bool        memoryAllocated;
-	void       *memory;
-	asQWORD     storage;
+	bool    memoryAllocated;
+	void   *memory;
+	asQWORD storage;
 
 	asCScriptFunction *initFunc;
 
@@ -111,17 +115,22 @@ class asCCompGlobPropType : public asIFilter
 public:
 	const asCDataType &m_type;
 
-	asCCompGlobPropType(const asCDataType &type) : m_type(type) {}
+	asCCompGlobPropType(const asCDataType &type) : m_type(type)
+	{
+	}
 
 	bool operator()(const void *p) const
 	{
-		const asCGlobalProperty* prop = reinterpret_cast<const asCGlobalProperty*>(p);
+		const asCGlobalProperty *prop = reinterpret_cast<const asCGlobalProperty *>(p);
 		return prop->type == m_type;
 	}
 
 private:
 	// The assignment operator is required for MSVC9, otherwise it will complain that it is not possible to auto generate the operator
-	asCCompGlobPropType &operator=(const asCCompGlobPropType &) {return *this;}
+	asCCompGlobPropType &operator=(const asCCompGlobPropType &)
+	{
+		return *this;
+	}
 };
 
 END_AS_NAMESPACE

@@ -50,8 +50,7 @@ static asCThreadManager *threadManager = 0;
 //======================================================================
 
 // Global API functions
-extern "C"
-{
+extern "C" {
 
 AS_API int asThreadCleanup()
 {
@@ -104,27 +103,26 @@ AS_API void asReleaseSharedLock()
 		RELEASESHARED(threadManager->appRWLock);
 	}
 }
-
 }
 
 //======================================================================
 
 #if !defined(AS_NO_THREADS) && defined(AS_WINDOWS_THREADS)
 	#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
-		__declspec(thread) asCThreadLocalData *asCThreadManager::tld = 0;
+__declspec(thread) asCThreadLocalData *asCThreadManager::tld = 0;
 	#else
 		#ifdef AS_WINDOWS_USEFLS
-			#define WinMTLsAlloc() (asDWORD)FlsAlloc(asCThreadManager::WinFLSCallback);
-			#define WinMTLsFree(key) FlsFree(key); 
+			#define WinMTLsAlloc() (asDWORD) FlsAlloc(asCThreadManager::WinFLSCallback);
+			#define WinMTLsFree(key) FlsFree(key);
 			#define WinMTLsSetValue(key, value) FlsSetValue(key, value);
 			#define WinMTLsGetValue(key) FlsGetValue(key);
 		#else
-			#define WinMTLsAlloc() (asDWORD)TlsAlloc();
+			#define WinMTLsAlloc() (asDWORD) TlsAlloc();
 			#define WinMTLsFree(key) TlsFree(key);
 			#define WinMTLsSetValue(key, value) TlsSetValue(key, value);
 			#define WinMTLsGetValue(key) TlsGetValue(key);
 		#endif
-		//WinMTLs prefix for Windows Multi-Thread Local Storage. Either Threads or fibers.
+	//WinMTLs prefix for Windows Multi-Thread Local Storage. Either Threads or fibers.
 	#endif
 #endif
 
@@ -137,14 +135,14 @@ asCThreadManager::asCThreadManager()
 #else
 	// Allocate the thread local storage
 	#if defined AS_POSIX_THREADS
-		pthread_key_t pKey;
-		pthread_key_create(&pKey, 0);
-		mtlsKey = (asDWORD)pKey;
+	pthread_key_t pKey;
+	pthread_key_create(&pKey, 0);
+	mtlsKey = (asDWORD)pKey;
 	#elif defined AS_WINDOWS_THREADS
 		#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
-			tld = 0;
+	tld = 0;
 		#else
-			mtlsKey = WinMTLsAlloc();
+	mtlsKey = WinMTLsAlloc();
 		#endif
 	#endif
 #endif
@@ -177,7 +175,7 @@ int asCThreadManager::Prepare(asIThreadManager *externalThreadMgr)
 		// global thread support functions it is then best to share the thread
 		// manager to make sure all dlls use the same critical section.
 		if( externalThreadMgr )
-			threadManager = reinterpret_cast<asCThreadManager*>(externalThreadMgr);
+			threadManager = reinterpret_cast<asCThreadManager *>(externalThreadMgr);
 
 		ENTERCRITICALSECTION(threadManager->criticalSection);
 		threadManager->refCount++;
@@ -208,12 +206,12 @@ void asCThreadManager::Unprepare()
 		// with the thread manager we must first clear the global
 		// variable in case a new thread manager needs to be created;
 		asCThreadManager *mgr = threadManager;
-		threadManager = 0;
+		threadManager         = 0;
 
 		// Leave the critical section before it is destroyed
 		LEAVECRITICALSECTION(mgr->criticalSection);
 
-		asDELETE(mgr,asCThreadManager);
+		asDELETE(mgr, asCThreadManager);
 	}
 	else
 		LEAVECRITICALSECTION(threadManager->criticalSection);
@@ -224,18 +222,18 @@ asCThreadManager::~asCThreadManager()
 #ifndef AS_NO_THREADS
 	// Deallocate the thread local storage
 	#if defined AS_POSIX_THREADS
-		pthread_key_delete((pthread_key_t)mtlsKey);
+	pthread_key_delete((pthread_key_t)mtlsKey);
 	#elif defined AS_WINDOWS_THREADS
 		#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
-			tld = 0;
+	tld = 0;
 		#else
-			WinMTLsFree(mtlsKey);
+	WinMTLsFree(mtlsKey);
 		#endif
 	#endif
 #else
 	if( tld )
 	{
-		asDELETE(tld,asCThreadLocalData);
+		asDELETE(tld, asCThreadLocalData);
 	}
 	tld = 0;
 #endif
@@ -244,8 +242,8 @@ asCThreadManager::~asCThreadManager()
 #ifdef AS_WINDOWS_USEFLS
 void asCThreadManager::WinFLSCallback(PVOID lpFlsData)
 {
-	asCThreadLocalData* fld = (asCThreadLocalData*)lpFlsData;
-	if ( fld )
+	asCThreadLocalData *fld = (asCThreadLocalData *)lpFlsData;
+	if( fld )
 	{
 		asDELETE(fld, asCThreadLocalData);
 	}
@@ -258,30 +256,30 @@ int asCThreadManager::CleanupLocalData()
 		return 0;
 
 #ifndef AS_NO_THREADS
-#if defined AS_POSIX_THREADS
-	asCThreadLocalData *tld = (asCThreadLocalData*)pthread_getspecific((pthread_key_t)threadManager->mtlsKey);
-#elif defined AS_WINDOWS_THREADS
-	#if !defined(_MSC_VER) || !(WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
-		asCThreadLocalData *tld = (asCThreadLocalData*)WinMTLsGetValue((DWORD)threadManager->mtlsKey);
+	#if defined AS_POSIX_THREADS
+	asCThreadLocalData *tld = (asCThreadLocalData *)pthread_getspecific((pthread_key_t)threadManager->mtlsKey);
+	#elif defined AS_WINDOWS_THREADS
+		#if !defined(_MSC_VER) || !(WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+	asCThreadLocalData *tld = (asCThreadLocalData *)WinMTLsGetValue((DWORD)threadManager->mtlsKey);
+		#endif
 	#endif
-#endif
 
 	if( tld == 0 )
 		return 0;
 
 	if( tld->activeContexts.GetLength() == 0 )
 	{
-		asDELETE(tld,asCThreadLocalData);
-		#if defined AS_POSIX_THREADS
-			pthread_setspecific((pthread_key_t)threadManager->mtlsKey, 0);
-		#elif defined AS_WINDOWS_THREADS
-			#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
-				tld = 0;
-			#else
-				//ASDelete was called on the TLD. In case we use fibers, setting the value to 0 is necessary to prevent the fiber callback to be called, preventing a duplicate delete.
-				WinMTLsSetValue((DWORD)threadManager->mtlsKey, 0); 
-			#endif
+		asDELETE(tld, asCThreadLocalData);
+	#if defined AS_POSIX_THREADS
+		pthread_setspecific((pthread_key_t)threadManager->mtlsKey, 0);
+	#elif defined AS_WINDOWS_THREADS
+		#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+		tld = 0;
+		#else
+		//ASDelete was called on the TLD. In case we use fibers, setting the value to 0 is necessary to prevent the fiber callback to be called, preventing a duplicate delete.
+		WinMTLsSetValue((DWORD)threadManager->mtlsKey, 0);
 		#endif
+	#endif
 		return 0;
 	}
 	else
@@ -292,7 +290,7 @@ int asCThreadManager::CleanupLocalData()
 	{
 		if( threadManager->tld->activeContexts.GetLength() == 0 )
 		{
-			asDELETE(threadManager->tld,asCThreadLocalData);
+			asDELETE(threadManager->tld, asCThreadLocalData);
 			threadManager->tld = 0;
 		}
 		else
@@ -308,26 +306,26 @@ asCThreadLocalData *asCThreadManager::GetLocalData()
 		return 0;
 
 #ifndef AS_NO_THREADS
-#if defined AS_POSIX_THREADS
-	asCThreadLocalData *tld = (asCThreadLocalData*)pthread_getspecific((pthread_key_t)threadManager->mtlsKey);
+	#if defined AS_POSIX_THREADS
+	asCThreadLocalData *tld = (asCThreadLocalData *)pthread_getspecific((pthread_key_t)threadManager->mtlsKey);
 	if( tld == 0 )
 	{
 		tld = asNEW(asCThreadLocalData)();
 		pthread_setspecific((pthread_key_t)threadManager->mtlsKey, tld);
 	}
-#elif defined AS_WINDOWS_THREADS
-	#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
-		if( tld == 0 )
-			tld = asNEW(asCThreadLocalData)();
-	#else
-		asCThreadLocalData *tld = (asCThreadLocalData*)WinMTLsGetValue((DWORD)threadManager->mtlsKey);
-		if( tld == 0 )
-		{
- 			tld = asNEW(asCThreadLocalData)();
-			WinMTLsSetValue((DWORD)threadManager->mtlsKey, tld);
- 		}
+	#elif defined AS_WINDOWS_THREADS
+		#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+	if( tld == 0 )
+		tld = asNEW(asCThreadLocalData)();
+		#else
+	asCThreadLocalData *tld = (asCThreadLocalData *)WinMTLsGetValue((DWORD)threadManager->mtlsKey);
+	if( tld == 0 )
+	{
+		tld = asNEW(asCThreadLocalData)();
+		WinMTLsSetValue((DWORD)threadManager->mtlsKey, tld);
+	}
+		#endif
 	#endif
-#endif
 
 	return tld;
 #else
@@ -353,94 +351,94 @@ asCThreadLocalData::~asCThreadLocalData()
 #ifndef AS_NO_THREADS
 asCThreadCriticalSection::asCThreadCriticalSection()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_mutex_init(&cs, 0);
-#elif defined AS_WINDOWS_THREADS
-#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+	#elif defined AS_WINDOWS_THREADS
+		#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
 	// Only the Ex version is available on Windows Store
 	InitializeCriticalSectionEx(&cs, 4000, 0);
-#else
+		#else
 	// Only the non-Ex version is available on WinXP and older
 	// MinGW also only defines this version
 	InitializeCriticalSection(&cs);
-#endif
-#endif
+		#endif
+	#endif
 }
 
 asCThreadCriticalSection::~asCThreadCriticalSection()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_mutex_destroy(&cs);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	DeleteCriticalSection(&cs);
-#endif
+	#endif
 }
 
 void asCThreadCriticalSection::Enter()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_mutex_lock(&cs);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	EnterCriticalSection(&cs);
-#endif
+	#endif
 }
 
 void asCThreadCriticalSection::Leave()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_mutex_unlock(&cs);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	LeaveCriticalSection(&cs);
-#endif
+	#endif
 }
 
 bool asCThreadCriticalSection::TryEnter()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	return !pthread_mutex_trylock(&cs);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	return TryEnterCriticalSection(&cs) ? true : false;
-#else
+	#else
 	return true;
-#endif
+	#endif
 }
 
 asCThreadReadWriteLock::asCThreadReadWriteLock()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	int r = pthread_rwlock_init(&lock, 0);
 	asASSERT( r == 0 );
 	UNUSED_VAR(r);
-#elif defined AS_WINDOWS_THREADS
-#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
+	#elif defined AS_WINDOWS_THREADS
+		#if defined(_MSC_VER) && (WINAPI_FAMILY & WINAPI_FAMILY_PHONE_APP)
 	// Only the Ex versions are available on Windows Store
 
 	// Create a semaphore to allow up to maxReaders simultaneous readers
 	readLocks = CreateSemaphoreExW(NULL, maxReaders, maxReaders, 0, 0, 0);
 	// Create a critical section to synchronize writers
 	InitializeCriticalSectionEx(&writeLock, 4000, 0);
-#else
+		#else
 	readLocks = CreateSemaphoreW(NULL, maxReaders, maxReaders, 0);
 	InitializeCriticalSection(&writeLock);
-#endif
-#endif
+		#endif
+	#endif
 }
 
 asCThreadReadWriteLock::~asCThreadReadWriteLock()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_rwlock_destroy(&lock);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	DeleteCriticalSection(&writeLock);
 	CloseHandle(readLocks);
-#endif
+	#endif
 }
 
 void asCThreadReadWriteLock::AcquireExclusive()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_rwlock_wrlock(&lock);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	// Synchronize writers, so only one tries to lock out the readers
 	EnterCriticalSection(&writeLock);
 
@@ -454,37 +452,37 @@ void asCThreadReadWriteLock::AcquireExclusive()
 	// Allow another writer to lock. It will only be able to
 	// lock the readers when this writer releases them anyway.
 	LeaveCriticalSection(&writeLock);
-#endif
+	#endif
 }
 
 void asCThreadReadWriteLock::ReleaseExclusive()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_rwlock_unlock(&lock);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	// Release all readers at once
 	ReleaseSemaphore(readLocks, maxReaders, 0);
-#endif
+	#endif
 }
 
 void asCThreadReadWriteLock::AcquireShared()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_rwlock_rdlock(&lock);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	// Lock a reader slot
 	WaitForSingleObjectEx(readLocks, INFINITE, FALSE);
-#endif
+	#endif
 }
 
 void asCThreadReadWriteLock::ReleaseShared()
 {
-#if defined AS_POSIX_THREADS
+	#if defined AS_POSIX_THREADS
 	pthread_rwlock_unlock(&lock);
-#elif defined AS_WINDOWS_THREADS
+	#elif defined AS_WINDOWS_THREADS
 	// Release the reader slot
 	ReleaseSemaphore(readLocks, 1, 0);
-#endif
+	#endif
 }
 
 #endif
@@ -492,4 +490,3 @@ void asCThreadReadWriteLock::ReleaseShared()
 //========================================================================
 
 END_AS_NAMESPACE
-

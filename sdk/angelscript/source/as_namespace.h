@@ -50,8 +50,12 @@ struct asSNameSpaceNamePair
 	const asSNameSpace *ns;
 	asCString           name;
 
-	asSNameSpaceNamePair() : ns(0) {}
-	asSNameSpaceNamePair(const asSNameSpace *_ns, const asCString &_name) : ns(_ns), name(_name) {}
+	asSNameSpaceNamePair() : ns(0)
+	{
+	}
+	asSNameSpaceNamePair(const asSNameSpace *_ns, const asCString &_name) : ns(_ns), name(_name)
+	{
+	}
 
 	asSNameSpaceNamePair &operator=(const asSNameSpaceNamePair &other)
 	{
@@ -74,4 +78,3 @@ struct asSNameSpaceNamePair
 END_AS_NAMESPACE
 
 #endif
-

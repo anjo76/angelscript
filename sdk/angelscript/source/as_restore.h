@@ -60,9 +60,9 @@ protected:
 	bool             error;
 	asUINT           bytesRead;
 
-	int                Error(const char *msg);
+	int Error(const char *msg);
 
-	int                ReadInner();
+	int ReadInner();
 
 	int                ReadData(void *data, asUINT size);
 	void               ReadString(asCString *str);
@@ -87,7 +87,7 @@ protected:
 	void ReadUsedStringConstants();
 	void ReadUsedObjectProps();
 
-	asCTypeInfo *      FindType(int idx);
+	asCTypeInfo       *FindType(int idx);
 	int                FindTypeId(int idx);
 	short              FindObjectPropOffset(asWORD index);
 	asCScriptFunction *FindFunction(int idx);
@@ -100,18 +100,18 @@ protected:
 	void CalculateStackNeeded(asCScriptFunction *func);
 
 	// Temporary storage for persisting variable data
-	asCArray<int>                usedTypeIds;
-	asCArray<asCTypeInfo*>       usedTypes;
-	asCArray<asCScriptFunction*> usedFunctions;
-	asCArray<void*>              usedGlobalProperties;
-	asCArray<void*>              usedStringConstants;
+	asCArray<int>                 usedTypeIds;
+	asCArray<asCTypeInfo *>       usedTypes;
+	asCArray<asCScriptFunction *> usedFunctions;
+	asCArray<void *>              usedGlobalProperties;
+	asCArray<void *>              usedStringConstants;
 
-	asCArray<asCScriptFunction*>  savedFunctions;
+	asCArray<asCScriptFunction *> savedFunctions;
 	asCArray<asCDataType>         savedDataTypes;
 	asCArray<asCString>           savedStrings;
 
-	asCArray<int>                 adjustByPos;
-	asCArray<int>                 adjustNegativeStackByPos;
+	asCArray<int> adjustByPos;
+	asCArray<int> adjustNegativeStackByPos;
 
 	struct SObjProp
 	{
@@ -120,8 +120,8 @@ protected:
 	};
 	asCArray<SObjProp> usedObjectProperties;
 
-	asCMap<void*,bool>              existingShared;
-	asCMap<asCScriptFunction*,bool> dontTranslate;
+	asCMap<void *, bool>              existingShared;
+	asCMap<asCScriptFunction *, bool> dontTranslate;
 
 	// Helper class for adjusting offsets within initialization list buffers
 	struct SListAdjuster
@@ -150,10 +150,10 @@ protected:
 		asSListPatternNode *patternNode;
 		int                 nextTypeId;
 	};
-	asCArray<SListAdjuster*> listAdjusters;
+	asCArray<SListAdjuster *> listAdjusters;
 
 	// Used by FindObjectPropOffset
-	asCObjectProperty* lastCompositeProp;
+	asCObjectProperty *lastCompositeProp;
 };
 
 #ifndef AS_NO_COMPILER
@@ -173,9 +173,9 @@ protected:
 	bool             error;
 	asUINT           bytesWritten;
 
-	int              Error(const char *msg);
+	int Error(const char *msg);
 
-	int  WriteData(const void *data, asUINT size);
+	int WriteData(const void *data, asUINT size);
 
 	void WriteString(asCString *str);
 	void WriteFunction(asCScriptFunction *func);
@@ -208,14 +208,14 @@ protected:
 	void WriteUsedObjectProps();
 
 	// Temporary storage for persisting variable data
-	asCArray<int>                usedTypeIds;
-	asCArray<asCTypeInfo*>       usedTypes;
-	asCArray<asCScriptFunction*> usedFunctions;
-	asCArray<void*>              usedGlobalProperties;
-	asCArray<void*>              usedStringConstants;
-	asCMap<void*, int>           stringToIndexMap;
+	asCArray<int>                 usedTypeIds;
+	asCArray<asCTypeInfo *>       usedTypes;
+	asCArray<asCScriptFunction *> usedFunctions;
+	asCArray<void *>              usedGlobalProperties;
+	asCArray<void *>              usedStringConstants;
+	asCMap<void *, int>           stringToIndexMap;
 
-	asCArray<asCScriptFunction*>  savedFunctions;
+	asCArray<asCScriptFunction *> savedFunctions;
 	asCArray<asCDataType>         savedDataTypes;
 	asCArray<asCString>           savedStrings;
 	asCMap<asCString, int>        stringToIdMap;
@@ -228,7 +228,7 @@ protected:
 		asCObjectType     *objType;
 		asCObjectProperty *prop;
 	};
-	asCArray<SObjProp>           usedObjectProperties;
+	asCArray<SObjProp> usedObjectProperties;
 
 	// Helper class for adjusting offsets within initialization list buffers
 	struct SListAdjuster
@@ -249,11 +249,11 @@ protected:
 		asUINT              repeatCount;
 		asSListPatternNode *patternNode;
 		asUINT              entries;
-		int                 lastOffset;  // Last offset adjusted
-		int                 nextOffset;  // next expected offset to be adjusted
+		int                 lastOffset; // Last offset adjusted
+		int                 nextOffset; // next expected offset to be adjusted
 		int                 nextTypeId;
 	};
-	asCArray<SListAdjuster*> listAdjusters;
+	asCArray<SListAdjuster *> listAdjusters;
 
 	// Used by FindObjectPropIndex
 	bool lastWasComposite;

@@ -43,9 +43,9 @@
 
 #ifndef AS_NO_COMPILER
 
-#include "as_array.h"
-#include "as_string.h"
-#include "as_datatype.h"
+	#include "as_array.h"
+	#include "as_string.h"
+	#include "as_datatype.h"
 
 BEGIN_AS_NAMESPACE
 
@@ -68,7 +68,7 @@ public:
 
 	void Reset();
 
-	int DeclareVariable(const char *name, const asCDataType &type, int stackOffset, bool isObjectOnHeap);
+	int        DeclareVariable(const char *name, const asCDataType &type, int stackOffset, bool isObjectOnHeap);
 	sVariable *GetVariable(const char *name);
 	sVariable *GetVariableByOffset(int offset);
 

@@ -49,11 +49,11 @@ asCScriptNode::asCScriptNode(eScriptNode type)
 	tokenPos    = 0;
 	tokenLength = 0;
 
-	parent      = 0;
-	next        = 0;
-	prev        = 0;
-	firstChild  = 0;
-	lastChild   = 0;
+	parent     = 0;
+	next       = 0;
+	prev       = 0;
+	firstChild = 0;
+	lastChild  = 0;
 }
 
 void asCScriptNode::Destroy(asCScriptEngine *engine)
@@ -82,12 +82,12 @@ asCScriptNode *asCScriptNode::CreateCopy(asCScriptEngine *engine)
 		return 0;
 	}
 
-	new(ptr) asCScriptNode(nodeType);
-	
-	asCScriptNode *node = reinterpret_cast<asCScriptNode*>(ptr);
-	node->tokenLength = tokenLength;
-	node->tokenPos    = tokenPos;
-	node->tokenType   = tokenType;
+	new (ptr) asCScriptNode(nodeType);
+
+	asCScriptNode *node = reinterpret_cast<asCScriptNode *>(ptr);
+	node->tokenLength   = tokenLength;
+	node->tokenPos      = tokenPos;
+	node->tokenType     = tokenType;
 
 	asCScriptNode *child = firstChild;
 	while( child )
@@ -101,7 +101,7 @@ asCScriptNode *asCScriptNode::CreateCopy(asCScriptEngine *engine)
 
 void asCScriptNode::SetToken(sToken *token)
 {
-	tokenType   = token->type;
+	tokenType = token->type;
 }
 
 void asCScriptNode::UpdateSourcePos(size_t pos, size_t length)
@@ -110,7 +110,7 @@ void asCScriptNode::UpdateSourcePos(size_t pos, size_t length)
 
 	if( tokenPos == 0 && tokenLength == 0 )
 	{
-		tokenPos = pos;
+		tokenPos    = pos;
 		tokenLength = length;
 	}
 	else
@@ -118,7 +118,7 @@ void asCScriptNode::UpdateSourcePos(size_t pos, size_t length)
 		if( tokenPos > pos )
 		{
 			tokenLength = tokenPos + tokenLength - pos;
-			tokenPos = pos;
+			tokenPos    = pos;
 		}
 
 		if( pos + length > tokenPos + tokenLength )
@@ -170,9 +170,8 @@ void asCScriptNode::DisconnectParent()
 		prev->next = next;
 
 	parent = 0;
-	next = 0;
-	prev = 0;
+	next   = 0;
+	prev   = 0;
 }
 
 END_AS_NAMESPACE
-

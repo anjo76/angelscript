@@ -44,13 +44,13 @@
 
 #ifndef AS_NO_COMPILER
 
-#include "as_array.h"
+	#include "as_array.h"
 
 BEGIN_AS_NAMESPACE
 
-#define BYTECODE_SIZE  4
-#define MAX_DATA_SIZE  8
-#define MAX_INSTR_SIZE (BYTECODE_SIZE+MAX_DATA_SIZE)
+	#define BYTECODE_SIZE 4
+	#define MAX_DATA_SIZE 8
+	#define MAX_INSTR_SIZE (BYTECODE_SIZE + MAX_DATA_SIZE)
 
 class asCScriptEngine;
 class asCScriptFunction;
@@ -83,14 +83,14 @@ public:
 
 	void PostProcess();
 
-#ifdef AS_DEBUG
+	#ifdef AS_DEBUG
 	void DebugOutput(const char *name, asCScriptFunction *func);
-#endif
+	#endif
 
 	asCByteInstruction *GetFirstInstr();
-	int  GetLastInstr();
-	int  RemoveLastInstr();
-	asDWORD GetLastInstrValueDW();
+	int                 GetLastInstr();
+	int                 RemoveLastInstr();
+	asDWORD             GetLastInstrValueDW();
 
 	void InsertIfNotExists(asCArray<int> &vars, int var);
 	void GetVarsUsed(asCArray<int> &vars);
@@ -134,33 +134,38 @@ public:
 	int InstrW_W(asEBCInstr bc, int w, int b);
 	int InstrSHORT_DW_DW(asEBCInstr bc, short a, asDWORD b, asDWORD c);
 
-	asCScriptEngine *GetEngine() const { return engine; };
+	asCScriptEngine *GetEngine() const
+	{
+		return engine;
+	};
 
 	asCArray<int> lineNumbers;
 	asCArray<int> sectionIdxs;
-	int largestStackUsed;
+	int           largestStackUsed;
 
 protected:
 	// Assignments are not allowed
-	void operator=(const asCByteCode &) {}
+	void operator=(const asCByteCode &)
+	{
+	}
 
 	// Helpers for Optimize
-	bool CanBeSwapped(asCByteInstruction *curr);
+	bool                CanBeSwapped(asCByteInstruction *curr);
 	asCByteInstruction *ChangeFirstDeleteNext(asCByteInstruction *curr, asEBCInstr bc);
 	asCByteInstruction *DeleteFirstChangeNext(asCByteInstruction *curr, asEBCInstr bc);
 	asCByteInstruction *DeleteInstruction(asCByteInstruction *instr);
-	void RemoveInstruction(asCByteInstruction *instr);
+	void                RemoveInstruction(asCByteInstruction *instr);
 	asCByteInstruction *GoBack(asCByteInstruction *curr);
 	asCByteInstruction *GoForward(asCByteInstruction *curr);
-	void InsertBefore(asCByteInstruction *before, asCByteInstruction *instr);
-	bool RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction **next);
-	bool IsTemporary(int offset);
-	bool IsTempRegUsed(asCByteInstruction *curr);
-	bool IsTempVarRead(asCByteInstruction *curr, int offset);
-	bool PostponeInitOfTemp(asCByteInstruction *curr, asCByteInstruction **next);
-	bool IsTempVarReadByInstr(asCByteInstruction *curr, int var);
-	bool IsTempVarOverwrittenByInstr(asCByteInstruction *curr, int var);
-	bool IsInstrJmpOrLabel(asCByteInstruction *curr);
+	void                InsertBefore(asCByteInstruction *before, asCByteInstruction *instr);
+	bool                RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction **next);
+	bool                IsTemporary(int offset);
+	bool                IsTempRegUsed(asCByteInstruction *curr);
+	bool                IsTempVarRead(asCByteInstruction *curr, int offset);
+	bool                PostponeInitOfTemp(asCByteInstruction *curr, asCByteInstruction **next);
+	bool                IsTempVarReadByInstr(asCByteInstruction *curr, int var);
+	bool                IsTempVarOverwrittenByInstr(asCByteInstruction *curr, int var);
+	bool                IsInstrJmpOrLabel(asCByteInstruction *curr);
 
 	int AddInstruction();
 	int AddInstructionFirst();
@@ -182,17 +187,17 @@ public:
 	void AddBefore(asCByteInstruction *nextCode);
 	void Remove();
 
-	int  GetSize();
-	int  GetStackIncrease();
+	int GetSize();
+	int GetStackIncrease();
 
 	asCByteInstruction *next;
 	asCByteInstruction *prev;
 
 	asEBCInstr op;
-	asQWORD arg[2];
-	short wArg[3];
-	int size;
-	int stackInc;
+	asQWORD    arg[2];
+	short      wArg[3];
+	int        size;
+	int        stackInc;
 
 	// Testing
 	bool marked;

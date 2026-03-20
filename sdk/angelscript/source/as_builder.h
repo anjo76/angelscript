@@ -60,13 +60,13 @@ struct sGlobalVariableDescription;
 
 struct sFunctionDescription
 {
-	asCScriptCode       *script;
-	asCScriptNode       *node;
-	asCString            name;
-	asCObjectType       *objType;
-	asCArray<asCString>  paramNames;
-	int                  funcId;
-	bool                 isExistingShared;
+	asCScriptCode      *script;
+	asCScriptNode      *node;
+	asCString           name;
+	asCObjectType      *objType;
+	asCArray<asCString> paramNames;
+	int                 funcId;
+	bool                isExistingShared;
 };
 
 struct sGlobalVariableDescription
@@ -87,9 +87,20 @@ struct sGlobalVariableDescription
 
 struct sPropertyInitializer
 {
-	sPropertyInitializer() : declNode(0), initNode(0), file(0) {}
-	sPropertyInitializer(const asCString &nm, asCScriptNode *decl, asCScriptNode *init, asCScriptCode *f) : name(nm), declNode(decl), initNode(init), file(f) {}
-	sPropertyInitializer &operator=(const sPropertyInitializer &o) {name = o.name; declNode = o.declNode; initNode = o.initNode; file = o.file; return *this;}
+	sPropertyInitializer() : declNode(0), initNode(0), file(0)
+	{
+	}
+	sPropertyInitializer(const asCString &nm, asCScriptNode *decl, asCScriptNode *init, asCScriptCode *f) : name(nm), declNode(decl), initNode(init), file(f)
+	{
+	}
+	sPropertyInitializer &operator=(const sPropertyInitializer &o)
+	{
+		name     = o.name;
+		declNode = o.declNode;
+		initNode = o.initNode;
+		file     = o.file;
+		return *this;
+	}
 
 	asCString      name;
 	asCScriptNode *declNode;
@@ -99,8 +110,18 @@ struct sPropertyInitializer
 
 struct sClassDeclaration
 {
-	sClassDeclaration() { script = 0; node = 0; validState = 0; typeInfo = 0; isExistingShared = false; isFinal = false;
-		isDefaultConstructorDeleted = false; isDefaultCopyConstructorDeleted = false; isDefaultCopyDeleted = false; }
+	sClassDeclaration()
+	{
+		script                          = 0;
+		node                            = 0;
+		validState                      = 0;
+		typeInfo                        = 0;
+		isExistingShared                = false;
+		isFinal                         = false;
+		isDefaultConstructorDeleted     = false;
+		isDefaultCopyConstructorDeleted = false;
+		isDefaultCopyDeleted            = false;
+	}
 
 	asCScriptCode *script;
 	asCScriptNode *node;
@@ -153,9 +174,9 @@ public:
 	int ValidateVirtualProperty(asCScriptFunction *func);
 
 #ifndef AS_NO_COMPILER
-	int AddCode(const char *name, const char *code, int codeLength, int lineOffset, int sectionIdx, bool makeCopy);
+	int            AddCode(const char *name, const char *code, int codeLength, int lineOffset, int sectionIdx, bool makeCopy);
 	asCScriptCode *FindOrAddCode(const char *name, const char *code, size_t length);
-	int Build();
+	int            Build();
 
 	int CompileFunction(const char *sectionName, const char *code, int lineOffset, asDWORD compileFlags, asCScriptFunction **outFunc);
 	int CompileGlobalVar(const char *sectionName, const char *code, int lineOffset);
@@ -167,59 +188,59 @@ protected:
 	friend class asCScriptFunction;
 	friend class asCScriptEngine;
 
-	void               Reset();
+	void Reset();
 
-	void               WriteInfo(const asCString &scriptname, const asCString &msg, int r, int c, bool preMessage);
-	void               WriteInfo(const asCString &msg, asCScriptCode *file, asCScriptNode *node);
-	void               WriteError(const asCString &scriptname, const asCString &msg, int r, int c);
-	void               WriteError(const asCString &msg, asCScriptCode *file, asCScriptNode *node);
-	void               WriteWarning(const asCString &scriptname, const asCString &msg, int r, int c);
-	void               WriteWarning(const asCString &msg, asCScriptCode *file, asCScriptNode *node);
+	void WriteInfo(const asCString &scriptname, const asCString &msg, int r, int c, bool preMessage);
+	void WriteInfo(const asCString &msg, asCScriptCode *file, asCScriptNode *node);
+	void WriteError(const asCString &scriptname, const asCString &msg, int r, int c);
+	void WriteError(const asCString &msg, asCScriptCode *file, asCScriptNode *node);
+	void WriteWarning(const asCString &scriptname, const asCString &msg, int r, int c);
+	void WriteWarning(const asCString &msg, asCScriptCode *file, asCScriptNode *node);
 
 	bool               DoesGlobalPropertyExist(const char *prop, asSNameSpace *ns, asCGlobalProperty **outProp = 0, sGlobalVariableDescription **outDesc = 0, bool *isAppProp = 0);
 	asCGlobalProperty *GetGlobalProperty(const char *prop, asSNameSpace *ns, bool *isCompiled, bool *isPureConstant, asQWORD *constantValue, bool *isAppProp);
 	int                ValidateDefaultArgs(asCScriptCode *script, asCScriptNode *node, asCScriptFunction *func);
 	asCString          GetCleanExpressionString(asCScriptNode *n, asCScriptCode *file);
 
-	asSNameSpace      *GetNameSpaceFromNode(asCScriptNode *node, asCScriptCode *script, asSNameSpace *implicitNs, asCScriptNode **next, asCObjectType **objType = 0, bool *isExplicitNs = 0);
-	asSNameSpace      *GetNameSpaceByString(const asCString &nsName, asSNameSpace *implicitNs, asCScriptNode *errNode, asCScriptCode *script, asCTypeInfo **scopeType = 0, bool isRequired = true);
-	asCString          GetScopeFromNode(asCScriptNode *n, asCScriptCode *script, asCScriptNode **next = 0);
+	asSNameSpace *GetNameSpaceFromNode(asCScriptNode *node, asCScriptCode *script, asSNameSpace *implicitNs, asCScriptNode **next, asCObjectType **objType = 0, bool *isExplicitNs = 0);
+	asSNameSpace *GetNameSpaceByString(const asCString &nsName, asSNameSpace *implicitNs, asCScriptNode *errNode, asCScriptCode *script, asCTypeInfo **scopeType = 0, bool isRequired = true);
+	asCString     GetScopeFromNode(asCScriptNode *n, asCScriptCode *script, asCScriptNode **next = 0);
 
-	asCTypeInfo       *GetType(const char *type, asSNameSpace *ns, asCObjectType *parentType);
-	asCObjectType     *GetObjectType(const char *type, asSNameSpace *ns);
-	asCFuncdefType    *GetFuncDef(const char *type, asSNameSpace *ns, asCObjectType *parentType);
-	asCTypeInfo       *GetTypeFromTypesKnownByObject(const char *type, asCObjectType *currentType);
-	asCDataType        CreateDataTypeFromNode(asCScriptNode *node, asCScriptCode *file, asSNameSpace *implicitNamespace, bool acceptHandleForScope = false, asCObjectType *currentType = 0, bool reportError = true, bool *isValid = 0, asCArray<asCDataType> *templateSubType = 0, asCArray<asSNameSpace*>* scopeVisibleNamespaces = 0);
-	asCObjectType     *GetTemplateInstanceFromNode(asCScriptNode *node, asCScriptCode *file, asCObjectType *templateType, asSNameSpace *implicitNamespace, asCObjectType *currentType, asCScriptNode **next = 0);
-	asCDataType        ModifyDataTypeFromNode(const asCDataType &type, asCScriptNode *node, asCScriptCode *file, asETypeModifiers *inOutFlag, bool *autoHandle);
+	asCTypeInfo    *GetType(const char *type, asSNameSpace *ns, asCObjectType *parentType);
+	asCObjectType  *GetObjectType(const char *type, asSNameSpace *ns);
+	asCFuncdefType *GetFuncDef(const char *type, asSNameSpace *ns, asCObjectType *parentType);
+	asCTypeInfo    *GetTypeFromTypesKnownByObject(const char *type, asCObjectType *currentType);
+	asCDataType     CreateDataTypeFromNode(asCScriptNode *node, asCScriptCode *file, asSNameSpace *implicitNamespace, bool acceptHandleForScope = false, asCObjectType *currentType = 0, bool reportError = true, bool *isValid = 0, asCArray<asCDataType> *templateSubType = 0, asCArray<asSNameSpace *> *scopeVisibleNamespaces = 0);
+	asCObjectType  *GetTemplateInstanceFromNode(asCScriptNode *node, asCScriptCode *file, asCObjectType *templateType, asSNameSpace *implicitNamespace, asCObjectType *currentType, asCScriptNode **next = 0);
+	asCDataType     ModifyDataTypeFromNode(const asCDataType &type, asCScriptNode *node, asCScriptCode *file, asETypeModifiers *inOutFlag, bool *autoHandle);
 
-	bool               FindObjectTypeOrMixinInNsHierarchy(const asCString& name, asSNameSpace* startNs, bool isExplicitNs, asCScriptNode* errNode, asCScriptCode* script, asCObjectType** outObjType, sMixinClass** outMixin);
-	void               AddVisibleNamespaces(asSNameSpace* ns, const asCArray<asSNameSpace*>& visited, asCArray<asSNameSpace*>& pending);
-	asSNameSpace      *FindNextVisibleNamespace(const asCArray<asSNameSpace*>& visited, asCArray<asSNameSpace*>& pending, asSNameSpace* parentNs, bool* checkAmbiguous = 0);
+	bool          FindObjectTypeOrMixinInNsHierarchy(const asCString &name, asSNameSpace *startNs, bool isExplicitNs, asCScriptNode *errNode, asCScriptCode *script, asCObjectType **outObjType, sMixinClass **outMixin);
+	void          AddVisibleNamespaces(asSNameSpace *ns, const asCArray<asSNameSpace *> &visited, asCArray<asSNameSpace *> &pending);
+	asSNameSpace *FindNextVisibleNamespace(const asCArray<asSNameSpace *> &visited, asCArray<asSNameSpace *> &pending, asSNameSpace *parentNs, bool *checkAmbiguous = 0);
 
-	int numErrors;
-	int numWarnings;
+	int  numErrors;
+	int  numWarnings;
 	bool silent;
 
-	asCScriptEngine *engine;
-	asCModule       *module;
-	asCMap< asSNameSpace*, asCArray<asSNameSpace*> >    namespaceVisibility;
+	asCScriptEngine                                  *engine;
+	asCModule                                        *module;
+	asCMap<asSNameSpace *, asCArray<asSNameSpace *> > namespaceVisibility;
 
 #ifndef AS_NO_COMPILER
 protected:
 	friend class asCCompiler;
 
-	int                CheckForConflictsDueToDefaultArgs(asCScriptCode *script, asCScriptNode *node, asCScriptFunction *func, asCObjectType *objType);
-	int                GetNamespaceAndNameFromNode(asCScriptNode *n, asCScriptCode *script, asSNameSpace *implicitNs, asSNameSpace *&outNs, asCString &outName, bool *isExplicitNs = 0);
-	int                RegisterMixinClass(asCScriptNode *node, asCScriptCode *file, asSNameSpace *ns);
-	sMixinClass       *GetMixinClass(const char *name, asSNameSpace *ns);
-	void               IncludePropertiesFromMixins(sClassDeclaration *decl);
-	void               IncludeMethodsFromMixins(sClassDeclaration *decl);
-	void               AddInterfaceToClass(sClassDeclaration *decl, asCScriptNode *errNode, asCObjectType *intf);
-	void               AddInterfaceFromMixinToClass(sClassDeclaration *decl, asCScriptNode *errNode, sMixinClass *mixin);
+	int          CheckForConflictsDueToDefaultArgs(asCScriptCode *script, asCScriptNode *node, asCScriptFunction *func, asCObjectType *objType);
+	int          GetNamespaceAndNameFromNode(asCScriptNode *n, asCScriptCode *script, asSNameSpace *implicitNs, asSNameSpace *&outNs, asCString &outName, bool *isExplicitNs = 0);
+	int          RegisterMixinClass(asCScriptNode *node, asCScriptCode *file, asSNameSpace *ns);
+	sMixinClass *GetMixinClass(const char *name, asSNameSpace *ns);
+	void         IncludePropertiesFromMixins(sClassDeclaration *decl);
+	void         IncludeMethodsFromMixins(sClassDeclaration *decl);
+	void         AddInterfaceToClass(sClassDeclaration *decl, asCScriptNode *errNode, asCObjectType *intf);
+	void         AddInterfaceFromMixinToClass(sClassDeclaration *decl, asCScriptNode *errNode, sMixinClass *mixin);
 
 	int                RegisterScriptFunctionFromNode(asCScriptNode *node, asCScriptCode *file, asCObjectType *object = 0, bool isInterface = false, bool isGlobalFunction = false, asSNameSpace *ns = 0, bool isExistingShared = false, bool isMixin = false, sClassDeclaration *decl = 0);
-	int                RegisterScriptFunction(asCScriptNode *node, asCScriptCode *file, asCObjectType *objType, bool isInterface, bool isGlobalFunction, asSNameSpace *ns, bool isExistingShared, bool isMixin, asCString &name, asCDataType &returnType, asCArray<asCString> &parameterNames, asCArray<asCDataType> &parameterTypes, asCArray<asETypeModifiers> &inOutFlags, asCArray<asCString *> &defaultArgs, asSFunctionTraits funcTraits, sClassDeclaration* decl);
+	int                RegisterScriptFunction(asCScriptNode *node, asCScriptCode *file, asCObjectType *objType, bool isInterface, bool isGlobalFunction, asSNameSpace *ns, bool isExistingShared, bool isMixin, asCString &name, asCDataType &returnType, asCArray<asCString> &parameterNames, asCArray<asCDataType> &parameterTypes, asCArray<asETypeModifiers> &inOutFlags, asCArray<asCString *> &defaultArgs, asSFunctionTraits funcTraits, sClassDeclaration *decl);
 	int                RegisterVirtualProperty(asCScriptNode *node, asCScriptCode *file, asCObjectType *object = 0, bool isInterface = false, bool isGlobalFunction = false, asSNameSpace *ns = 0, bool isExistingShared = false);
 	int                RegisterImportedFunction(int funcID, asCScriptNode *node, asCScriptCode *file, asSNameSpace *ns);
 	int                RegisterGlobalVar(asCScriptNode *node, asCScriptCode *file, asSNameSpace *ns);
@@ -237,7 +258,7 @@ protected:
 	void               GetParsedFunctionDetails(asCScriptNode *node, asCScriptCode *file, asCObjectType *objType, asCString &name, asCDataType &returnType, asCArray<asCString> &parameterNames, asCArray<asCDataType> &parameterTypes, asCArray<asETypeModifiers> &inOutFlags, asCArray<asCString *> &defaultArgs, asSFunctionTraits &traits, asSNameSpace *implicitNamespace);
 	bool               DoesMethodExist(asCObjectType *objType, int methodId, asUINT *methodIndex = 0);
 	void               AddDefaultConstructor(asCObjectType *objType, asCScriptCode *file);
-	void               AddDefaultCopyConstructor(asCObjectType *objType, asCScriptCode *file);		
+	void               AddDefaultCopyConstructor(asCObjectType *objType, asCScriptCode *file);
 	asCObjectProperty *AddPropertyToClass(sClassDeclaration *c, const asCString &name, const asCDataType &type, bool isPrivate, bool isProtected, bool isInherited, asCScriptCode *file = 0, asCScriptNode *node = 0);
 	int                CreateVirtualFunction(asCScriptFunction *func, int idx);
 	void               ParseScripts();
@@ -256,14 +277,14 @@ protected:
 	void               EvaluateTemplateInstances(asUINT startIdx, bool keepSilent);
 	void               CleanupEnumValues();
 
-	asCArray<asCScriptCode *>                         scripts;
-	asCArray<sFunctionDescription *>                  functions;
-	asCSymbolTable<sGlobalVariableDescription>        globVariables;
-	asCArray<sClassDeclaration *>                     classDeclarations;
-	asCArray<sClassDeclaration *>                     interfaceDeclarations;
-	asCArray<sClassDeclaration *>                     namedTypeDeclarations;
-	asCArray<sFuncDef *>                              funcDefs;
-	asCArray<sMixinClass *>                           mixinClasses;
+	asCArray<asCScriptCode *>                  scripts;
+	asCArray<sFunctionDescription *>           functions;
+	asCSymbolTable<sGlobalVariableDescription> globVariables;
+	asCArray<sClassDeclaration *>              classDeclarations;
+	asCArray<sClassDeclaration *>              interfaceDeclarations;
+	asCArray<sClassDeclaration *>              namedTypeDeclarations;
+	asCArray<sFuncDef *>                       funcDefs;
+	asCArray<sMixinClass *>                    mixinClasses;
 
 	// For use with the DoesTypeExists() method
 	bool                    hasCachedKnownTypes;

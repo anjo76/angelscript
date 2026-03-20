@@ -174,7 +174,7 @@
 // GNU C based compilers
 //  __GNUC__   is defined
 
-// CLang/LLVM 
+// CLang/LLVM
 // __clang__ is defined
 
 // Embarcadero C++Builder
@@ -374,7 +374,7 @@
 //------------------------------------------------
 
 
-#define VALUE_OF_BOOLEAN_TRUE  1
+#define VALUE_OF_BOOLEAN_TRUE 1
 #define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
 #define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
 #define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
@@ -387,23 +387,23 @@
 // Emscripten compiler toolchain
 // ref: https://emscripten.org/
 #if defined(__EMSCRIPTEN__)
-  #define AS_MAX_PORTABILITY
+	#define AS_MAX_PORTABILITY
 #endif
 
 
 
 // Embarcadero C++Builder
 #if defined(__BORLANDC__)
- #ifndef _Windows
-  #error "Configuration doesn't yet support BCC for Linux or Mac OS."
- #endif
- #if defined(_M_X64)
-  #error "Configuration doesn't yet support BCC for AMD64."
- #endif
+	#ifndef _Windows
+		#error "Configuration doesn't yet support BCC for Linux or Mac OS."
+	#endif
+	#if defined(_M_X64)
+		#error "Configuration doesn't yet support BCC for AMD64."
+	#endif
 
-	#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 1))
 	#define HAVE_VIRTUAL_BASE_OFFSET
-	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+2))
+	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 2))
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 	#define CDECL_RETURN_SIMPLE_IN_MEMORY
 	#define STDCALL_RETURN_SIMPLE_IN_MEMORY
@@ -428,7 +428,7 @@
 
 	#define asVSNPRINTF(a, b, c, d) _vsnprintf(a, b, c, d)
 
-	#define fmodf(a,b) fmod(a,b)
+	#define fmodf(a, b) fmod(a, b)
 
 	#define UNREACHABLE_RETURN
 #endif
@@ -439,15 +439,15 @@
 
 	#if _MSC_VER <= 1200 // MSVC6
 		// Disable the useless warnings about truncated symbol names for template instances
-		#pragma warning( disable : 4786 )
+		#pragma warning(disable : 4786)
 	#endif
 
 	#ifdef _M_X64
-		#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+2))
-		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+4))
+		#define MULTI_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 2))
+		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 4))
 	#else
-		#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
-		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+3))
+		#define MULTI_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 1))
+		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 3))
 	#endif
 	#define HAVE_VIRTUAL_BASE_OFFSET
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
@@ -477,7 +477,7 @@
 			#define AS_X86
 		#endif
 	#else
-		#if _MSC_VER < 1500  // MSVC++ 9 (aka MSVC++ .NET 2008)
+		#if _MSC_VER < 1500 // MSVC++ 9 (aka MSVC++ .NET 2008)
 			#define asVSNPRINTF(a, b, c, d) _vsnprintf(a, b, c, d)
 		#else
 			#define asVSNPRINTF(a, b, c, d) vsnprintf_s(a, b, _TRUNCATE, c, d)
@@ -491,7 +491,7 @@
 	#define AS_SIZEOF_BOOL 1
 	#define COMPLEX_OBJS_PASSED_BY_REF
 
-	#define ASM_INTEL  // Intel style for inline assembly on microsoft compilers
+	#define ASM_INTEL // Intel style for inline assembly on microsoft compilers
 
 	#if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 		#define AS_WIN
@@ -508,7 +508,7 @@
 			#ifndef _XBOX
 				// Not tested with xbox (only enabled if is Windows)
 				#undef AS_NO_THISCALL_FUNCTOR_METHOD
-			#endif 
+			#endif
 		#elif defined(_M_X64)
 			#define AS_X64_MSVC
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
@@ -527,7 +527,7 @@
 		#define STDCALL_RETURN_SIMPLE_IN_MEMORY
 		#define COMPLEX_MASK (asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_ARRAY)
 		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_ARRAY)
-	
+
 		// Windows CE uses softfp calling convention, while Windows RT uses hardfp calling convention
 		// ref: http://stackoverflow.com/questions/16375355/what-is-the-windows-rt-on-arm-native-code-calling-convention
 		#if defined(_WIN32_WCE)
@@ -538,7 +538,7 @@
 	#if defined(_M_ARM64)
 		#define AS_ARM64
 
-		// TODO: MORE HERE
+	// TODO: MORE HERE
 	#endif
 
 	#ifndef COMPLEX_MASK
@@ -554,9 +554,9 @@
 
 // Metrowerks CodeWarrior (experimental, let me know if something isn't working)
 #if defined(__MWERKS__) && !defined(EPPC) // JWC -- If Wii DO NOT use this even when using Metrowerks Compiler. Even though they are called Freescale...
-	#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 1))
 	#define HAVE_VIRTUAL_BASE_OFFSET
-	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+3))
+	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD *)(&x) + 3))
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 	#define THISCALL_PASS_OBJECT_POINTER_IN_ECX
 	#define asVSNPRINTF(a, b, c, d) _vsnprintf(a, b, c, d)
@@ -570,7 +570,7 @@
 	// Support native calling conventions on x86, but not 64bit yet
 	#if defined(_M_IX86) && !defined(__LP64__)
 		#define AS_X86
-		#define ASM_INTEL  // Intel style for inline assembly
+		#define ASM_INTEL // Intel style for inline assembly
 	#endif
 
 	#define UNREACHABLE_RETURN
@@ -593,7 +593,7 @@
 		#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
 	#else
 		#define GNU_STYLE_VIRTUAL_METHOD
-		#define ASM_AT_N_T  // AT&T style inline assembly
+		#define ASM_AT_N_T // AT&T style inline assembly
 		#define COMPLEX_MASK (asOBJ_APP_CLASS_DESTRUCTOR)
 		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR)
 	#endif
@@ -614,7 +614,7 @@
 	#endif
 
 	// Support native calling conventions on x86, but not 64bit yet
-	#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
+	#if ( defined(i386) || defined(__i386) || defined(__i386__) ) && !defined(__LP64__)
 		#define AS_X86
 	// PS3
 	#elif (defined(__PPC__) || defined(__ppc__)) && defined(__PPU__)
@@ -646,9 +646,9 @@
 // GNU C (and MinGW or Cygwin on Windows)
 // Use the following command to determine predefined macros: echo . | g++ -dM -E -
 // MSVC2015 can now use CLang too, but it shouldn't go in here
-#if (defined(__GNUC__) && !defined(__SNC__) && !defined(_MSC_VER)) || defined(EPPC) || defined(__CYGWIN__) // JWC -- use this instead for Wii
+#if ( defined(__GNUC__) && !defined(__SNC__) && !defined(_MSC_VER) ) || defined(EPPC) || defined(__CYGWIN__) // JWC -- use this instead for Wii
 	#define GNU_STYLE_VIRTUAL_METHOD
-	#define MULTI_BASE_OFFSET(x) (*((const asPWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asPWORD *)(&x) + 1))
 	#define asVSNPRINTF(a, b, c, d) vsnprintf(a, b, c, d)
 	#define CALLEE_POPS_HIDDEN_RETURN_POINTER
 	#define COMPLEX_OBJS_PASSED_BY_REF
@@ -665,7 +665,7 @@
 			#define AS_USE_COMPUTED_GOTOS 1
 
 		// Also in clang 5.0 but how do i test for that? Should use __has_extension, but I don't know the name of the labels as values extension
-		#elif defined(__clang__) 
+		#elif defined(__clang__)
 			#define AS_USE_COMPUTED_GOTOS 1
 		#endif
 	#endif
@@ -678,12 +678,12 @@
 		#define AS_MAX_PORTABILITY
 
 	// Nintendo Switch
-	// Note, __SWITCH__ is not an official define in the Nintendo dev kit. 
+	// Note, __SWITCH__ is not an official define in the Nintendo dev kit.
 	// You need to manually add this to the project when compiling for Switch.
 	#elif defined(__SWITCH__)
 		#define AS_NINTENDOSWITCH
 
-		#if (!defined(__LP64__))
+		#if ( !defined(__LP64__) )
 			#error write me
 		#else
 			#define AS_ARM64
@@ -704,8 +704,8 @@
 			#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
 
 			#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
-			#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE    5
-			#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE  5
+			#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
+			#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
 		#endif
 
 	// Marmalade is a cross platform SDK. It uses g++ to compile for iOS and Android
@@ -779,7 +779,7 @@
 			#define AS_SIZEOF_BOOL 1
 		#endif
 
-		#if (defined(_ARM_) || defined(__arm__))
+		#if ( defined(_ARM_) || defined(__arm__) )
 			// iOS use ARM processor
 			#define AS_ARM
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
@@ -831,8 +831,8 @@
 			#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
 
 			#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
-			#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE    5
-			#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE  5
+			#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
+			#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
 
 			#undef COMPLEX_MASK
 			#define COMPLEX_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
@@ -896,23 +896,23 @@
 		#undef COMPLEX_RETURN_MASK
 		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 
-		#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
+		#if ( defined(i386) || defined(__i386) || defined(__i386__) ) && !defined(__LP64__)
 			// Support native calling conventions on Intel 32bit CPU
 			#define AS_X86
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
 
 			// As of version 4.7 MinGW changed the ABI, presumably
 			// to be better aligned with how MSVC works
-			#if (__GNUC__ == 4 && __GNUC_MINOR__ >= 7) || __GNUC__ > 4
+			#if ( __GNUC__ == 4 && __GNUC_MINOR__ >= 7 ) || __GNUC__ > 4
 				#define AS_MINGW47
 			#endif
-		
-			#if (__clang_major__ == 3 && __clang_minor__ > 4) || __clang_major > 3
+
+			#if ( __clang_major__ == 3 && __clang_minor__ > 4 ) || __clang_major > 3
 				#define AS_MINGW47
 			#endif
 
 			#ifdef AS_MINGW47
-				#undef  CALLEE_POPS_HIDDEN_RETURN_POINTER
+				#undef CALLEE_POPS_HIDDEN_RETURN_POINTER
 				#define THISCALL_CALLEE_POPS_ARGUMENTS
 			#else
 				// Earlier versions than 4.7
@@ -939,7 +939,7 @@
 		#undef COMPLEX_RETURN_MASK
 		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 
-		#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
+		#if ( defined(i386) || defined(__i386) || defined(__i386__) ) && !defined(__LP64__)
 			// x86 32bit
 			#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 			#define CDECL_RETURN_SIMPLE_IN_MEMORY
@@ -961,7 +961,7 @@
 			#undef STDCALL
 			#define STDCALL
 		#elif defined(__ARMEL__) || defined(__arm__) || defined(__aarch64__) || defined(__AARCH64EL__)
-			// arm 
+			// arm
 
 			// The assembler code currently doesn't support arm v4
 			#if !defined(__ARM_ARCH_4__) && !defined(__ARM_ARCH_4T__) && !defined(__LP64__)
@@ -986,14 +986,14 @@
 				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 2
 
 				#ifndef AS_MAX_PORTABILITY
-				// Make a few checks against incompatible ABI combinations
-				#if defined(__FAST_MATH__) && __FAST_MATH__ == 1
-					#error -ffast-math is not supported with native calling conventions
-				#endif
+					// Make a few checks against incompatible ABI combinations
+					#if defined(__FAST_MATH__) && __FAST_MATH__ == 1
+						#error -ffast-math is not supported with native calling conventions
+					#endif
 				#endif
 
 				// Verify if soft-float or hard-float ABI is used
-				#if (defined(__SOFTFP__) && __SOFTFP__ == 1) || defined(__ARM_PCS)
+				#if ( defined(__SOFTFP__) && __SOFTFP__ == 1 ) || defined(__ARM_PCS)
 					// -ffloat-abi=softfp or -ffloat-abi=soft
 					#define AS_SOFTFP
 				#endif
@@ -1020,8 +1020,8 @@
 				#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
 
 				#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
-				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE    5
-				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE  5
+				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
+				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
 			#endif
 
 		#elif defined(__mips__)
@@ -1036,7 +1036,7 @@
 
 				// All structures are returned in memory regardless of size or complexity
 				#define THISCALL_RETURN_SIMPLE_IN_MEMORY
-				#define	THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
+				#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
 				#define CDECL_RETURN_SIMPLE_IN_MEMORY
 				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
 				#define STDCALL_RETURN_SIMPLE_IN_MEMORY
@@ -1049,7 +1049,7 @@
 		#elif defined(__PPC64__)
 			// PPC 64bit
 
-			// The code in as_callfunc_ppc_64.cpp was built for PS3 and XBox 360, that 
+			// The code in as_callfunc_ppc_64.cpp was built for PS3 and XBox 360, that
 			// although use 64bit PPC only uses 32bit pointers.
 			// TODO: Add support for native calling conventions on Linux with PPC 64bit
 			#define AS_MAX_PORTABILITY
@@ -1057,7 +1057,7 @@
 			// 64bit MCST E2K (Elbrus 2000) CPU
 			// ref: https://en.wikipedia.org/wiki/Elbrus_2000
 			#define AS_E2K
-			
+
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
 
 			#define RETURN_VALUE_MAX_SIZE 16
@@ -1087,13 +1087,13 @@
 				#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
 
 				#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
-				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE    5
-				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE  5
+				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
+				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
 			#else
 				// 32-bit
 				#define AS_MAX_PORTABILITY
 			#endif
-			
+
 			// STDCALL is not available on RISC-V Linux
 			#undef STDCALL
 			#define STDCALL
@@ -1103,7 +1103,7 @@
 		#define AS_LINUX
 		#define AS_POSIX_THREADS
 
-		#if !( ( (__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4) )
+		#if !(((__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4))
 			// Only with GCC 4.1 was the atomic instructions available
 			#define AS_NO_ATOMIC
 		#endif
@@ -1111,7 +1111,7 @@
 	// Free BSD
 	#elif defined(__FreeBSD__) || defined(__DragonFly__) || defined(__OpenBSD__)
 		#define AS_BSD
-		#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
+		#if ( defined(i386) || defined(__i386) || defined(__i386__) ) && !defined(__LP64__)
 			#undef COMPLEX_MASK
 			#define COMPLEX_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 			#undef COMPLEX_RETURN_MASK
@@ -1134,7 +1134,7 @@
 			#define AS_MAX_PORTABILITY
 		#endif
 		#define AS_POSIX_THREADS
-		#if !( ( (__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4) )
+		#if !(((__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4))
 			// Only with GCC 4.1 was the atomic instructions available
 			#define AS_NO_ATOMIC
 		#endif
@@ -1142,7 +1142,7 @@
 	// PSP and PS2
 	#elif defined(__PSP__) || defined(__psp__) || defined(_EE_) || defined(_PSP) || defined(_PS2)
 		// Support native calling conventions on MIPS architecture
-		#if (defined(_MIPS_ARCH) || defined(_mips) || defined(__MIPSEL__)) && !defined(__LP64__)
+		#if ( defined(_MIPS_ARCH) || defined(_mips) || defined(__MIPSEL__) ) && !defined(__LP64__)
 			#define AS_MIPS
 			#define AS_USE_DOUBLE_AS_FLOAT
 		#else
@@ -1194,7 +1194,7 @@
 		#undef COMPLEX_RETURN_MASK
 		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
 
-		#if (defined(_ARM_) || defined(__arm__) || defined(__aarch64__) || defined(__AARCH64EL__))
+		#if ( defined(_ARM_) || defined(__arm__) || defined(__aarch64__) || defined(__AARCH64EL__) )
 			// Android ARM
 
 			#undef THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
@@ -1208,7 +1208,7 @@
 			#undef GNU_STYLE_VIRTUAL_METHOD
 			#undef AS_NO_THISCALL_FUNCTOR_METHOD
 
-			#if (!defined(__LP64__))
+			#if ( !defined(__LP64__) )
 				// TODO: The stack unwind on exceptions currently fails due to the assembler code in as_callfunc_arm_gcc.S
 				#define AS_NO_EXCEPTIONS
 
@@ -1225,8 +1225,8 @@
 				#define HAS_128_BIT_PRIMITIVES
 
 				#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
-				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE    5
-				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE  5
+				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
+				#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
 			#endif
 		#elif (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
 			// Android Intel x86 (same config as Linux x86). Tested with Intel x86 Atom System Image.
@@ -1256,7 +1256,7 @@
 
 				// All structures are returned in memory regardless of size or complexity
 				#define THISCALL_RETURN_SIMPLE_IN_MEMORY
-				#define	THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
+				#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
 				#define CDECL_RETURN_SIMPLE_IN_MEMORY
 				#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 0
 				#define STDCALL_RETURN_SIMPLE_IN_MEMORY
@@ -1271,7 +1271,7 @@
 	// Haiku OS
 	#elif __HAIKU__
 		#define AS_HAIKU
-		#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
+		#if ( defined(i386) || defined(__i386) || defined(__i386__) ) && !defined(__LP64__)
 			#define AS_X86
 			#define THISCALL_PASS_OBJECT_POINTER_ON_THE_STACK
 			#define THISCALL_RETURN_SIMPLE_IN_MEMORY
@@ -1295,7 +1295,7 @@
 
 	// Illumos
 	#elif defined(__sun)
-		#if (defined(i386) || defined(__i386) || defined(__i386__)) && !defined(__LP64__)
+		#if ( defined(i386) || defined(__i386) || defined(__i386__) ) && !defined(__LP64__)
 			#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 			#define CDECL_RETURN_SIMPLE_IN_MEMORY
 			#define STDCALL_RETURN_SIMPLE_IN_MEMORY
@@ -1316,7 +1316,7 @@
 		#define AS_ILLUMOS
 		#define AS_POSIX_THREADS
 
-		#if !( ( (__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4) )
+		#if !(((__GNUC__ == 4) && (__GNUC_MINOR__ >= 1) || __GNUC__ > 4))
 			// Only with GCC 4.1 was the atomic instructions available
 			#define AS_NO_ATOMIC
 		#endif
@@ -1342,7 +1342,7 @@
 	#endif
 
 	// I presume Sun CC uses a similar structure of method pointers as gnuc
-	#define MULTI_BASE_OFFSET(x) (*((const asPWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asPWORD *)(&x) + 1))
 
 	#if !defined(AS_SIZEOF_BOOL)
 		#define AS_SIZEOF_BOOL 1 // sizeof(bool) == 1
@@ -1365,26 +1365,26 @@
 
 // Big endian CPU target?
 // see: http://sourceforge.net/p/predef/wiki/Endianness/
-#if !defined(AS_BIG_ENDIAN) && \
-	defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
-	defined(__BIG_ENDIAN__) || \
-	defined(__ARMEB__) || \
-	defined(__THUMBEB__) || \
-	defined(__AARCH64EB__) || \
-	defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
-		#define AS_BIG_ENDIAN
+#if !defined(AS_BIG_ENDIAN) &&                                   \
+        defined(__BYTE_ORDER) && __BYTE_ORDER == __BIG_ENDIAN || \
+    defined(__BIG_ENDIAN__) ||                                   \
+    defined(__ARMEB__) ||                                        \
+    defined(__THUMBEB__) ||                                      \
+    defined(__AARCH64EB__) ||                                    \
+    defined(_MIBSEB) || defined(__MIBSEB) || defined(__MIBSEB__)
+	#define AS_BIG_ENDIAN
 #endif
 
 // Dreamcast and Gamecube use only 32bit floats, so treat doubles as floats
 #if defined(__SH4_SINGLE_ONLY__) || defined(_GC)
-	#define AS_USE_DOUBLE_AS_FLOAT	// use 32bit floats instead of doubles
+	#define AS_USE_DOUBLE_AS_FLOAT // use 32bit floats instead of doubles
 #endif
 
 // If there are no current support for native calling
 // conventions, then compile with AS_MAX_PORTABILITY
-#if (!defined(AS_X86) && !defined(AS_SH4) && !defined(AS_MIPS) && !defined(AS_PPC) && \
-	 !defined(AS_PPC_64) && !defined(AS_XENON) && !defined(AS_X64_GCC) && !defined(AS_X64_MSVC) && \
-	 !defined(AS_ARM) && !defined(AS_ARM64) && !defined(AS_X64_MINGW) && !defined(AS_RISCV64) && !defined(AS_E2K))
+#if ( !defined(AS_X86) && !defined(AS_SH4) && !defined(AS_MIPS) && !defined(AS_PPC) &&              \
+      !defined(AS_PPC_64) && !defined(AS_XENON) && !defined(AS_X64_GCC) && !defined(AS_X64_MSVC) && \
+      !defined(AS_ARM) && !defined(AS_ARM64) && !defined(AS_X64_MINGW) && !defined(AS_RISCV64) && !defined(AS_E2K) )
 	#ifndef AS_MAX_PORTABILITY
 		#define AS_MAX_PORTABILITY
 	#endif
@@ -1409,13 +1409,15 @@
 	#if defined(AS_DEBUG)
 		#include <android/log.h>
 		#include <stdlib.h>
-		#define asASSERT(x) \
-			do { \
-			    if (!(x)) { \
-			        __android_log_print(ANDROID_LOG_ERROR, "AngelScript", "Assert failed at %s:%d - %s", __FILE__, __LINE__, #x); \
-			        exit(1); \
-			    } \
-			} while (0)
+		#define asASSERT(x)                                                                                                       \
+			do                                                                                                                    \
+			{                                                                                                                     \
+				if( !(x) )                                                                                                        \
+				{                                                                                                                 \
+					__android_log_print(ANDROID_LOG_ERROR, "AngelScript", "Assert failed at %s:%d - %s", __FILE__, __LINE__, #x); \
+					exit(1);                                                                                                      \
+				}                                                                                                                 \
+			} while( 0 )
 	#else
 		#define asASSERT(x)
 	#endif
@@ -1430,14 +1432,14 @@
 // Internal defines (do not change these)
 //----------------------------------------------------------------
 
-#define ARG_W(b)     ((asWORD*)&b)
-#define ARG_DW(b)    ((asDWORD*)&b)
-#define ARG_QW(b)    ((asQWORD*)&b)
-#define ARG_PTR(b)   ((asPWORD*)&b)
-#define BCARG_W(b)   ((asWORD*)&(b)[1])
-#define BCARG_DW(b)  ((asDWORD*)&(b)[1])
-#define BCARG_QW(b)  ((asQWORD*)&(b)[1])
-#define BCARG_PTR(b) ((asPWORD*)&(b)[1])
+#define ARG_W(b) ((asWORD *)&b)
+#define ARG_DW(b) ((asDWORD *)&b)
+#define ARG_QW(b) ((asQWORD *)&b)
+#define ARG_PTR(b) ((asPWORD *)&b)
+#define BCARG_W(b) ((asWORD *)&(b)[1])
+#define BCARG_DW(b) ((asDWORD *)&(b)[1])
+#define BCARG_QW(b) ((asQWORD *)&(b)[1])
+#define BCARG_PTR(b) ((asPWORD *)&(b)[1])
 
 // This macro is used to avoid warnings about unused variables.
 // Usually where the variables are only used in debug mode.

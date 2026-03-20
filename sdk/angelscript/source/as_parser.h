@@ -91,7 +91,7 @@ protected:
 	asCScriptNode *ParseDataType(bool allowVariableType = false, bool allowAuto = false);
 	asCScriptNode *ParseIdentifier();
 	bool           ParseTemplTypeList(asCScriptNode *node, bool required = true);
-	bool           ParseTemplateDeclTypeList(asCScriptNode* node, bool required);
+	bool           ParseTemplateDeclTypeList(asCScriptNode *node, bool required);
 	void           ParseMethodAttributes(asCScriptNode *funcNode);
 
 	asCScriptNode *ParseListPattern();
@@ -135,12 +135,12 @@ protected:
 	asCScriptNode *ParseVirtualPropertyDecl(bool isMethod, bool isInterface);
 	asCScriptNode *ParseEnumeration();
 	asCScriptNode *ParseTypedef();
-	bool IsVarDecl();
-	bool IsVirtualPropertyDecl();
-	bool IsFuncDecl(bool isMethod);
-	bool IsLambda();
-	bool IsFunctionCall(bool isTemplate);
-	bool IsTemplateTypeList(sToken startFrom, sToken *after = 0);
+	bool           IsVarDecl();
+	bool           IsVirtualPropertyDecl();
+	bool           IsFuncDecl(bool isMethod);
+	bool           IsLambda();
+	bool           IsFunctionCall(bool isTemplate);
+	bool           IsTemplateTypeList(sToken startFrom, sToken *after = 0);
 
 	// Expressions
 	asCScriptNode *ParseAssignment();
@@ -162,7 +162,7 @@ protected:
 	asCScriptNode *ParseLambda();
 
 	bool FindTokenAfterType(sToken &nextToken);
-	bool FindIdentifierAfterScope(sToken& nextToken);
+	bool FindIdentifierAfterScope(sToken &nextToken);
 	bool IsConstant(int tokenType);
 	bool IsOperator(int tokenType);
 	bool IsPreOperator(int tokenType);
@@ -193,8 +193,8 @@ protected:
 
 	asCString tempString; // Used for reduzing amount of dynamic allocations
 
-	sToken       lastToken;
-	size_t       sourcePos;
+	sToken lastToken;
+	size_t sourcePos;
 };
 
 END_AS_NAMESPACE
