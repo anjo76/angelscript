@@ -2621,7 +2621,7 @@ int asCCompiler::CompileDefaultAndNamedArgs(asCScriptNode *node, asCArray<asCExp
 
 		// Parse the default arg string
 		asCParser parser(builder);
-		asCScriptCode *code = builder->FindOrAddCode("default arg", func->defaultArgs[n]->AddressOf(), func->defaultArgs[n]->GetLength());
+		asCScriptCode *code = builder->FindOrAddCode("default arg", asStringView(*func->defaultArgs[n]));
 		int r = parser.ParseExpression(code);
 		if( r < 0 )
 		{
@@ -2707,7 +2707,7 @@ int asCCompiler::CompileDefaultAndNamedArgs(asCScriptNode *node, asCArray<asCExp
 	return anyErrors ? -1 : 0;
 }
 
-asUINT asCCompiler::MatchFunctions(asCArray<int> &funcs, asCArray<asCExprContext*> &args, asCScriptNode *node, const char *name, asCArray<asSNamedArgument> *namedArgs, asCObjectType *objectType, bool isConstMethod, bool silent, bool allowObjectConstruct, const asCString &scope)
+asUINT asCCompiler::MatchFunctions(asCArray<int> &funcs, asCArray<asCExprContext*> &args, asCScriptNode *node, asStringView name, asCArray<asSNamedArgument> *namedArgs, asCObjectType *objectType, bool isConstMethod, bool silent, bool allowObjectConstruct, const asCString &scope)
 {
 	asCArray<int> origFuncs = funcs; // Keep the original list for error message
 	asUINT cost = 0;
@@ -8488,7 +8488,7 @@ asUINT asCCompiler::ImplicitConvObjectValue(asCExprContext *ctx, const asCDataTy
 				args.PushLast(ctx);
 
 				// Don't allow making copy of argument here, else the compiler can enter an infinite recursive loop
-				cost = asCC_TO_OBJECT_CONV + MatchFunctions(funcs, args, node, 0, 0, 0, false, true, false);
+				cost = asCC_TO_OBJECT_CONV + MatchFunctions(funcs, args, node, asStringView(), 0, 0, false, true, false);
 
 				// Did we find a matching constructor?
 				if (funcs.GetLength() == 1)
@@ -8593,7 +8593,7 @@ asUINT asCCompiler::ImplicitConvObjectToObject(asCExprContext *ctx, const asCDat
 		asCArray<asCExprContext *> args;
 		args.PushLast(ctx);
 
-		cost = asCC_TO_OBJECT_CONV + MatchFunctions(funcs, args, node, 0, 0, 0, false, true, false);
+		cost = asCC_TO_OBJECT_CONV + MatchFunctions(funcs, args, node, asStringView(), 0, 0, false, true, false);
 
 		// Did we find a matching constructor?
 		if( funcs.GetLength() == 1 )
@@ -9128,7 +9128,7 @@ asUINT asCCompiler::ImplicitConvPrimitiveToObject(asCExprContext *ctx, const asC
 	arg.exprNode = ctx->exprNode; // Use the same node for compiler messages
 	asCArray<asCExprContext*> args;
 	args.PushLast(&arg);
-	asUINT cost = asCC_TO_OBJECT_CONV + MatchFunctions(funcs, args, 0, 0, 0, objType, false, true, false);
+        asUINT cost = asCC_TO_OBJECT_CONV + MatchFunctions(funcs, args, 0, asStringView(), 0, objType,false, true, false);
 	if( funcs.GetLength() != 1 )
 		return asCC_NO_CONV;
 
@@ -15557,7 +15557,7 @@ bool asCCompiler::CompileOverloadedDualOperator(asCScriptNode *node, asCExprCont
 // Returns negative on compile error
 //         zero on no matching operator
 //         one on matching operator
-int asCCompiler::CompileOverloadedDualOperator2(asCScriptNode *node, const char *methodName, asCExprContext *lctx, asCExprContext *rctx, bool leftToRight, asCExprContext *ctx, bool specificReturn, const asCDataType &returnType)
+int asCCompiler::CompileOverloadedDualOperator2(asCScriptNode *node, asStringView methodName, asCExprContext *lctx, asCExprContext *rctx, bool leftToRight, asCExprContext *ctx, bool specificReturn, const asCDataType &returnType)
 {
 	// Find the matching method
 	if( lctx->type.dataType.IsObject() &&
