@@ -206,6 +206,51 @@ bool Test()
 	COutStream out;
 	asIScriptModule *mod;
 
+	// Verify formatting of function signatures in errors with multiple levels of namespace
+	// https://gamedev.net/forums/topic/707360-wrong-display-of-enum-as-default-argument/5428530/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		engine->SetDefaultNamespace("Engine");
+
+		engine->RegisterEnum("WindowStyle");
+		engine->RegisterEnumValue("WindowStyle", "None", 1);
+		engine->RegisterEnumValue("WindowStyle", "Default", 2);
+
+		engine->RegisterObjectType("Window", 0, asOBJ_REF | asOBJ_NOHANDLE);
+		engine->RegisterObjectMethod("Window", "void Open(uint32 width = 0, uint32 height = 0, uint8 bitsPerPixel = 32, string title = \"\", uint32 style = WindowStyle::Default)", asFUNCTION(0), asCALL_GENERIC);
+
+		engine->SetDefaultNamespace("");
+
+		engine->RegisterGlobalProperty("Engine::Window MyWindow", (void *)1);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void main() { \n"
+			"  MyWindow.Open('', style : Engine::WindowStyle::None); \n"
+			"} \n");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "test (1, 1) : Info    : Compiling void main()\n"
+						   "test (2, 12) : Error   : No matching signatures to 'Window::Open(const string, style: const Engine::WindowStyle)'\n"
+						   "test (2, 12) : Info    : Candidates are:\n"
+							// Note, the default argument 'style = WindowStyle::Default' is kept as it is in the declaration, which is why it doesn't show the Engine:: namespace
+						   "test (2, 12) : Info    : void Engine::Window::Open(uint width = 0, uint height = 0, uint8 bitsPerPixel = 32, string title = \"\", uint style = WindowStyle::Default)\n"
+						   "test (2, 12) : Info    : Rejected due to type mismatch on parameter 'width'\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Passing const value types by value to constructors as implicit conversion
 	// https://www.gamedev.net/forums/topic/717880-asbehave_construct-with-custom-pod-string-type-requires-const/5468147/
 	{

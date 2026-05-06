@@ -15,6 +15,30 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptEngine *engine;
 
+	// Test named args and constant expr conversion
+	// Reported by Rémy Stivani 
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		r = engine->RegisterObjectType("Test", 0, asOBJ_REF | asOBJ_NOCOUNT);
+		r = engine->RegisterObjectMethod("Test", "void addValue(uint64 value)", asFUNCTION(0), asCALL_GENERIC); assert(r >= 0);
+		r = engine->RegisterGlobalProperty("Test t", (void *)1);
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void main() {\n"
+			"  t.addValue(value: 3);\n" // const int must be implicitly converted to uint64
+			"}\n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+		engine->ShutDownAndRelease();
+	}
+
 	// Test issue with named args and factories
 	// reported by Patrick Jeeves
 	{
