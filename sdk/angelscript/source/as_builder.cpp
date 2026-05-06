@@ -85,6 +85,9 @@ asCBuilder::asCBuilder(asCScriptEngine *_engine, asCModule *_module)
 	this->engine = _engine;
 	this->module = _module;
 	silent = false;
+	numWarnings = 0;
+	numErrors = 0;
+	hasCachedKnownTypes = false;
 }
 
 asCBuilder::~asCBuilder()
@@ -1388,6 +1391,12 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 	// Count number of parameters
 	int paramCount = 0;
 	asCScriptNode *paramList = tmp->next;
+	if( paramList == 0 )
+	{
+		// Something is wrong with the parser
+		asASSERT(false);
+		return asINVALID_DECLARATION;
+	}
 	n = paramList->firstChild;
 	while( n )
 	{
@@ -1448,6 +1457,12 @@ int asCBuilder::ParseFunctionDeclaration(asCObjectType *objType, const char *dec
 			return asINVALID_DECLARATION;
 
 		// Move to next parameter
+		if( n->next == 0 )
+		{
+			// Something is wrong with the parser, but don't crash, just skip the parameter
+			asASSERT(false);
+			return asINVALID_DECLARATION;
+		}
 		n = n->next->next;
 		if (n && n->nodeType == snVariadic)
 		{
@@ -2809,7 +2824,7 @@ void asCBuilder::CompileGlobalVariables()
 							if( !gvar2->isCompiled )
 							{
 								int row, col;
-								gvar->script->ConvertPosToRowCol(gvar->declaredAtNode->tokenPos, &row, &col);
+								gvar->script->ConvertPosToRowCol(gvar->declaredAtNode ? gvar->declaredAtNode->tokenPos : 0, &row, &col);
 
 								asCString str = gvar->datatype.Format(gvar->ns);
 								str += " " + gvar->name;
@@ -4364,6 +4379,14 @@ void asCBuilder::IncludePropertiesFromMixins(sClassDeclaration *decl)
 						n2 = n2->next;
 					}
 
+					if( n2 == 0 )
+					{
+						// Something is wrong with the parser, but don't crash, just skip the property
+						asASSERT(false);
+						WriteError(TXT_UNEXPECTED_END_OF_FILE, decl->script, node);
+						continue;
+					}
+
 					asCScriptCode *file = mixin->script;
 					asCDataType dt = CreateDataTypeFromNode(n2, file, mixin->ns);
 
@@ -5103,6 +5126,14 @@ void asCBuilder::GetParsedFunctionDetails(asCScriptNode *node, asCScriptCode *fi
 		parameterTypes.PushLast(type);
 		inOutFlags.PushLast(inOutFlag);
 
+		if( n->next == 0 )
+		{
+			// Something is wrong with the parser, but don't crash, just skip the parameter
+			asASSERT(false);
+			WriteError(TXT_UNEXPECTED_END_OF_FILE, file, n);
+			break;
+		}
+
 		// Move to next parameter
 		n = n->next->next;
 		if( n && n->nodeType == snIdentifier )
@@ -5501,10 +5532,15 @@ int asCBuilder::RegisterScriptFunction(asCScriptNode *node, asCScriptCode *file,
 	// Check that the same function hasn't been registered already in the namespace
 	asCArray<int> funcs;
 	if( funcTraits.GetTrait(asTRAIT_CONSTRUCTOR) )
-		funcs = objType->beh.constructors;
+	{
+		asASSERT(objType);
+		if( objType )
+			funcs = objType->beh.constructors;
+	}
 	else if( funcTraits.GetTrait(asTRAIT_DESTRUCTOR) )
 	{
-		if( objType->beh.destruct )
+		asASSERT(objType);
+		if( objType && objType->beh.destruct )
 			funcs.PushLast(objType->beh.destruct);
 	}
 	else if( objType )
@@ -5849,23 +5885,26 @@ int asCBuilder::RegisterVirtualProperty(asCScriptNode *node, asCScriptCode *file
 				if( funcNode ) funcNode->Destroy(engine);
 
 				// Should validate that the function really exists in the class/interface
-				bool found = false;
-				for( asUINT n = 0; n < objType->methods.GetLength(); n++ )
+				if( objType )
 				{
-					asCScriptFunction *func = engine->scriptFunctions[objType->methods[n]];
-					if( func->name == name &&
-						func->IsSignatureExceptNameEqual(returnType, paramTypes, paramModifiers, objType, funcTraits.GetTrait(asTRAIT_CONST), funcTraits.GetTrait(asTRAIT_VARIADIC)) )
+					bool found = false;
+					for( asUINT n = 0; n < objType->methods.GetLength(); n++ )
 					{
-						found = true;
-						break;
+						asCScriptFunction *func = engine->scriptFunctions[objType->methods[n]];
+						if( func->name == name &&
+						   func->IsSignatureExceptNameEqual(returnType, paramTypes, paramModifiers, objType, funcTraits.GetTrait(asTRAIT_CONST), funcTraits.GetTrait(asTRAIT_VARIADIC)) )
+						{
+							found = true;
+							break;
+						}
 					}
-				}
 
-				if( !found )
-				{
-					asCString str;
-					str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, objType->GetName(), objType->GetModule() ? objType->GetModule()->GetName() : "");
-					WriteError(str, file, node);
+					if( !found )
+					{
+						asCString str;
+						str.Format(TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s, objType->GetName(), objType->GetModule() ? objType->GetModule()->GetName() : "");
+						WriteError(str, file, node);
+					}
 				}
 			}
 		}
@@ -6035,7 +6074,8 @@ void asCBuilder::GetObjectMethodDescriptions(const char *name, asCObjectType *ob
 				asCScriptFunction *f = engine->scriptFunctions[objectType->methods[n]];
 				if( f && f->funcType == asFUNC_VIRTUAL )
 					f = objectType->virtualFunctionTable[f->vfTableIdx];
-				methods.PushLast(f->id);
+				asASSERT(f);
+				methods.PushLast(f ? f->id : 0);
 			}
 		}
 	}
@@ -6616,6 +6656,13 @@ asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCod
 	}
 
 	// Determine array dimensions and object handles
+	if( n == 0 )
+	{
+		// Something is wrong with the parser, but don't crash
+		asASSERT(false);
+		WriteError(TXT_UNEXPECTED_END_OF_FILE, file, node);
+		return asCDataType::CreatePrimitive(ttInt, false);
+	}
 	n = n->next;
 	while( n && (n->tokenType == ttOpenBracket || n->tokenType == ttHandle) )
 	{
@@ -6789,7 +6836,7 @@ asCObjectType *asCBuilder::GetTemplateInstanceFromNode(asCScriptNode *node, asCS
 			// If this is the first time the template instance is used, store where it was declared from
 			otInstance->scriptSectionIdx = engine->GetScriptSectionNameIndex(file->name.AddressOf());
 			int row, column;
-			file->ConvertPosToRowCol(n->tokenPos, &row, &column);
+			file->ConvertPosToRowCol(n ? n->tokenPos: 0, &row, &column);
 			otInstance->declaredAt = (row & 0xFFFFF) | (column << 20);
 		}
 
