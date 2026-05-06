@@ -156,6 +156,35 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test that multiple definitions of the same constructor signature / destructor is not allowed
+	// Reported by AK
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		mod = engine->GetModule("t", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", 
+			"class Test { \n"
+			"  Test(int i) {} \n"
+			"  Test(int i) {} \n"
+			"  ~Test() {} \n"
+			"  ~Test() {} \n"
+			"} \n");
+		r = mod->Build();
+		if( r >= 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer !=
+			"script (3, 3) : Error   : A function with the same name and parameters already exists\n"
+			"script (5, 3) : Error   : A function with the same name and parameters already exists\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Mixins do not support deleting methods
 	{
 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);

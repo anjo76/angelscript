@@ -5500,7 +5500,14 @@ int asCBuilder::RegisterScriptFunction(asCScriptNode *node, asCScriptCode *file,
 
 	// Check that the same function hasn't been registered already in the namespace
 	asCArray<int> funcs;
-	if( objType )
+	if( funcTraits.GetTrait(asTRAIT_CONSTRUCTOR) )
+		funcs = objType->beh.constructors;
+	else if( funcTraits.GetTrait(asTRAIT_DESTRUCTOR) )
+	{
+		if( objType->beh.destruct )
+			funcs.PushLast(objType->beh.destruct);
+	}
+	else if( objType )
 		GetObjectMethodDescriptions(name.AddressOf(), objType, funcs, false);
 	else
 		GetFunctionDescriptions(name.AddressOf(), funcs, ns);
@@ -5658,8 +5665,14 @@ int asCBuilder::RegisterScriptFunction(asCScriptNode *node, asCScriptCode *file,
 			compiler.CompileFactory(this, file, engine->scriptFunctions[factoryId]);
 			engine->scriptFunctions[factoryId]->AddRefInternal();
 		}
-		else if(funcTraits.GetTrait(asTRAIT_DESTRUCTOR))
+		else if( funcTraits.GetTrait(asTRAIT_DESTRUCTOR) )
+		{
+			if( objType->beh.destruct != 0 )
+				// Release the previous, to avoid memory leak. The error for duplicate declaration is already reported above
+				engine->scriptFunctions[objType->beh.destruct]->ReleaseInternal();
+
 			objType->beh.destruct = funcId;
+		}
 		else
 		{
 			// If the method is the assignment operator we need to replace the default implementation
