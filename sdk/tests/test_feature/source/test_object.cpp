@@ -143,6 +143,22 @@ void TestSysArgRef(CObject &_obj)
 	_obj.val = 2;
 }
 
+class Widget
+{
+public:
+	Widget() { refCount = 1;  val = 0; }
+	void AddRef() { refCount++; }
+	void Release() { if( --refCount == 0 ) delete this; }
+	int val;
+
+	static Widget *Factory()
+	{
+		return new Widget();
+	}
+private:
+	int refCount;
+};
+
 bool Test2();
 
 bool Test()
@@ -152,6 +168,42 @@ bool Test()
 	bool fail = Test2();
 	int r;
 	int funcId;
+
+	// Test registering object type with const factory
+	// Reported by Patrick Jeeves
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		CBufferedOutStream bout;
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		engine->RegisterObjectType("Widget", 0, asOBJ_REF);
+		// It is allowed that the factory returns a const handle
+		r = engine->RegisterObjectBehaviour("Widget", asBEHAVE_FACTORY, "const Widget @f()", asFUNCTION(Widget::Factory), asCALL_CDECL);
+		if( r < 0 )
+			TEST_FAILED;
+		engine->RegisterObjectBehaviour("Widget", asBEHAVE_ADDREF, "void f()", asMETHOD(Widget,AddRef), asCALL_THISCALL);
+		engine->RegisterObjectBehaviour("Widget", asBEHAVE_RELEASE, "void f()", asMETHOD(Widget,Release), asCALL_THISCALL);
+		engine->RegisterObjectProperty("Widget", "int val", asOFFSET(Widget, val));
+		r = ExecuteString(engine, "const Widget @w = Widget(); assert( w.val == 0 );");
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "Widget @w = Widget();"); // should fail because the Widget factory returns a const handle
+		if( r >= 0 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "auto @w = Widget(); w.val = 1;"); // should fail, because the Widget factory returns a const handle
+		if( r >= 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if( bout.buffer != "ExecuteString (1, 13) : Error   : Can't implicitly convert from 'const Widget@' to 'Widget@&'.\n"
+						   "ExecuteString (1, 27) : Error   : Reference is read-only\n" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test registering value type with constructor with only default arguments
 	// https://github.com/anjo76/angelscript/issues/22

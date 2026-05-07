@@ -2353,8 +2353,9 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
 		}
 
-		// Verify that the return type is a handle to the type
-		if( func.returnType != asCDataType::CreateObjectHandle(objectType, false) )
+		// Verify that the return type is a handle to the type (accept const handle)
+		if( func.returnType.GetTypeInfo() != objectType ||
+		    !func.returnType.IsObjectHandle() )
 		{
 			if( listPattern )
 				listPattern->Destroy(this);
