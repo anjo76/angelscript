@@ -100,6 +100,23 @@ void Destructor(void* mem)
 	((ClassValue*)mem)->~ClassValue();
 }
 
+bool callAppFuncCalledProperly = false;
+void callAppFunc()
+{
+	asIScriptContext *ctx = asGetActiveContext();
+	ctx->PushState();
+	ctx->Prepare(ctx->GetEngine()->GetModule("test")->GetFunctionByName("throwException"));
+	int r = ctx->Execute();
+	if( r == asEXECUTION_EXCEPTION )
+		callAppFuncCalledProperly = true;
+	if( string(ctx->GetExceptionString()) != "This is an exception" )
+		callAppFuncCalledProperly = false;
+	ctx->PopState(); // This clears the exception as well
+
+	if( string(ctx->GetExceptionString()) != "" )
+		callAppFuncCalledProperly = false;
+}
+
 bool Test()
 {
 	bool fail = false;
@@ -113,6 +130,58 @@ bool Test()
 		PRINTF("Tests in %s skipped due to AS_NO_EXCEPTIONS\n", __FILE__);
 		return false;
 	}
+
+	// Test script exception thrown in a nested script call
+	// Reported by Patrick Jeeves
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+		RegisterExceptionRoutines(engine);
+
+		engine->RegisterGlobalFunction("void callAppFunc()", asFUNCTION(callAppFunc), asCALL_CDECL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			R"(
+			void main() {
+				bool exceptionCaught = false;
+				try {
+					callAppFunc();
+				}
+				catch {
+					assert(getExceptionInfo() == "This is an exception");
+					exceptionCaught = true;
+				}
+				assert(exceptionCaught == false); // The exception is not expected to be come as it is cleared by the application
+			}
+			void throwException() {
+				throw("This is an exception");
+			}
+			)");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "main()", mod);
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+
+		if( callAppFuncCalledProperly == false )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 
 	// Test crash due to exception, with object variable declared just after the end of a block. 
 	// The asIScriptContext::IsVarInScope didn't work properly, leading to the crash in the DetermineLiveObjects
