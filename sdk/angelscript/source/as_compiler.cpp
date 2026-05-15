@@ -11490,7 +11490,8 @@ int asCCompiler::CompileVariableAccess(const asCString &name, const asCString &s
 
 			// If the variable is allocated on the heap we have a reference,
 			// otherwise the actual object pointer is pushed on the stack.
-			if( v->onHeap || v->type.IsObjectHandle() ) ctx->type.dataType.MakeReference(true);
+			if( v->onHeap || v->type.IsObjectHandle() ) 
+				ctx->type.dataType.MakeReference(true);
 
 			// Implicitly dereference handle parameters sent by reference
 			if( v->type.IsReference() && (!v->type.IsObject() || v->type.IsObjectHandle()) )
@@ -15705,6 +15706,10 @@ int asCCompiler::CompileOverloadedDualOperator2(asCScriptNode *node, const char 
 				sVariable *v = variables->GetVariableByOffset(lctx->type.stackOffset);
 				if (v && v->type.IsReference() && (!v->type.IsObject() || v->type.IsObjectHandle()))
 					lctx->bc.Instr(asBC_RDSPtr);
+
+				// If the type is an object handle then treat it as a refernce to the handle so it will be properly dereferenced when invoking the method
+				if( lctx->type.dataType.IsObjectHandle() )
+					lctx->type.dataType.MakeReference(true);
 			}
 			else
 			{

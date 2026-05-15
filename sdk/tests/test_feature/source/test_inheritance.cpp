@@ -130,6 +130,49 @@ bool Test()
 	CBufferedOutStream bout;
  	asIScriptEngine *engine = 0;
 
+	// Test inheritance in script classes
+	// This calls an overloaded operator on the handle returned by the refcast
+	// https://github.com/anjo76/angelscript/issues/69
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		mod = engine->GetModule("Test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("Test", R"(
+			class A {
+			}
+
+			class B : A {
+				bool opEquals(B@ other) {
+					return true;
+				}
+			}
+
+			void Main() {
+				B@ b1 = B();
+				A@ a1 = cast<A>(b1);
+				b1 == b1;
+				cast<B>(a1) == b1;
+			}
+			)");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "Main();", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test inheritance in initialization lists
 	// https://www.gamedev.net/forums/topic/711197-value-array-of-parent-type-with-initializer-list-containing-child-type-constructor/
 	{
