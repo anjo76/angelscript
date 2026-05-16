@@ -440,7 +440,7 @@ CScriptArray::CScriptArray(asITypeInfo *ti, void *buf)
 
 		// Copy the values of the primitive type into the internal buffer
 		if( length > 0 )
-			memcpy(At(0), (((asUINT*)buf)+1), length * elementSize);
+			memcpy(At(0), (((asUINT*)buf)+1), size_t(length) * elementSize);
 	}
 	else if( ti->GetSubTypeId() & asTYPEID_OBJHANDLE )
 	{
@@ -448,13 +448,13 @@ CScriptArray::CScriptArray(asITypeInfo *ti, void *buf)
 
 		// Copy the handles into the internal buffer
 		if( length > 0 )
-			memcpy(At(0), (((asUINT*)buf)+1), length * elementSize);
+			memcpy(At(0), (((asUINT*)buf)+1), size_t(length) * elementSize);
 
 		// With object handles it is safe to clear the memory in the received buffer
 		// instead of increasing the ref count. It will save time both by avoiding the
 		// call the increase ref, and also relieve the engine from having to release
 		// its references too
-		memset((((asUINT*)buf)+1), 0, length * elementSize);
+		memset((((asUINT*)buf)+1), 0, size_t(length) * elementSize);
 	}
 	else if( ti->GetSubType()->GetFlags() & asOBJ_REF )
 	{
@@ -465,11 +465,11 @@ CScriptArray::CScriptArray(asITypeInfo *ti, void *buf)
 
 		// Copy the handles into the internal buffer
 		if( length > 0 )
-			memcpy(buffer->data, (((asUINT*)buf)+1), length * elementSize);
+			memcpy(buffer->data, (((asUINT*)buf)+1), size_t(length) * elementSize);
 
 		// For ref types we can do the same as for handles, as they are
 		// implicitly stored as handles.
-		memset((((asUINT*)buf)+1), 0, length * elementSize);
+		memset((((asUINT*)buf)+1), 0, size_t(length) * elementSize);
 	}
 	else
 	{
@@ -782,9 +782,9 @@ void CScriptArray::Resize(int delta, asUINT at)
 
 		// As objects in arrays of objects are not stored inline, it is safe to use memcpy here
 		// since we're just copying the pointers to objects and not the actual objects.
-		memcpy(newBuffer->data, buffer->data, at*elementSize);
+		memcpy(newBuffer->data, buffer->data, size_t(at)*elementSize);
 		if( at < buffer->numElements )
-			memcpy(newBuffer->data + (at+delta)*elementSize, buffer->data + at*elementSize, (buffer->numElements-at)*elementSize);
+			memcpy(newBuffer->data + size_t(at+delta)*elementSize, buffer->data + size_t(at)*elementSize, size_t(buffer->numElements-at)*elementSize);
 
 		// Initialize the new elements with default values
 		Construct(newBuffer, at, at+delta);
@@ -799,14 +799,14 @@ void CScriptArray::Resize(int delta, asUINT at)
 		Destruct(buffer, at, at-delta);
 		// As objects in arrays of objects are not stored inline, it is safe to use memmove here
 		// since we're just copying the pointers to objects and not the actual objects.
-		memmove(buffer->data + at*elementSize, buffer->data + (at-delta)*elementSize, (buffer->numElements - (at-delta))*elementSize);
+		memmove(buffer->data + size_t(at)*elementSize, buffer->data + size_t(at-delta)*elementSize, size_t(buffer->numElements - (at-delta))*elementSize);
 		buffer->numElements += delta;
 	}
 	else
 	{
 		// As objects in arrays of objects are not stored inline, it is safe to use memmove here
 		// since we're just copying the pointers to objects and not the actual objects.
-		memmove(buffer->data + (at+delta)*elementSize, buffer->data + at*elementSize, (buffer->numElements - at)*elementSize);
+		memmove(buffer->data + size_t(at+delta)*elementSize, buffer->data + size_t(at)*elementSize, size_t(buffer->numElements - at)*elementSize);
 		Construct(buffer, at, at+delta);
 		buffer->numElements += delta;
 	}
@@ -979,7 +979,7 @@ void *CScriptArray::GetBuffer()
 // internal
 void CScriptArray::CreateBuffer(SArrayBuffer **buf, asUINT numElements)
 {
-	*buf = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1+elementSize*numElements));
+	*buf = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1+size_t(elementSize)*numElements));
 
 	if( *buf )
 	{
@@ -1036,7 +1036,7 @@ void CScriptArray::Construct(SArrayBuffer *buf, asUINT start, asUINT end)
 	{
 		// Set all elements to zero whether they are handles or primitives
 		void *d = (void*)(buf->data + start * elementSize);
-		memset(d, 0, (end-start)*elementSize);
+		memset(d, 0, size_t(end-start)*elementSize);
 	}
 }
 
@@ -1770,7 +1770,7 @@ void CScriptArray::CopyBuffer(SArrayBuffer *dst, SArrayBuffer *src)
 			else
 			{
 				// Primitives are copied byte for byte
-				memcpy(dst->data, src->data, count*elementSize);
+				memcpy(dst->data, src->data, size_t(count)*elementSize);
 			}
 		}
 	}
