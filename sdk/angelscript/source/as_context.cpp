@@ -715,6 +715,9 @@ int asCContext::Prepare(asIScriptFunction *func)
 	// Release the returned object (if any)
 	CleanReturnObject();
 
+	// Make sure the engine is prepared. It may be that additional interface has been registered after the context was created
+	m_engine->PrepareEngine();
+
 	// Check if there has been a previous function prepared
 	if (m_initialFunction)
 	{

@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/05/15</h2>
+<h2>Version 2.39.0 WIP - 2026/05/19</h2>
 
 <ul>
 <li>Bug fixes
@@ -64,6 +64,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed issue on big endian platforms with 8 and 16bit constants (Thanks keqing996)
 <li>Added validation to prevent duplicate definition of constructor or destructor (Thanks AK)
 <li>Fixed crash when performing overloaded operator on handle returned by explicit ref cast (Thanks Fort-TM)
+<li>Fixed calling native function that was registered after the context was created (Thanks Jordan Verner)
 </ul>
 <li>Library
 <ul>

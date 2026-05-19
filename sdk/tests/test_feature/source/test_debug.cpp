@@ -142,7 +142,7 @@ void PrintVariables(asIScriptContext *ctx, asUINT stackLevel)
 	void *varPointer = ctx->GetThisPointer(stackLevel);
 	if( typeId )
 	{
-		print(" this = 0x%x\n", varPointer);
+		print(" this = 0x%lx\n", asQWORD(varPointer));
 	}
 
 	int numVars = ctx->GetVarCount(stackLevel);
@@ -296,7 +296,7 @@ bool Test()
 			"void Start() { \n"
 			"	speed = 10; \n"
 			"} \n");
-		int r = mod->Build();
+		r = mod->Build();
 		if (r < 0)
 			TEST_FAILED;
 
