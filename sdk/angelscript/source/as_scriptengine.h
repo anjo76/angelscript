@@ -123,7 +123,7 @@ public:
 	virtual int GetDefaultArrayTypeId() const;
 
 	// Enums
-	virtual int          RegisterEnum(const char* typeName, const char* underlyingType = "int32");
+	virtual int          RegisterEnum(const char* typeName, const char* underlyingType = "int32", bool isFlags = false);
 	virtual int          RegisterEnumValue(const char* type, const char* name, asINT64 value);
 	virtual asUINT       GetEnumCount() const;
 	virtual asITypeInfo *GetEnumByIndex(asUINT index) const;

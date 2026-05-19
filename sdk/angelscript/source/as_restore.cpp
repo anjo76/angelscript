@@ -157,7 +157,7 @@ int asCReader::ReadInner()
 	module->m_enumTypes.Allocate(count, false);
 	for( i = 0; i < count && !error; i++ )
 	{
-		asCEnumType *et = asNEW(asCEnumType)(engine);
+		asCEnumType *et = asNEW(asCEnumType)(engine,false);
 		if( et == 0 )
 		{
 			error = true;
@@ -1634,7 +1634,19 @@ void asCReader::ReadTypeDeclaration(asCTypeInfo *type, int phase, bool *isExtern
 			// TODO: weak: Should not do this if the class has been declared with 'noweak'
 			engine->scriptFunctions[ot->beh.getWeakRefFlag]->AddRefInternal();
 		}
-
+		asCEnumType *et = CastToEnumType(type);
+		if(et)
+		{
+			char c;
+			ReadData(&c,1);
+			if(c == 'f')
+				et->isFlags = true;
+			else if (c != ' ')
+			{
+				error = true;
+				return;
+			}
+		}
 		// external shared flag
 		if (type->flags & asOBJ_SHARED)
 		{
@@ -4567,6 +4579,13 @@ void asCWriter::WriteTypeDeclaration(asCTypeInfo *type, int phase)
 		// namespace
 		WriteString(&type->nameSpace->name);
 
+		if ((type->flags & asOBJ_ENUM))
+		{
+			const asCEnumType* et = CastToEnumType(type);
+			asASSERT(et != nullptr);
+			const char c = et->isFlags ? 'f' : ' ';
+			WriteData(&c, 1);
+		}
 		// external shared flag
 		if ((type->flags & asOBJ_SHARED))
 		{
