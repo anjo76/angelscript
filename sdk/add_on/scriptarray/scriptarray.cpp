@@ -679,7 +679,7 @@ void CScriptArray::Reserve(asUINT maxElements)
 		return;
 
 	// Allocate memory for the buffer
-	SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + elementSize*maxElements));
+	SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + size_t(elementSize)*maxElements));
 	if( newBuffer )
 	{
 		newBuffer->numElements = buffer->numElements;
@@ -696,7 +696,7 @@ void CScriptArray::Reserve(asUINT maxElements)
 
 	// As objects in arrays of objects are not stored inline, it is safe to use memcpy here
 	// since we're just copying the pointers to objects and not the actual objects.
-	memcpy(newBuffer->data, buffer->data, buffer->numElements*elementSize);
+	memcpy(newBuffer->data, buffer->data, size_t(buffer->numElements)*elementSize);
 
 	// Release the old buffer
 	userFree(buffer);
@@ -736,7 +736,7 @@ void CScriptArray::RemoveRange(asUINT start, asUINT count)
 	// Compact the elements
 	// As objects in arrays of objects are not stored inline, it is safe to use memmove here
 	// since we're just copying the pointers to objects and not the actual objects.
-	memmove(buffer->data + start*elementSize, buffer->data + (start + count)*elementSize, (buffer->numElements - start - count)*elementSize);
+	memmove(buffer->data + size_t(start)*elementSize, buffer->data + size_t(start + count)*elementSize, size_t(buffer->numElements - start - count)*elementSize);
 	buffer->numElements -= count;
 }
 
@@ -765,7 +765,7 @@ void CScriptArray::Resize(int delta, asUINT at)
 	if( buffer->maxElements < buffer->numElements + delta )
 	{
 		// Allocate memory for the buffer
-		SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + elementSize*(buffer->numElements + delta)));
+		SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + size_t(elementSize)*(buffer->numElements + delta)));
 		if( newBuffer )
 		{
 			newBuffer->numElements = buffer->numElements + delta;

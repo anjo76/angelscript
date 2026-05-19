@@ -301,10 +301,10 @@ CScriptGrid::CScriptGrid(asITypeInfo *ti, void *buf)
 
 			// Copy the line
 			if( width > 0 )
-				memcpy(At(0,y), buf, width*elementSize);
+				memcpy(At(0,y), buf, size_t(width)*elementSize);
 
 			// Move to next line
-			buf = (char*)(buf) + width*elementSize;
+			buf = (char*)(buf) + size_t(width)*elementSize;
 
 			// Align to 4 byte boundary
 			if( asPWORD(buf) & 0x3 )
@@ -323,16 +323,16 @@ CScriptGrid::CScriptGrid(asITypeInfo *ti, void *buf)
 
 			// Copy the line
 			if( width > 0 )
-				memcpy(At(0,y), buf, width*elementSize);
+				memcpy(At(0,y), buf, size_t(width)*elementSize);
 
 			// With object handles it is safe to clear the memory in the received buffer
 			// instead of increasing the ref count. It will save time both by avoiding the
 			// call the increase ref, and also relieve the engine from having to release
 			// its references too
-			memset(buf, 0, width*elementSize);
+			memset(buf, 0, size_t(width)*elementSize);
 
 			// Move to next line
-			buf = (char*)(buf) + width*elementSize;
+			buf = (char*)(buf) + size_t(width)*elementSize;
 
 			// Align to 4 byte boundary
 			if( asPWORD(buf) & 0x3 )
@@ -354,16 +354,16 @@ CScriptGrid::CScriptGrid(asITypeInfo *ti, void *buf)
 
 			// Copy the line
 			if( width > 0 )
-				memcpy(At(0,y), buf, width*elementSize);
+				memcpy(At(0,y), buf, size_t(width)*elementSize);
 
 			// With object handles it is safe to clear the memory in the received buffer
 			// instead of increasing the ref count. It will save time both by avoiding the
 			// call the increase ref, and also relieve the engine from having to release
 			// its references too
-			memset(buf, 0, width*elementSize);
+			memset(buf, 0, size_t(width)*elementSize);
 
 			// Move to next line
-			buf = (char*)(buf) + width*elementSize;
+			buf = (char*)(buf) + size_t(width)*elementSize;
 
 			// Align to 4 byte boundary
 			if( asPWORD(buf) & 0x3 )
@@ -391,12 +391,12 @@ CScriptGrid::CScriptGrid(asITypeInfo *ti, void *buf)
 			for( asUINT x = 0; x < width; x++ )
 			{
 				void *obj = At(x,y);
-				asBYTE *srcObj = (asBYTE*)(buf) + x*subTypeSize;
+				asBYTE *srcObj = (asBYTE*)(buf) + size_t(x)*subTypeSize;
 				engine->AssignScriptObject(obj, srcObj, subType);
 			}
 
 			// Move to next line
-			buf = (char*)(buf) + width*subTypeSize;
+			buf = (char*)(buf) + size_t(width)*subTypeSize;
 
 			// Align to 4 byte boundary
 			if( asPWORD(buf) & 0x3 )
@@ -576,7 +576,7 @@ bool CScriptGrid::CheckMaxSize(asUINT width, asUINT height)
 	if( elementSize > 0 )
 		maxSize /= elementSize;
 
-	asINT64 numElements  = width * height;
+	asINT64 numElements  = size_t(width) * height;
 
 	if( (numElements >> 32) || numElements > maxSize )
 	{
@@ -640,7 +640,7 @@ void CScriptGrid::CreateBuffer(SGridBuffer **buf, asUINT w, asUINT h)
 {
 	asUINT numElements = w * h;
 
-	*buf = reinterpret_cast<SGridBuffer*>(userAlloc(sizeof(SGridBuffer)-1+elementSize*numElements));
+	*buf = reinterpret_cast<SGridBuffer *>(userAlloc(sizeof(SGridBuffer) - 1 + size_t(elementSize) * numElements));
 
 	if( *buf )
 	{
