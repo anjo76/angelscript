@@ -10826,6 +10826,99 @@ int asCCompiler::CompilePostFixExpression(asCArray<asCScriptNode *> *postfix, as
 	return ret;
 }
 
+
+// Compile a user-defined literal expression (e.g., 3.14_f32)
+// constNode is the snConstant node with an snUserLiteral child
+// ctx contains the constant value in ctx->type from CompileExpressionValue
+void asCCompiler::CompileUserLiteral(asCScriptNode *constNode, asCExprContext *ctx)
+{
+	// Get the suffix name from the snIdentifier child of snUserLiteral
+	asCScriptNode *userLiteralNode = constNode->firstChild;
+	asASSERT(userLiteralNode && userLiteralNode->nodeType == snUserLiteral);
+	asCScriptNode *identNode = userLiteralNode->firstChild;
+	asASSERT(identNode && identNode->nodeType == snIdentifier);
+	asCString suffix(&script->code[identNode->tokenPos], identNode->tokenLength);
+
+	// Look up the function ID from the appropriate suffix map
+	int funcId = 0;
+	switch (constNode->tokenType)
+	{
+	case ttIntConstant:
+	case ttBitsConstant:
+		{
+			asSMapNode<asCString, int> *cursor = 0;
+			if (engine->literals.suffix.uint64Literals.MoveTo(&cursor, suffix))
+				funcId = cursor->value;
+		}
+		break;
+	case ttFloatConstant:
+	case ttDoubleConstant:
+		{
+			asSMapNode<asCString, int> *cursor = 0;
+			if (engine->literals.suffix.doubleLiterals.MoveTo(&cursor, suffix))
+				funcId = cursor->value;
+		}
+		break;
+	default:
+		break;
+	}
+
+	if (funcId == 0 || funcId >= (int)engine->scriptFunctions.GetLength())
+	{
+		asCString msg;
+		msg.Format(TXT_NO_MATCHING_SIGNATURES_TO_s, suffix.AddressOf());
+		Error(msg, constNode);
+		ctx->type.SetDummy();
+		return;
+	}
+
+	asCScriptFunction *funcDesc = engine->scriptFunctions[funcId];
+	asCObjectType *objType = funcDesc->objectType;
+	if (!objType || !(objType->flags & asOBJ_VALUE))
+	{
+		asCString msg;
+		msg.Format(TXT_NO_MATCHING_SIGNATURES_TO_s, suffix.AddressOf());
+		Error(msg, constNode);
+		ctx->type.SetDummy();
+		return;
+	}
+
+	// Allocate a temp variable for the constructed object
+	asCDataType targetType = asCDataType::CreateType(objType, false);
+	int offset = AllocateVariable(targetType, true);
+
+	// Create an argument expression context with the constant value
+	asCExprContext *arg = asNEW(asCExprContext)(engine);
+	arg->type = ctx->type;
+	arg->exprNode = constNode;
+
+	asCArray<asCExprContext *> args;
+	args.PushLast(arg);
+
+	// Prepare the argument and move it to the stack
+	PrepareFunctionCall(funcId, &ctx->bc, args);
+	MoveArgsToStack(funcId, &ctx->bc, args, false);
+
+	// Push the object address for OBJLAST calling convention
+	ctx->bc.InstrSHORT(asBC_PSF, (short)offset);
+
+	// Call the literal construct function
+	PerformFunctionCall(funcId, ctx, false, &args, objType);
+
+	// Mark the temp variable as initialized
+	ctx->bc.ObjInfo(offset, asOBJ_INIT);
+
+	// Set the return type to the constructed object
+	ctx->type.SetVariable(targetType, offset, true);
+	ctx->type.dataType.MakeReference(false);
+
+	// Push the object address for the expression chain
+	ctx->bc.InstrSHORT(asBC_PSF, (short)offset);
+
+	// Clean up
+	asDELETE(arg, asCExprContext);
+}
+
 int asCCompiler::CompileAnonymousInitList(asCScriptNode *node, asCExprContext *ctx, const asCDataType &dt)
 {
 	asASSERT(node->nodeType == snInitList);
@@ -12051,7 +12144,7 @@ int asCCompiler::CompileExpressionValue(asCScriptNode *node, asCExprContext *ctx
 			size_t numScanned;
 			double v = asStringScanDouble(value.AddressOf(), &numScanned);
 			ctx->type.SetConstantD(asCDataType::CreatePrimitive(ttDouble, true), v);
-			asASSERT(numScanned == vnode->tokenLength);
+			if (numScanned != vnode->tokenLength && !(vnode->firstChild && vnode->firstChild->nodeType == snUserLiteral)) asASSERT(false);
 		}
 		else if( vnode->tokenType == ttTrue ||
 			     vnode->tokenType == ttFalse )
@@ -12168,6 +12261,14 @@ int asCCompiler::CompileExpressionValue(asCScriptNode *node, asCExprContext *ctx
 		}
 		else
 			asASSERT(false);
+
+			// Check for user literal suffix on numeric constants
+			if (vnode->firstChild &&
+				vnode->firstChild->nodeType == snUserLiteral)
+			{
+				CompileUserLiteral(vnode, ctx);
+				return 0;
+			}
 	}
 	else if( vnode->nodeType == snFunctionCall )
 	{

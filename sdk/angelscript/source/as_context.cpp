@@ -2328,7 +2328,6 @@ static const void *const dispatch_table[256] = {
 	asDWORD *old = l_bc;
 #endif
 
-
 	// Remember to keep the cases in order and without
 	// gaps, because that will make the switch faster.
 	// It will be faster since only one lookup will be

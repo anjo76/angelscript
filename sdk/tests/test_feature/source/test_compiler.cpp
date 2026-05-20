@@ -24,6 +24,7 @@ bool Test7();
 bool Test8();
 bool Test9();
 bool TestRetRef();
+bool TestUserLiteral();
 
 struct A {
     A() { text = "hello"; }
@@ -3655,7 +3656,7 @@ bool Test()
 	// Problem reported by Ricky C
 	// http://www.gamedev.net/topic/625484-c99-hexfloats/#entry4943881
 	{
- 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream,Callback), &bout, asCALL_THISCALL);
 
 		bout.buffer = "";
@@ -3678,7 +3679,6 @@ bool Test()
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
 		}
-
 		engine->Release();
 	}
 
@@ -5773,6 +5773,7 @@ bool Test()
 	fail = Test8() || fail;
 	fail = Test9() || fail;
 	fail = TestRetRef() || fail;
+	fail = TestUserLiteral() || fail;
 
 	// Success
  	return fail;
@@ -6337,6 +6338,86 @@ bool TestRetRef()
 
 	engine->ShutDownAndRelease();
 	g_node->Release();
+
+	return fail;
+}
+
+class Fixed32
+{
+public:
+	int value; // 16bit integer + 16bit fraction
+
+	Fixed32(int v) : value(v) {}
+
+	static void LiteralConstructInt(int intVal, void* mem)
+	{
+		new(mem) Fixed32(intVal);
+	}
+
+	static void LiteralConstructDouble(double dblVal, void* mem) 
+	{
+		int integer = int(dblVal);
+		int fraction = int((dblVal - integer) * double(1 << 15));
+
+		new(mem) Fixed32((integer << 15) + fraction);
+	}
+
+	operator int() const
+	{
+		return value >> 15;
+	}
+};
+
+bool TestUserLiteral()
+{
+	bool fail = false;
+	CBufferedOutStream bout;
+	int r;
+
+	asIScriptEngine* engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+	engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+
+	engine->RegisterObjectType("Fixed32", sizeof(int), asGetTypeTraits<Fixed32>() | asOBJ_POD | asOBJ_VALUE | asOBJ_APP_CLASS_ALLINTS);
+	r = engine->RegisterObjectBehaviour("Fixed32", asBEHAVE_LITERAL_CONSTRUCT, "void f(double) {'_f32' suffix}", asFUNCTION(Fixed32::LiteralConstructDouble), asCALL_CDECL_OBJLAST);
+	if (r < 0)
+	{
+		PRINTF("%s", bout.buffer.c_str());
+		TEST_FAILED;
+	}
+
+	asIScriptModule* m = engine->GetModule("Fixed32Literal", asGM_ALWAYS_CREATE);
+	m->AddScriptSection(
+		"Fixed32Literal",
+		"Fixed32 test() { return 3.14_f32; }"
+	);
+	if (m->Build() < 0)
+	{
+		PRINTF("%s", bout.buffer.c_str());
+		TEST_FAILED;
+	}
+
+	asIScriptFunction* f = m->GetFunctionByName("test");
+	if (!f)
+	{
+		PRINTF("Failed to get test()\n");
+		TEST_FAILED;
+	}
+
+	asIScriptContext* ctx = engine->CreateContext();
+	ctx->Prepare(f);
+	if (ctx->Execute() != asEXECUTION_FINISHED) {
+		PRINTF("Failed to execute\n");
+		TEST_FAILED;
+	}
+	Fixed32 result = *(Fixed32*)ctx->GetAddressOfReturnValue();
+	if (static_cast<int>(result) != 3) {
+		PRINTF("Bad result %d (integral part = %d)\n", result.value, static_cast<int>(result));
+		TEST_FAILED;
+	}
+	ctx->Release();
+
+	engine->ShutDownAndRelease();
 
 	return fail;
 }
