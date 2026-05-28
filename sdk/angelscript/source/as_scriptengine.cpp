@@ -4458,6 +4458,26 @@ void asCScriptEngine::CallObjectMethod(void *obj, asSSystemFunctionInterface *i,
 		obj = (void*)(asPWORD(obj) + i->baseOffset);
 		(((asCSimpleDummy*)obj)->*f)();
 	}
+	else if( i->callConv == ICC_THISCALL_OBJFIRST || i->callConv == ICC_THISCALL_OBJLAST )
+	{
+		union
+		{
+			asSIMPLEMETHOD_t mthd;
+			asFUNCTION_t func;
+		} p;
+		p.func = (asFUNCTION_t)(i->func);
+		void *(asCSimpleDummy::*f)(void*) = (void *(asCSimpleDummy::*)(void*))p.mthd;
+
+		// Use the auxiliary pointer as the this pointer, and the obj will be passed as parameter
+		void *aux = i->auxiliary;
+
+		aux = (void*) ((char*) aux +  i->compositeOffset);
+		if(i->isCompositeIndirect)
+			aux = *((void**)aux);
+
+		aux = (void*)(asPWORD(aux) + i->baseOffset);
+		(((asCSimpleDummy*)aux)->*f)(obj);
+	}
 	else
 #endif
 	if( i->callConv == ICC_GENERIC_METHOD )
