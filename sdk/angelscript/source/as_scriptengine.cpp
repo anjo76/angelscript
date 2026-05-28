@@ -4433,6 +4433,32 @@ void asCScriptEngine::CallObjectMethod(void *obj, asSSystemFunctionInterface *i,
 		void (asCSimpleDummy::*f)() = p.mthd;
 		(((asCSimpleDummy*)obj)->*f)();
 	}
+	else if( i->callConv == ICC_VIRTUAL_THISCALL_OBJLAST || i->callConv == ICC_VIRTUAL_THISCALL_OBJFIRST || i->callConv == ICC_THISCALL_OBJLAST	|| i->callConv == ICC_THISCALL_OBJFIRST )
+	{
+		// For virtual thiscalls we must call the method as a true class method
+		// so that the compiler will lookup the function address in the vftable
+		union
+		{
+			asSIMPLEMETHOD_t mthd;
+			struct
+			{
+				asFUNCTION_t func;
+				asPWORD baseOffset;  // Same size as the pointer
+			} f;
+		} p;
+		p.f.func = (asFUNCTION_t)(i->func);
+		p.f.baseOffset = asPWORD(i->baseOffset);
+
+		// Use the auxiliary pointer as the this pointer, and the obj will be passed as parameter
+		void *aux = i->auxiliary;
+
+		aux = (void*) ((char*) aux +  i->compositeOffset);
+		if(i->isCompositeIndirect)
+			aux = *((void**)aux);
+
+		void (asCSimpleDummy::*f)(void*) = (void (asCSimpleDummy::*)(void*))(p.mthd);
+		(((asCSimpleDummy*)aux)->*f)(obj);
+	}
 #endif
 	else /*if( i->callConv == ICC_CDECL_OBJLAST || i->callConv == ICC_CDECL_OBJFIRST )*/
 	{
@@ -4457,6 +4483,26 @@ void asCScriptEngine::CallObjectMethod(void *obj, asSSystemFunctionInterface *i,
 
 		obj = (void*)(asPWORD(obj) + i->baseOffset);
 		(((asCSimpleDummy*)obj)->*f)();
+	}
+	else if( i->callConv == ICC_THISCALL_OBJFIRST || i->callConv == ICC_THISCALL_OBJLAST )
+	{
+		union
+		{
+			asSIMPLEMETHOD_t mthd;
+			asFUNCTION_t func;
+		} p;
+		p.func = (asFUNCTION_t)(i->func);
+		void *(asCSimpleDummy::*f)(void*) = (void *(asCSimpleDummy::*)(void*))p.mthd;
+
+		// Use the auxiliary pointer as the this pointer, and the obj will be passed as parameter
+		void *aux = i->auxiliary;
+
+		aux = (void*) ((char*) aux +  i->compositeOffset);
+		if(i->isCompositeIndirect)
+			aux = *((void**)aux);
+
+		aux = (void*)(asPWORD(aux) + i->baseOffset);
+		(((asCSimpleDummy*)aux)->*f)(obj);
 	}
 	else
 #endif
