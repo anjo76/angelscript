@@ -6347,51 +6347,86 @@ asSNameSpace *asCBuilder::GetNameSpaceByString(const asCString &nsName, asSNameS
 	if( scopeType )
 		*scopeType = 0;
 
+	asSNameSpace *foundNs = 0;
 	asSNameSpace *ns = implicitNs;
 	if( nsName == "::" )
-		ns = engine->nameSpaces[0];
+		foundNs = engine->nameSpaces[0];
 	else if( nsName != "" )
 	{
-		ns = engine->FindNameSpace(nsName.AddressOf());
-		if (ns == 0 && scopeType)
+		bool found = false;
+
+		// Recursively search parent namespaces for matching type
+//		asSNameSpace *origNs = ns;
+		asCArray<asSNameSpace*> pendingNamespaces;
+		asCArray<asSNameSpace*> visitedNamespaces;
+
+		asSNameSpace* parentNs = engine->GetParentNameSpace(ns);
+		while( ns && !found )
 		{
-			asCString typeName;
-			asCString searchNs;
+			if( !visitedNamespaces.Exists(ns) )
+			{
+				visitedNamespaces.PushLast(ns);
 
-			// Split the scope with at the inner most ::
-			int pos = nsName.FindLast("::");
-			bool recursive = false;
-			if (pos >= 0)
-			{
-				// Fully qualified namespace
-				typeName = nsName.SubString(pos + 2);
-				searchNs = nsName.SubString(0, pos);
-			}
-			else
-			{
-				// Partially qualified, use the implicit namespace and then search recursively for the type
-				typeName = nsName;
-				searchNs = implicitNs->name;
-				recursive = true;
-			}
+				asCString searchNs = nsName;
+				if( nsName.SubString(0, 2) != "::" && ns->name != "" )
+					searchNs = ns->name + "::" + nsName;
 
-			asSNameSpace *nsTmp = searchNs == "::" ? engine->nameSpaces[0] : engine->FindNameSpace(searchNs.AddressOf());
-			asCTypeInfo *ti = 0;
-			while( !ti && nsTmp )
-			{
-				// Check if the typeName is an existing type in the namespace
-				ti = GetType(typeName.AddressOf(), nsTmp, 0);
-				if (ti)
+				foundNs = engine->FindNameSpace(searchNs.AddressOf());
+				if( foundNs )
+					found = true;
+
+				// If no namespace is found, then check if the scope is actually a type
+				if( foundNs == 0 && scopeType )
 				{
-					// The informed scope is not a namespace, but it does match a type
-					*scopeType = ti;
-					return 0;
+					asCString typeName;
+
+					// Split the scope with at the inner most ::
+					int pos = nsName.FindLast("::");
+					bool recursive = false;
+					if( pos >= 0 )
+					{
+						// Fully qualified namespace
+						typeName = nsName.SubString(pos + 2);
+						searchNs = nsName.SubString(0, pos);
+					}
+					else
+					{
+						// Partially qualified, use the implicit namespace and then search recursively for the type
+						typeName = nsName;
+						searchNs = implicitNs->name;
+						recursive = true;
+					}
+
+					asSNameSpace *nsTmp = searchNs == "::" ? engine->nameSpaces[0] : engine->FindNameSpace(searchNs.AddressOf());
+					asCTypeInfo *ti = 0;
+					while( !ti && nsTmp )
+					{
+						// Check if the typeName is an existing type in the namespace
+						ti = GetType(typeName.AddressOf(), nsTmp, 0);
+						if( ti )
+						{
+							// The informed scope is not a namespace, but it does match a type
+							*scopeType = ti;
+							return 0;
+						}
+						nsTmp = recursive ? engine->GetParentNameSpace(nsTmp) : 0;
+					}
 				}
-				nsTmp = recursive ? engine->GetParentNameSpace(nsTmp) : 0;
+			}
+
+			if( !found )
+			{
+				AddVisibleNamespaces(ns, visitedNamespaces, pendingNamespaces);
+				
+				// Try to find it in the parent namespace
+				bool dummyCcheckAmbiguousSymbols = false;
+				ns = FindNextVisibleNamespace(visitedNamespaces, pendingNamespaces, parentNs, &dummyCcheckAmbiguousSymbols);
+				if (parentNs == ns)
+					parentNs = engine->GetParentNameSpace(ns);
 			}
 		}
 
-		if (ns == 0 && isRequired)
+		if (foundNs == 0 && isRequired)
 		{
 			asCString msg;
 			msg.Format(TXT_NAMESPACE_s_DOESNT_EXIST, nsName.AddressOf());
@@ -6399,7 +6434,7 @@ asSNameSpace *asCBuilder::GetNameSpaceByString(const asCString &nsName, asSNameS
 		}
 	}
 
-	return ns;
+	return foundNs;
 }
 
 asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCode *file, asSNameSpace *implicitNamespace, bool acceptHandleForScope, asCObjectType *currentType, bool reportError, bool *isValid, asCArray<asCDataType> *templSubTypes, asCArray<asSNameSpace*>* scopeVisibleNamespaces)

@@ -13,6 +13,45 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test namespace resolution for enums in double namespace
+	// https://github.com/anjo76/angelscript/issues/67
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->SetDefaultNamespace("CometEditor::GUI");
+
+		engine->RegisterEnum("TestEnum");
+		engine->RegisterEnumValue("TestEnum", "Test1", 1);
+		engine->RegisterEnumValue("TestEnum", "Test2", 2);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"using namespace CometEditor;\n"
+			"void func(GUI::TestEnum t) {}\n"
+			"class MyClass\n"
+			"{\n"
+			"  GUI::TestEnum t;\n"
+			"}\n"
+			"void main()\n"
+			"{\n"
+			"  GUI::TestEnum t;\n"
+			"  func(GUI::TestEnum::Test1);\n"
+			"}\n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test default namespace in opCast
 	// https://www.gamedev.net/forums/topic/719264-default-namespaces-in-opcast/5472016/
 	{
