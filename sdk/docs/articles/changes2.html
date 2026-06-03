@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/06/02</h2>
+<h2>Version 2.39.0 WIP - 2026/06/03</h2>
 
 <ul>
 <li>Bug fixes
@@ -66,6 +66,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed crash when performing overloaded operator on handle returned by explicit ref cast (Thanks Fort-TM)
 <li>Fixed calling native function that was registered after the context was created (Thanks Jordan Verner)
 <li>Fixed issue where using namespace didn't work while parsing scripts (Thanks OriolCS2)
+<li>Fixed thiscall with composite offset on systems with AS_NO_THISCALL_FUNCTOR_METHOD (Thanks fabienr)
 </ul>
 <li>Library
 <ul>

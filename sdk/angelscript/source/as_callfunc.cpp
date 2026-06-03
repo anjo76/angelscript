@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -651,9 +651,10 @@ int CallSystemFunction(int id, asCContext *context)
 	void *obj = 0;
 	void *secondObj = 0;
 
-#ifdef AS_NO_THISCALL_FUNCTOR_METHOD
 	if( callConv >= ICC_THISCALL )
 	{
+#ifdef AS_NO_THISCALL_FUNCTOR_METHOD
+		// This platform doesn't support functor methods, i.e. asCALL_THISCALL_OBJFIRST and asCALL_THISCALL_OBJLAST
 		if(sysFunc->auxiliary)
 		{
 			// This class method is being called as if it is a global function
@@ -675,28 +676,7 @@ int CallSystemFunction(int id, asCContext *context)
 			// Skip the object pointer
 			args += AS_PTR_SIZE;
 		}
-		if( obj )
-		{
-			// For composition we need to add the offset and/or dereference the pointer
-			obj = (void*)((char*)obj + sysFunc->compositeOffset);
-			if (sysFunc->isCompositeIndirect) obj = *((void**)obj);
-
-			// Add the base offset for multiple inheritance
-#if (defined(__GNUC__) && (defined(AS_ARM64) || defined(AS_ARM) || defined(AS_MIPS))) || defined(AS_PSVITA)
-			// On GNUC + ARM the lsb of the offset is used to indicate a virtual function
-			// and the whole offset is thus shifted one bit left to keep the original
-			// offset resolution
-			// MIPS also work like ARM in this regard
-			obj = (void*)(asPWORD(obj) + (sysFunc->baseOffset>>1));
 #else
-			obj = (void*)(asPWORD(obj) + sysFunc->baseOffset);
-#endif		
-		}
-	}
-#else // !defined(AS_NO_THISCALL_FUNCTOR_METHOD)
-
-	if( callConv >= ICC_THISCALL )
-	{
 		bool continueCheck = true;  // True if need check objectPointer or context stack for object
 		int continueCheckIndex = 0; // Index into objectsPtrs to save the object if continueCheck
 
@@ -713,7 +693,7 @@ int CallSystemFunction(int id, asCContext *context)
 			obj = sysFunc->auxiliary;
 			continueCheck = false;
 		}
-		
+#endif		
 		if( obj )
 		{
 			// For composition we need to add the offset and/or dereference the pointer
@@ -731,7 +711,7 @@ int CallSystemFunction(int id, asCContext *context)
 			obj = (void*)(asPWORD(obj) + sysFunc->baseOffset);
 #endif		
 		}
-
+#if !defined(AS_NO_THISCALL_FUNCTOR_METHOD)
 		if( continueCheck )
 		{
 			void *tempPtr = 0;
@@ -773,8 +753,8 @@ int CallSystemFunction(int id, asCContext *context)
 				obj = tempPtr;
 			}
 		}
-	}
 #endif // AS_NO_THISCALL_FUNCTOR_METHOD
+	}
 
 	if( descr->DoesReturnOnStack() )
 	{
