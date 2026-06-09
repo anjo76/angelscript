@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/06/03</h2>
+<h2>Version 2.39.0 WIP - 2026/06/09</h2>
 
 <ul>
 <li>Bug fixes
@@ -67,6 +67,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed calling native function that was registered after the context was created (Thanks Jordan Verner)
 <li>Fixed issue where using namespace didn't work while parsing scripts (Thanks OriolCS2)
 <li>Fixed thiscall with composite offset on systems with AS_NO_THISCALL_FUNCTOR_METHOD (Thanks fabienr)
+<li>Fixed assert failure when compiling implicit conversion of type using constructor with variadic argument (Thanks Patrick Jeeves)
 </ul>
 <li>Library
 <ul>

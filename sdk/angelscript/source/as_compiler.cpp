@@ -8646,6 +8646,8 @@ asUINT asCCompiler::ImplicitConvObjectToObject(asCExprContext *ctx, const asCDat
 					e.bc.InstrSHORT(asBC_VAR, (short)tempObj.stackOffset);
 
 				PrepareFunctionCall(funcs[0], &e.bc, args);
+				if (builder->GetFunctionDescription(funcs[0])->IsVariadic())
+					e.bc.InstrDWORD(asBC_PshC4, (asDWORD)args.GetLength());
 				MoveArgsToStack(funcs[0], &e.bc, args, false);
 
 				// If the object is allocated on the stack, then call the constructor as a normal function
@@ -9172,6 +9174,8 @@ asUINT asCCompiler::ImplicitConvPrimitiveToObject(asCExprContext *ctx, const asC
 	}
 
 	PrepareFunctionCall(funcs[0], &ctx->bc, args);
+	if (builder->GetFunctionDescription(funcs[0])->IsVariadic())
+		ctx->bc.InstrDWORD(asBC_PshC4, (asDWORD)args.GetLength());
 	MoveArgsToStack(funcs[0], &ctx->bc, args, false);
 
 	if( !(objType->flags & asOBJ_REF) )

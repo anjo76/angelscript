@@ -207,9 +207,45 @@ void funcConstructNoArgs(asIScriptGeneric* gen)
 	gen->SetReturnAddress((void*)1); // Dummy pointer
 }
 
-void dummy(asIScriptGeneric* gen)
+void dummy(asIScriptGeneric* /*gen*/)
 {
 	// Do nothing
+}
+
+void constructStringFmt(asIScriptGeneric *gen)
+{
+	// This is just a dummy function to test that the variadic arguments are properly handled
+	numArgs = gen->GetArgCount();
+	std::stringstream s;
+	s << numArgs;
+	new (gen->GetObject()) std::string(s.str());
+}
+
+void constructStringGeneric(asIScriptGeneric * gen)
+{
+	new (gen->GetObject()) std::string();
+}
+
+void destructStringGeneric(asIScriptGeneric * gen)
+{
+	using namespace std;
+	std::string * ptr = static_cast<std::string *>(gen->GetObject());
+	ptr->~string();
+}
+
+void assignStringGeneric(asIScriptGeneric *gen)
+{
+	std::string * a = static_cast<std::string *>(gen->GetArgObject(0));
+	std::string * self = static_cast<std::string *>(gen->GetObject());
+	*self = *a;
+	gen->SetReturnAddress(self);
+}
+
+void stringEqualsGeneric(asIScriptGeneric * gen)
+{
+	std::string * a = static_cast<std::string *>(gen->GetObject());
+	std::string * b = static_cast<std::string *>(gen->GetArgAddress(0));
+	*(bool*)gen->GetAddressOfReturnLocation() = (*a == *b);
 }
 
 bool Test()
@@ -223,6 +259,32 @@ bool Test()
  	asIScriptEngine *engine = 0;
 	asIScriptModule *mod = 0;
 	asIScriptContext *ctx = 0;
+
+	// Test that value types can use variadic arguments in constructors
+	// Reported by Patrick Jeeves
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		r = engine->RegisterObjectType("string", sizeof(std::string), asOBJ_VALUE | asOBJ_APP_CLASS_CDAK); assert( r >= 0 );
+		r = engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT,  "void f()",                    asFUNCTION(constructStringGeneric), asCALL_GENERIC); assert( r >= 0 );
+		r = engine->RegisterObjectBehaviour("string", asBEHAVE_DESTRUCT,   "void f()",                    asFUNCTION(destructStringGeneric),  asCALL_GENERIC); assert( r >= 0 );
+		r = engine->RegisterObjectMethod("string", "string &opAssign(const string &in)", asFUNCTION(assignStringGeneric),    asCALL_GENERIC); assert( r >= 0 );
+		r = engine->RegisterObjectBehaviour("string", asBEHAVE_CONSTRUCT, "void func(const ?&in ...)", asFUNCTION(constructStringFmt), asCALL_GENERIC);
+		r = engine->RegisterObjectMethod("string", "bool opEquals(const string &in) const", asFUNCTION(stringEqualsGeneric), asCALL_GENERIC); assert( r >= 0 );
+		if (r < 0)
+			TEST_FAILED;
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		r = ExecuteString(engine, "string str = 3.14; assert( str == 1 );"); // use the variadic constructor to implicitly convert the double to a string
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test registering void f(?[]&). Must fail with appropriate error message
 	// Reported by Aleksander Jaronik
