@@ -11126,6 +11126,7 @@ asCCompiler::SYMBOLTYPE asCCompiler::SymbolLookup(const asCString &name, const a
 	
 	while( !objType && currNamespace )
 	{
+		asSNameSpace *foundExplicitNs = 0;
 		if( !visitedNamespaces.Exists(currNamespace) )
 		{
 			visitedNamespaces.PushLast(currNamespace);
@@ -11245,6 +11246,8 @@ asCCompiler::SYMBOLTYPE asCCompiler::SymbolLookup(const asCString &name, const a
 				nsName = nsName.SubString(2);
 
 			ns = engine->FindNameSpace(nsName.AddressOf());
+			if( ns && currScope != "" )
+				foundExplicitNs = ns;
 
 			// Is it a global property?
 			if (ns)
@@ -11418,6 +11421,10 @@ asCCompiler::SYMBOLTYPE asCCompiler::SymbolLookup(const asCString &name, const a
 		currNamespace = builder->FindNextVisibleNamespace(visitedNamespaces, pendingNamespaces, parentNamespace, &checkAmbiguousSymbols);
 		if (currNamespace == parentNamespace)
 		{
+			// Don't move to the parent namespace if the explicitly named namespace was found
+			if( foundExplicitNs )
+				break;
+
 			parentNamespace = engine->GetParentNameSpace(currNamespace);
 			if (resultSymbolType != SL_NOMATCH)
 				break;

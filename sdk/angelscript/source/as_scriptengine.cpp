@@ -1189,9 +1189,13 @@ asSNameSpace *asCScriptEngine::AddNameSpace(const char *name)
 // internal
 asSNameSpace *asCScriptEngine::FindNameSpace(const char *name) const
 {
+	asCString searchName = name;
+	if( searchName.SubString(0, 2) == "::" )
+		searchName = searchName.SubString(2);
+
 	// TODO: optimize: Improve linear search
 	for( asUINT n = 0; n < nameSpaces.GetLength(); n++ )
-		if( nameSpaces[n]->name == name )
+		if( nameSpaces[n]->name == searchName )
 			return nameSpaces[n];
 
 	return 0;
