@@ -53,7 +53,7 @@ public:
 	asCParser(asCBuilder *builder);
 	~asCParser();
 
-	int ParseFunctionDefinition(asCScriptCode *script, bool expectListPattern);
+	int ParseFunctionDefinition(asCScriptCode *script, bool expectListPattern, bool expectLiteralPattern);
 	int ParsePropertyDeclaration(asCScriptCode *script);
 	int ParseDataType(asCScriptCode *script, bool isReturnType);
 	int ParseTemplateDecl(asCScriptCode *script);
@@ -95,6 +95,7 @@ protected:
 	void           ParseMethodAttributes(asCScriptNode *funcNode);
 
 	asCScriptNode *ParseListPattern();
+	asCScriptNode *ParseLiteralPattern();
 
 	bool IsRealType(int tokenType);
 	bool IsDataType(const sToken &token);
@@ -130,6 +131,7 @@ protected:
 	asCScriptNode *ParseClass();
 	asCScriptNode *ParseMixin();
 	asCScriptNode *ParseInitList();
+	asCScriptNode *ParseUserLiteral();
 	asCScriptNode *ParseInterface();
 	asCScriptNode *ParseInterfaceMethod();
 	asCScriptNode *ParseVirtualPropertyDecl(bool isMethod, bool isInterface);
@@ -158,7 +160,7 @@ protected:
 	asCScriptNode *ParseConstructCall();
 	asCScriptNode *ParseCast();
 	asCScriptNode *ParseConstant();
-	asCScriptNode *ParseStringConstant();
+	asCScriptNode *ParseStringConstant(bool allowUserLiteral = true);
 	asCScriptNode *ParseLambda();
 
 	bool FindTokenAfterType(sToken &nextToken);

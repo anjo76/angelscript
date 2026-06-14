@@ -2178,13 +2178,17 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 	asCScriptFunction func(this, 0, asFUNC_DUMMY);
 
 	bool expectListPattern = behaviour == asBEHAVE_LIST_FACTORY || behaviour == asBEHAVE_LIST_CONSTRUCT;
+	bool expectLiteralPattern = behaviour == asBEHAVE_LITERAL_CONSTRUCT || behaviour == asBEHAVE_LITERAL_CALLBACK;
 	asCScriptNode *listPattern = 0;
+	asCScriptNode* literalPattern = 0;
 	asCBuilder bld(this, 0);
-	r = bld.ParseFunctionDeclaration(objectType, decl, &func, true, &internal.paramAutoHandles, &internal.returnAutoHandle, 0, expectListPattern ? &listPattern : 0);
+	r = bld.ParseFunctionDeclaration(objectType, decl, &func, true, &internal.paramAutoHandles, &internal.returnAutoHandle, 0, expectListPattern ? &listPattern : 0, expectLiteralPattern ? &literalPattern : 0);
 	if( r < 0 )
 	{
 		if( listPattern )
 			listPattern->Destroy(this);
+		if ( literalPattern )
+			literalPattern->Destroy(this);
 		return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
 	}
 	func.name.Format("$beh%d", behaviour);
@@ -2341,6 +2345,94 @@ int asCScriptEngine::RegisterBehaviourToObjectType(asCObjectType *objectType, as
 			listPattern->Destroy(this);
 
 		if( r < 0 )
+			return ConfigError(r, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+	}
+	else if( behaviour == asBEHAVE_LITERAL_CONSTRUCT )
+	{
+		func.name = "$literal";
+
+		// Verify that the return type is void
+		if (func.returnType != asCDataType::CreatePrimitive(ttVoid, false))
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Verify that it is a value type
+		if (!(func.objectType->flags & asOBJ_VALUE))
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_ILLEGAL_BEHAVIOUR_FOR_TYPE);
+			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Verify the parameters: exactly 1 parameter
+		if (func.parameterTypes.GetLength() != 1)
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_LITERAL_CONSTRUCT_MUST_HAVE_EXACTLY_1_PARAM);
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Don't accept duplicates
+		if( beh->literalFactory )
+		{
+			if( literalPattern )
+				literalPattern->Destroy(this);
+
+			return ConfigError(asALREADY_REGISTERED, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		func.id = AddBehaviourFunction(func, internal);
+
+		// Store the function id in the behaviour
+		beh->literalFactory = func.id;
+
+		r = scriptFunctions[func.id]->RegisterLiteralPattern(decl, literalPattern);
+
+		if (literalPattern)
+			literalPattern->Destroy(this);
+
+		if(r < 0)
+			return ConfigError(r, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+	}
+	else if( behaviour == asBEHAVE_LITERAL_CALLBACK )
+	{
+		func.name = "$literalCallback";
+
+		// Verify that the return type is bool
+		if (func.returnType != asCDataType::CreatePrimitive(ttBool, false))
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			return ConfigError(asINVALID_DECLARATION, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		// Verify that it is a value type
+		if (!(func.objectType->flags & asOBJ_VALUE))
+		{
+			if (literalPattern)
+				literalPattern->Destroy(this);
+
+			WriteMessage("", 0, 0, asMSGTYPE_ERROR, TXT_ILLEGAL_BEHAVIOUR_FOR_TYPE);
+			return ConfigError(asILLEGAL_BEHAVIOUR_FOR_TYPE, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
+		}
+
+		func.id = AddBehaviourFunction(func, internal);
+
+		r = scriptFunctions[func.id]->RegisterLiteralPattern(decl, literalPattern, 0, 0, true);
+
+		if (literalPattern)
+			literalPattern->Destroy(this);
+
+		if(r < 0)
 			return ConfigError(r, "RegisterObjectBehaviour", objectType->name.AddressOf(), decl);
 	}
 	else if( behaviour == asBEHAVE_FACTORY || behaviour == asBEHAVE_LIST_FACTORY )
@@ -6123,7 +6215,7 @@ int asCScriptEngine::RegisterFuncdef(const char *decl)
 
 	asCBuilder bld(this, 0);
 	asCObjectType *parentClass = 0;
-	int r = bld.ParseFunctionDeclaration(0, decl, func, false, 0, 0, defaultNamespace, 0, &parentClass);
+	int r = bld.ParseFunctionDeclaration(0, decl, func, false, 0, 0, defaultNamespace, 0, 0, &parentClass);
 	if( r < 0 )
 	{
 		// Set as dummy function before deleting
