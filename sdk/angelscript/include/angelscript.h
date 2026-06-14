@@ -723,7 +723,7 @@ public:
 	virtual int GetDefaultArrayTypeId() const = 0;
 
 	// Enums
-	virtual int          RegisterEnum(const char* typeName, const char* underlyingType = "int32") = 0;
+	virtual int          RegisterEnum(const char* typeName, const char* underlyingType = "int32", bool isFlags = false) = 0;
 	virtual int          RegisterEnumValue(const char* type, const char* name, asINT64 value) = 0;
 	virtual asUINT       GetEnumCount() const = 0;
 	virtual asITypeInfo *GetEnumByIndex(asUINT index) const = 0;
@@ -1127,6 +1127,7 @@ public:
 	// Enums
 	virtual asUINT      GetEnumValueCount() const = 0;
 	virtual const char *GetEnumValueByIndex(asUINT index, asINT64 *outValue) const = 0;
+	virtual bool        IsFlagEnum() const = 0;
 
 #ifdef AS_DEPRECATED
 	// deprecated since 2025-09-13, 2.39.0

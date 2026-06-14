@@ -313,6 +313,7 @@ const char * const whiteSpace = " \t\r\n";
 // These only have meaning in specific situations. Outside these
 // situations they are treated as normal identifiers.
 const char * const THIS_TOKEN      = "this";
+const char * const FLAG_TOKEN      = "flag";
 const char * const FROM_TOKEN      = "from";
 const char * const SUPER_TOKEN     = "super";
 const char * const SHARED_TOKEN    = "shared";
