@@ -7780,7 +7780,6 @@ asUINT asCCompiler::ImplicitConvPrimitiveToPrimitive(asCExprContext *ctx, const 
 
 asCString asCCompiler::BuildLambdaSignature(asCScriptNode* node)
 {
-	asUINT count = 0;
 	asCScriptNode* argNode = node->firstChild;
 
 	asCArray<asCDataType> lambdaParamTypes;
@@ -7807,8 +7806,6 @@ asCString asCCompiler::BuildLambdaSignature(asCScriptNode* node)
 				lambdaParamTypes.PushLast(asCDataType::CreateAuto(false));
 				lambdaInOutFlags.PushLast(asTM_NONE);
 			}
-
-			count++;
 		}
 		argNode = argNode->next;
 	}
@@ -16473,6 +16470,11 @@ void asCCompiler::CompileMathOperator(asCScriptNode *node, asCExprContext *lctx,
 	}
 	else
 	{
+		#if defined(_MSC_VER) && defined(__clang__)
+		// Disable the warning about use of HUGE_VAL
+		#pragma GCC diagnostic ignored "-Wnan-infinity-disabled"
+		#endif
+
 		// Both values are constants
 		if( lctx->type.dataType.IsIntegerType() ||
 			lctx->type.dataType.IsUnsignedType() )
