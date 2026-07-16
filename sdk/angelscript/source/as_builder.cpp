@@ -87,7 +87,9 @@ asCBuilder::asCBuilder(asCScriptEngine *_engine, asCModule *_module)
 	silent = false;
 	numWarnings = 0;
 	numErrors = 0;
+#ifndef AS_NO_COMPILER
 	hasCachedKnownTypes = false;
+#endif
 }
 
 asCBuilder::~asCBuilder()
