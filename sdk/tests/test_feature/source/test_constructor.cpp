@@ -79,6 +79,35 @@ bool Test()
 	asIScriptModule* mod;
 	int r;
 
+	// Test that is possible to declare a class with a constructor that match the built-in default constructor
+	// https://github.com/anjo76/angelscript/issues/79
+	{
+		engine = asCreateScriptEngine();
+
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		RegisterStdString(engine);
+
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"class MyClass { \n"
+			"  MyClass(int32 &in val) { \n"
+			"  } \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test accessing parent's properties before calling super
 	// Reported by Sam Tupy
 	{
