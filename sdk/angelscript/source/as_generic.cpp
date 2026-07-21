@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied 
    warranty. In no event will the authors be held liable for any 
@@ -544,6 +544,7 @@ int asCGenericVariadic::GetArgCount() const
 
 int asCGenericVariadic::GetArgTypeId(asUINT arg, asDWORD* flags) const
 {
+	// If the argument index is larger than the number of parameters, then it is a variadic argument
 	asUINT idx = arg;
 	if (idx >= sysFunction->parameterTypes.GetLength() - 1)
 		idx = sysFunction->parameterTypes.GetLength() - 1;
@@ -689,9 +690,10 @@ void* asCGenericVariadic::GetAddressOfArg(asUINT arg)
 	int offset = GetArgOffsetOnStack(arg);
 
 	// For object variables it's necessary to dereference the pointer to get the address of the value
-	if (!sysFunction->parameterTypes[arg].IsReference() &&
-		sysFunction->parameterTypes[arg].IsObject() &&
-		!sysFunction->parameterTypes[arg].IsObjectHandle())
+	asCDataType* dt = GetArgDataType(arg);
+	if (!dt->IsReference() &&
+		dt->IsObject() &&
+		!dt->IsObjectHandle())
 		return *(void**)&stackPointer[offset];
 
 	// Get the address of the value
@@ -763,6 +765,7 @@ int asCGenericVariadic::SetReturnObject(void* obj)
 
 asCDataType* asCGenericVariadic::GetArgDataType(asUINT arg) const
 {
+	// If the arg index is beyond the last fixed parameter, use the last parameter type for variadic arguments
 	if (arg >= sysFunction->parameterTypes.GetLength() - 1)
 		arg = sysFunction->parameterTypes.GetLength() - 1;
 
@@ -777,6 +780,7 @@ int asCGenericVariadic::GetArgOffsetOnStack(asUINT arg) const
 	{
 		if (n >= sysFunction->parameterTypes.GetLength() - 1)
 		{
+			// If the argument index is beyond the last fixed parameter, use the last parameter type for variadic arguments
 			asUINT idx = sysFunction->parameterTypes.GetLength() - 1;
 			offset += sysFunction->parameterTypes[idx].GetSizeOnStackDWords();
 		}

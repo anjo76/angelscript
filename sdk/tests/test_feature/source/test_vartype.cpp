@@ -248,6 +248,26 @@ void stringEqualsGeneric(asIScriptGeneric * gen)
 	*(bool*)gen->GetAddressOfReturnLocation() = (*a == *b);
 }
 
+bool calledProperly = false;
+void proc_args(asIScriptGeneric *gen)
+{
+	calledProperly = true;
+	int count = gen->GetArgCount();
+	for (int i = 0; i < count; ++i)
+	{
+		asDWORD flags;
+		int typeId = gen->GetArgTypeId(i, &flags);
+		void *argAddr = gen->GetAddressOfArg(i);
+		if( i == 0 && (typeId != asTYPEID_INT32 || (**(int **)argAddr) != 1) )
+			calledProperly = false;
+		if( i == 1 && (typeId != asTYPEID_INT32 || (**(int **)argAddr) != 2) )
+			calledProperly = false;
+		if( i == 2 && (typeId != asTYPEID_VOID || (**(asPWORD **)argAddr) != 0) )
+			calledProperly = false;
+	}
+}
+
+
 bool Test()
 {
 	RET_ON_MAX_PORT
@@ -259,6 +279,30 @@ bool Test()
  	asIScriptEngine *engine = 0;
 	asIScriptModule *mod = 0;
 	asIScriptContext *ctx = 0;
+
+	// Test passing null to a variadic function
+	// https://github.com/anjo76/angelscript/issues/76
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		engine->RegisterGlobalFunction("void proc_args(const ?&in ...)", asFUNCTION(proc_args), asCALL_GENERIC);
+
+		r = ExecuteString(engine, "proc_args(1, 2, null);");
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+
+		if( !calledProperly )
+			TEST_FAILED;
+
+		bout.buffer = "";
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test that value types can use variadic arguments in constructors
 	// Reported by Patrick Jeeves
