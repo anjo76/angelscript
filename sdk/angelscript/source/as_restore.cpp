@@ -3839,9 +3839,17 @@ int asCReader::AdjustGetOffset(int offset, asCScriptFunction *func, asDWORD prog
 		else if( bc == asBC_REFCPY ||
 				 bc == asBC_COPY )
 		{
-			// In this case we know there is only 1 pointer on the stack above
-			asASSERT( offset == 1 );
-			return offset - (1 - AS_PTR_SIZE);
+			if( offset == 1 )
+			{
+				// In this case we know there is only 1 pointer on the stack above
+				return offset - (1 - AS_PTR_SIZE);
+			}
+			else
+			{
+				// Since asBC_REFCPY and asBC_COPY only takes 2 pointers on the stack, we know
+				// the offset that adjusted isn't related to the instruction, hence skip over it 
+				// and find the next function after it
+			}
 		}
 
 		// Keep track of the stack size between the
@@ -5118,9 +5126,17 @@ int asCWriter::AdjustGetOffset(int offset, asCScriptFunction *func, asDWORD prog
 		else if( bc == asBC_REFCPY ||
 				 bc == asBC_COPY )
 		{
-			// In this case we know there is only 1 pointer on the stack above
-			asASSERT( offset == AS_PTR_SIZE );
-			return offset + (1 - AS_PTR_SIZE);
+			if( offset == AS_PTR_SIZE )
+			{
+				// In this case we know there is only 1 pointer on the stack above
+				return offset + (1 - AS_PTR_SIZE);
+			}
+			else
+			{
+				// Since asBC_REFCPY and asBC_COPY only takes 2 pointers on the stack, we know
+				// the offset that adjusted isn't related to the instruction, hence skip over it 
+				// and find the next function after it
+			}
 		}
 
 		// Keep track of the stack size between the

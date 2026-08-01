@@ -397,6 +397,87 @@ bool Test()
 	asIScriptEngine* engine;
 	asIScriptModule* mod;
 
+	// Test script class with opIndex property and string
+	// Reported by li zhuang
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->SetEngineProperty(asEP_ALLOW_UNICODE_IDENTIFIERS, true);
+		engine->SetEngineProperty(asEP_BUILD_WITHOUT_LINE_CUES, true);
+		engine->SetEngineProperty(asEP_INIT_GLOBAL_VARS_AFTER_BUILD, true);
+		engine->SetEngineProperty(asEP_OPTIMIZE_BYTECODE, false);
+		//engine->SetEngineProperty(asEP_NO_DEBUG_OUTPUT, true);
+		engine->SetEngineProperty(asEP_USE_CHARACTER_LITERALS, true);
+		engine->SetEngineProperty(asEP_ALLOW_MULTILINE_STRINGS, true);
+		//engine->SetEngineProperty(asEP_ALLOW_IMPLICIT_HANDLE_TYPES, true);
+		engine->SetEngineProperty(asEP_BOOL_CONVERSION_MODE, true);
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule *mod = engine->GetModule("DynamicModule", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", 
+			"class test \n"
+			"{ \n"
+			"  string get_opIndex(uint i) const property { return val; } \n"
+			"  void set_opIndex(uint i, string v) property { val = v; } \n"
+			"  string val;"
+			"} \n"
+			"test body; \n"
+			"void fun() \n"
+			"{ \n"
+			"  body[5] = string(\"test\"); \n"
+			"  assert( body[5] == \"test\" ); \n"
+			"} \n");
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "fun()", mod);
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+
+		CBytecodeStream stream((string("AS_DEBUG/bc") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+		r = mod->SaveByteCode(&stream);
+		if( r < 0 )
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+
+
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->SetEngineProperty(asEP_ALLOW_UNICODE_IDENTIFIERS, true);
+		engine->SetEngineProperty(asEP_BUILD_WITHOUT_LINE_CUES, true);
+		engine->SetEngineProperty(asEP_INIT_GLOBAL_VARS_AFTER_BUILD, true);
+		engine->SetEngineProperty(asEP_OPTIMIZE_BYTECODE, false);
+		//engine->SetEngineProperty(asEP_NO_DEBUG_OUTPUT, true);
+		engine->SetEngineProperty(asEP_USE_CHARACTER_LITERALS, true);
+		engine->SetEngineProperty(asEP_ALLOW_MULTILINE_STRINGS, true);
+		//engine->SetEngineProperty(asEP_ALLOW_IMPLICIT_HANDLE_TYPES, true);
+		engine->SetEngineProperty(asEP_BOOL_CONVERSION_MODE, true);
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule *mod2 = engine->GetModule("mod2", asGM_ALWAYS_CREATE);
+		r = mod2->LoadByteCode(&stream);
+		if( r < 0 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "fun()", mod2);
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test error handling when loading bogus data
 	// https://www.gamedev.net/forums/topic/710972-recover-from-assertion-in-loadbytecode/
 	{
