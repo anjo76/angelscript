@@ -161,6 +161,7 @@ bool Test()
 	{
 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
 
 		mod = engine->GetModule("t", asGM_ALWAYS_CREATE);
 		mod->AddScriptSection("script", 

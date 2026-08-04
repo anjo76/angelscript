@@ -60,6 +60,37 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test accessing non-const method from within const method
+	// Reported by AK
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		asIScriptModule *mod = engine->GetModule("t", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", 
+			"class Foo { \n"
+			"  void nonConstMethod() { \n"
+			"  } \n"
+			"  void constMethod() const { \n"
+			"      nonConstMethod(); \n" // compiles and runs successfully
+			"      this.nonConstMethod(); \n" // fails to compile (as expected)
+			"  } \n"
+			"} \n");
+		r = mod->Build();
+		if( r >= 0 )
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer !=
+			"script (4, 3) : Info    : Compiling void Foo::constMethod() const\n"
+			"script (5, 7) : Error   : No matching signatures to 'nonConstMethod() const'\n"
+			"script (6, 12) : Error   : No matching signatures to 'Foo::nonConstMethod() const'\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// passing a const handle on to a function expecting a const ref
 	// http://www.gamedev.net/topic/681018-problem-in-arrayfind-with-a-const-param/
 	{

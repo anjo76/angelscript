@@ -13316,6 +13316,9 @@ int asCCompiler::CompileFunctionCall(asCScriptNode *node, asCExprContext *ctx, a
 		}
 		else
 		{
+			if( !objectType && outFunc->objectType && outFunc->IsReadOnly() )
+				objIsConst = true;
+
 			// The scope can be used to specify the base class
 			builder->GetObjectMethodDescriptions(name.AddressOf(), CastToObjectType(lookupResult.type.dataType.GetTypeInfo()), funcs, objIsConst, scope, node, script);
 
@@ -13346,7 +13349,7 @@ int asCCompiler::CompileFunctionCall(asCScriptNode *node, asCExprContext *ctx, a
 
 			objectType = outFunc->objectType;
 
-			asCDataType dt = asCDataType::CreateType(objectType, false);
+			asCDataType dt = asCDataType::CreateType(objectType, objIsConst);
 
 			// The object pointer is located at stack position 0
 			ctx->bc.InstrSHORT(asBC_PSF, 0);

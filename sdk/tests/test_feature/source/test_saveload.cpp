@@ -397,7 +397,7 @@ bool Test()
 	asIScriptEngine* engine;
 	asIScriptModule* mod;
 
-	// Test script class with opIndex property and string
+	// Test script class with opIndex property and string, and without bytecode optimization.
 	// Reported by li zhuang
 	{
 		engine = asCreateScriptEngine();
