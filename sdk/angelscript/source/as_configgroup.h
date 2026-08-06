@@ -57,7 +57,7 @@ public:
 	int AddRef();
 	int Release();
 
-	asCTypeInfo *FindType(const char *name);
+	asCTypeInfo *FindType(asStringView name);
 	void RefConfigGroup(asCConfigGroup *group);
 
 	bool HasLiveObjects();
