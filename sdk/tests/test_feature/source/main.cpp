@@ -174,7 +174,7 @@ namespace Test_Addon_ContextMgr    { bool Test(); }
 namespace Test_Addon_ScriptFile    { bool Test(); }
 namespace Test_Addon_DateTime      { bool Test(); }
 namespace Test_Addon_StdString     { bool Test(); }
-namespace Test_Addon_ScriptSocket  { bool Test(); }
+namespace Test_Addon_ScriptSocket { bool Test(); }
 
 #include "utils.h"
 

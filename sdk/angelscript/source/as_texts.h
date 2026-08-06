@@ -350,6 +350,7 @@
 #define TXT_TEMPLATE_SUBTYPE_s_DOESNT_EXIST              "Template subtype '%s' doesn't exist"
 #define TXT_TEMPLATE_LIST_FACTORY_EXPECTS_2_REF_PARAMS   "Template list factory expects two reference parameters. The last is the pointer to the initialization buffer"
 #define TXT_LIST_FACTORY_EXPECTS_1_REF_PARAM             "List factory expects only one reference parameter. The pointer to the initialization buffer will be passed in this parameter"
+#define TXT_LITERAL_CONSTRUCT_MUST_HAVE_EXACTLY_1_PARAM   "Literal construct must have exactly one parameter for the literal value"
 #define TXT_FAILED_READ_SUBTYPE_OF_TEMPLATE_s            "Failed to read subtype of template type '%s'"
 #define TXT_FAILED_IN_FUNC_s_s_d                         "Failed in call to function '%s' (Code: %s, %d)"
 #define TXT_FAILED_IN_FUNC_s_WITH_s_s_d                  "Failed in call to function '%s' with '%s' (Code: %s, %d)"

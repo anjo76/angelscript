@@ -342,6 +342,99 @@ int asCScriptFunction::ParseListPattern(asSListPatternNode *&target, const char 
 	return 0;
 }
 
+int asCScriptFunction::RegisterLiteralPattern(const char* decl, asCScriptNode* literalPatternNode, asCString* outLiteral, bool* outIsPrefix, bool isCallback)
+{
+	if (!literalPatternNode)
+		return asINVALID_ARG;
+
+	// Children: [0] = snConstant (string literal), [1] = optional snIdentifier ("suffix"/"prefix")
+	asCScriptNode *strNode = literalPatternNode->firstChild;
+	if (!strNode || strNode->nodeType != snConstant)
+		return asINVALID_ARG;
+
+	// Extract the pattern string (strip surrounding quotes)
+	asCString literal(&decl[strNode->tokenPos + 1], strNode->tokenLength - 2);
+
+	// Check for suffix/prefix identifier
+	bool isPrefix = false;
+	asCScriptNode *identNode = strNode->next;
+	if (identNode && identNode->nodeType == snIdentifier)
+	{
+		asCString identStr(&decl[identNode->tokenPos], identNode->tokenLength);
+		isPrefix = (identStr == "prefix");
+	}
+
+	// Determine parameter type from the first explicit parameter
+	asELiteralPatternParamType paramType = asLPPT_USER;
+	if (parameterTypes.GetLength() > 0)
+	{
+		const asCDataType &pt = parameterTypes[0];
+		if (pt.IsIntegerType() || pt.IsUnsignedType() || pt.IsEnumType())
+			paramType = asLPPT_UINT64;
+		else if (pt.IsFloatType() || pt.IsDoubleType())
+			paramType = asLPPT_DOUBLE;
+		else if (pt.GetTypeInfo() && engine &&
+		         pt.GetTypeInfo() == reinterpret_cast<asCTypeInfo*>(engine->stringType.GetTypeInfo()))
+			paramType = asLPPT_STRING;
+	}
+
+	// Store in engine's maps (suffix only for now)
+	if (!isPrefix && engine)
+	{
+		if (isCallback)
+		{
+			switch (paramType)
+			{
+			case asLPPT_UINT64:
+				engine->literalsCallback.suffix.uint64Literals.Insert(literal, id);
+				break;
+			case asLPPT_DOUBLE:
+				engine->literalsCallback.suffix.doubleLiterals.Insert(literal, id);
+				break;
+			case asLPPT_STRING:
+				engine->literalsCallback.suffix.stringLiterals.Insert(literal, id);
+				break;
+			case asLPPT_USER:
+				engine->literalsCallback.suffix.userLiterals.Insert(literal, id);
+				break;
+			}
+		}
+		else
+		{
+			switch (paramType)
+			{
+			case asLPPT_UINT64:
+				engine->literals.suffix.uint64Literals.Insert(literal, id);
+				break;
+			case asLPPT_DOUBLE:
+				engine->literals.suffix.doubleLiterals.Insert(literal, id);
+				break;
+			case asLPPT_STRING:
+				engine->literals.suffix.stringLiterals.Insert(literal, id);
+				break;
+			case asLPPT_USER:
+				engine->literals.suffix.userLiterals.Insert(literal, id);
+				break;
+			}
+		}
+	}
+
+	this->literalPattern = asNEW(asSLiteralPatternNode)(literal, paramType, isPrefix);
+
+	if (outLiteral)
+		*outLiteral = literal;
+	if (outIsPrefix)
+		*outIsPrefix = isPrefix;
+
+	return 0;
+}
+
+int asCScriptFunction::ParseLiteralPattern()
+{
+	// TODO: Implement for bytecode serialization
+	return asNOT_SUPPORTED;
+}
+
 // internal
 asCScriptFunction::asCScriptFunction(asCScriptEngine *engine, asCModule *mod, asEFuncType _funcType)
 {
@@ -374,6 +467,7 @@ asCScriptFunction::asCScriptFunction(asCScriptEngine *engine, asCModule *mod, as
 	objForDelegate         = 0;
 	funcForDelegate        = 0;
 	listPattern            = 0;
+	literalPattern        = 0;
 	funcdefType            = 0;
 
 	if( funcType == asFUNC_SCRIPT )
@@ -494,6 +588,12 @@ void asCScriptFunction::DestroyInternal()
 		listPattern = n;
 	}
 
+	// Deallocate literal pattern data
+	if( literalPattern )
+	{
+		asDELETE(literalPattern, asSLiteralPatternNode);
+		literalPattern = 0;
+	}
 	// Release template sub types
 	for (asUINT n = 0; n < templateSubTypes.GetLength(); n++)
 		if(templateSubTypes[n].GetTypeInfo())

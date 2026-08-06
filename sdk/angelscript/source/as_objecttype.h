@@ -68,10 +68,12 @@ struct asSTypeBehaviour
 		gcReleaseAllReferences = 0;
 		templateCallback = 0;
 		getWeakRefFlag = 0;
+		literalFactory = 0;
 	}
 
 	int factory;
 	int listFactory; // Used for initialization lists only
+	int literalFactory; // Used for user literal suffixes
 	int copyfactory;
 	int construct;
 	int copyconstruct;
