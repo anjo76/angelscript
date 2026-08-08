@@ -422,7 +422,11 @@ bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction
 	//                         NOT, BNOT, IncV, DecV, NEG, iTOf (and all other type casts)
 
 	// The value isn't used for anything
-	if( curr->op != asBC_FREE && // Can't remove the FREE instruction
+	if( curr->op != asBC_FREE &&    // Can't remove the FREE instruction
+		curr->op != asBC_ClrVPtr && // Can't remove the ClrVPtr instruction either: clearing a variable
+		                            // can matter to a later REFCPY/RefCpyV targeting it (it condition-
+		                            // ally releases whatever it finds there), even though that isn't
+		                            // visible to this analysis as a "read" of the variable
 		(asBCInfo[curr->op].type == asBCTYPE_wW_rW_rW_ARG ||
 		 asBCInfo[curr->op].type == asBCTYPE_wW_rW_ARG    ||
 		 asBCInfo[curr->op].type == asBCTYPE_wW_rW_DW_ARG ||
