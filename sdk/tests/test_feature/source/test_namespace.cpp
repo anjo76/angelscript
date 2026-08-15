@@ -13,6 +13,39 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test namespace resolution where class name has same name as namespace (must be supported until it is possible to declare types as class members)
+	// https://github.com/anjo76/angelscript/issues/86
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+							  "class Foo {}\n"
+							  "namespace Foo { \n"
+							  "	enum Something { A, B, C }\n"
+							  "}\n"
+							  "namespace Bar {\n"
+							  "	void X(Foo::Something x) {}\n"
+							  "}\n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asIScriptFunction *func = mod->GetFunctionByDecl("void Bar::X(Foo::Something)");
+		if( func == 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test namespace where a nested namespace has the same name as a global namespace
 	// Reported by Anton Brandstoetter
 	{
