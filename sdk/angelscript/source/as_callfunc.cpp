@@ -824,6 +824,13 @@ int CallSystemFunction(int id, asCContext *context)
 				asASSERT(!(descr->returnType.GetTypeInfo()->flags & asOBJ_NOCOUNT));
 				engine->CallObjectMethod(context->m_regs.objectRegister, CastToObjectType(descr->returnType.GetTypeInfo())->beh.addref);
 			}
+
+			// Clean-up the returned object if there is an exception
+			if( context->m_status == asEXECUTION_EXCEPTION && context->m_regs.objectRegister )
+			{
+				engine->CallObjectMethod(context->m_regs.objectRegister, CastToObjectType(descr->returnType.GetTypeInfo())->beh.release);
+				context->m_regs.objectRegister = 0;
+			}
 		}
 		else if (retPointer)
 		{

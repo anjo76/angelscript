@@ -117,12 +117,73 @@ void callAppFunc()
 		callAppFuncCalledProperly = false;
 }
 
+class ApplicationTestClass
+{
+	public:
+	static ApplicationTestClass* Create() { return new  ApplicationTestClass ; }
+	ApplicationTestClass()
+	{
+		asIScriptContext* ctx = asGetActiveContext();
+		if (ctx)
+		ctx->SetException("Nope");
+
+		refCount = 1;
+	}
+	void AddRef() { refCount++; }
+	void Release() { if (--refCount == 0) delete this; }
+
+	int refCount = 0;
+};
+
 bool Test()
 {
 	bool fail = false;
 	int r;
 	COutStream out;
 	CBufferedOutStream bout;
+
+	// Test registered class that raises a script exception in the constructor
+	// Reported by gmp3 labs
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		RegisterStdString(engine);
+		engine->RegisterObjectType("ApplicationTestClass", 0, asOBJ_REF);
+		engine->RegisterObjectBehaviour("ApplicationTestClass", asBEHAVE_FACTORY, "ApplicationTestClass@ f()", asFUNCTION(ApplicationTestClass::Create), asCALL_CDECL);
+		engine->RegisterObjectBehaviour("ApplicationTestClass", asBEHAVE_ADDREF, "void f()", asMETHOD(ApplicationTestClass, AddRef), asCALL_THISCALL);
+		engine->RegisterObjectBehaviour("ApplicationTestClass", asBEHAVE_RELEASE, "void f()", asMETHOD(ApplicationTestClass, Release), asCALL_THISCALL);
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			R"(
+			void main() 
+			{
+				try 
+				{
+					ApplicationTestClass();
+				} 
+				catch 
+				{
+				}
+			}
+			)");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		asIScriptContext *ctx = engine->CreateContext();
+		r = ExecuteString(engine, "main()", mod, ctx);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		if (string(ctx->GetExceptionString()) != "Nope")
+			TEST_FAILED;
+		ctx->Release();
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Skip these tests if the library is not build to support exceptions
 	if (strstr(asGetLibraryOptions(), "AS_NO_EXCEPTIONS"))
