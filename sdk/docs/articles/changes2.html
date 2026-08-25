@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/08/17</h2>
+<h2>Version 2.39.0 WIP - 2026/08/25</h2>
 
 <ul>
 <li>Bug fixes
@@ -70,7 +70,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed assert failure when compiling implicit conversion of type using constructor with variadic argument (Thanks Patrick Jeeves)
 <li>Fixed resolution of nested namespace with same name as global namespace (Thanks Anton Brandstoetter)
 <li>Fixed invalid compilation error when declaring class with single constructor taking int by reference (Thanks Fort-TM)
-<li>Fixed array out of bounds access in asIScriptGeneric::GetAddressOfArg for variadic functions (Thanks HenryAwe)
+<li>Fixed array out of bounds access in asIScriptGeneric::GetAddressOfArg for variadic functions (Thanks HenryAWE)
 <li>Fixed assert failure in specfic scenario of saving unoptimized bytecode (Thanks li zhuang)
 <li>Fixed const method calling non-const method (Thanks AK)
 <li>Fixed namespace resolution issue where class and namespace have the same name (Thanks Miss)
@@ -89,6 +89,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Implemented support for asCALL_THISCALL_OBJFIRST/LAST with addref and release behaviours (Thanks HenryAWE)
 <li>Enabled use of computed gotos when compiling with clang-cl for Windows (Thanks Aleksander Jaronik)
 <li>Improved validation of registering template constructors to better catch user errors (Thanks Patrick Jeeves)
+<li>Implemented support for asCALL_THISCALL_ASGLOBAL for the template callback behaviour (Thanks HenryAWE)
 </ul>
 <li>Library interface
 <ul>

@@ -5040,8 +5040,53 @@ bool asCScriptEngine::CallGlobalFunctionRetBool(void *param1, void *param2, asSS
 		func_t f = (func_t)(i->func);
 		return f(param1, param2);
 	}
+	else if( i->callConv == ICC_THISCALL || i->callConv == ICC_VIRTUAL_THISCALL )
+	{
+		// This is asCALL_THISCALL_ASGLOBAL
+		asASSERT(i->auxiliary);
+
+#if defined(__GNUC__) || defined(AS_PSVITA)
+		// For virtual thiscalls we must call the method as a true class method so that the compiler will lookup the function address in the vftable
+		union
+		{
+			asSIMPLEMETHOD_t mthd;
+			struct
+			{
+				asFUNCTION_t func;
+				asPWORD baseOffset;
+			} f;
+		} p;
+		p.f.func = (asFUNCTION_t)(i->func);
+		p.f.baseOffset = asPWORD(i->baseOffset);
+
+		void *obj = (void*) ((char*) i->auxiliary +  i->compositeOffset);
+		if(i->isCompositeIndirect)
+			obj = *((void**)obj);
+
+		bool (asCSimpleDummy::*f)(void *, void *) = (bool (asCSimpleDummy::*)(void *, void *))(p.mthd);
+		return (((asCSimpleDummy*)obj)->*f)(param1, param2);
+	}
+#else
+		union
+		{
+			asSIMPLEMETHOD_t mthd;
+			asFUNCTION_t func;
+		} p;
+		p.func = (asFUNCTION_t)(i->func);
+		bool (asCSimpleDummy::*f)(void *, void *) = (bool (asCSimpleDummy::*)(void *, void *))p.mthd;
+
+		void *obj = (void*) ((char*) i->auxiliary +  i->compositeOffset);
+		if(i->isCompositeIndirect)
+			obj = *((void**)obj);
+
+		obj = (void*)(asPWORD(obj) + i->baseOffset);
+		return (((asCSimpleDummy*)obj)->*f)(param1, param2);
+#endif
+	}
 	else
 	{
+		asASSERT(i->callConv == ICC_GENERIC_FUNC);
+
 		// TODO: When simulating a 64bit environment by defining AS_64BIT_PTR on a 32bit platform this code
 		//       fails, because the stack given to asCGeneric is not prepared with two 64bit arguments.
 
