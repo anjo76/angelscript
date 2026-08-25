@@ -5065,7 +5065,6 @@ bool asCScriptEngine::CallGlobalFunctionRetBool(void *param1, void *param2, asSS
 
 		bool (asCSimpleDummy::*f)(void *, void *) = (bool (asCSimpleDummy::*)(void *, void *))(p.mthd);
 		return (((asCSimpleDummy*)obj)->*f)(param1, param2);
-	}
 #else
 		union
 		{
