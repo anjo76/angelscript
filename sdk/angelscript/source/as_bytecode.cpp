@@ -406,6 +406,19 @@ bool asCByteCode::PostponeInitOfTemp(asCByteInstruction *curr, asCByteInstructio
 	return false;
 }
 
+// Returns true if the instruction writes a 64bit value to its destination variable
+static bool IsInstrWith64bitResult(asEBCInstr op)
+{
+	return op == asBC_ADDi64 || op == asBC_SUBi64 || op == asBC_MULi64 ||
+	       op == asBC_DIVi64 || op == asBC_MODi64 || op == asBC_DIVu64 ||
+	       op == asBC_MODu64 || op == asBC_BAND64 || op == asBC_BOR64  ||
+	       op == asBC_BXOR64 || op == asBC_BSLL64 || op == asBC_BSRL64 ||
+	       op == asBC_BSRA64 || op == asBC_ADDd   || op == asBC_SUBd   ||
+	       op == asBC_MULd   || op == asBC_DIVd   || op == asBC_MODd   ||
+	       op == asBC_POWd   || op == asBC_POWdi  || op == asBC_POWi64 ||
+	       op == asBC_POWu64;
+}
+
 bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction **next)
 {
 	TimeIt("asCByteCode::RemoveUnusedValue");
@@ -548,8 +561,11 @@ bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction
 	}
 
 	// The value is immediately moved to another variable and then not used again
+	// This must not be done for instructions with a 64bit result, since retargeting
+	// them to the 4byte destination of the CpyVtoV4 would overwrite the adjacent variable
 	if( (asBCInfo[curr->op].type == asBCTYPE_wW_rW_rW_ARG ||
 		 asBCInfo[curr->op].type == asBCTYPE_wW_rW_DW_ARG) &&
+		!IsInstrWith64bitResult(curr->op) &&
 		curr->next && curr->next->op == asBC_CpyVtoV4 &&
 		curr->wArg[0] == curr->next->wArg[1] &&
 		IsTemporary(curr->wArg[0]) &&

@@ -408,6 +408,40 @@ bool TestOptimize()
 {
 	bool fail = false;
 
+	// Test that the optimization doesn't retarget an instruction with a 64bit result
+	// to the 4byte destination of a following CpyVtoV4, as the 8byte write would
+	// overwrite the variable adjacent to the destination
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		COutStream out;
+		engine->SetMessageCallback(asMETHOD(COutStream, Callback), &out, asCALL_THISCALL);
+
+		asIScriptModule *mod = engine->GetModule("mod", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"enum E { A, B, C, D } \n"
+			"int func() { \n"
+			"	uint64 big = 3; \n"
+			"	uint64 canary = 42; \n"
+			"	E t = E(big & 3); \n"  // BAND64 into a 64bit temp, then CpyVtoV4 to t
+			"	return int(canary) * 1000 + int(t); \n"
+			"} \n");
+		int r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asIScriptFunction *func = mod->GetFunctionByName("func");
+		asIScriptContext *ctx = engine->CreateContext();
+		ctx->Prepare(func);
+		r = ctx->Execute();
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		if (ctx->GetReturnDWord() != 42003)
+			TEST_FAILED;
+		ctx->Release();
+
+		engine->ShutDownAndRelease();
+	}
+
 	// Test optimized operations
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();
