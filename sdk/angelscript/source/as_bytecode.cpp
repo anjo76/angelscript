@@ -548,8 +548,10 @@ bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction
 	}
 
 	// The value is immediately moved to another variable and then not used again
+	// The value written to the temp is not larger than the target variable
 	if( (asBCInfo[curr->op].type == asBCTYPE_wW_rW_rW_ARG ||
 		 asBCInfo[curr->op].type == asBCTYPE_wW_rW_DW_ARG) &&
+	     asBCInfo[curr->op].writeSize != 8 &&
 		curr->next && curr->next->op == asBC_CpyVtoV4 &&
 		curr->wArg[0] == curr->next->wArg[1] &&
 		IsTemporary(curr->wArg[0]) &&

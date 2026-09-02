@@ -15,7 +15,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 
 <h1>AngelScript Change Log</h1>
 
-<h2>Version 2.39.0 WIP - 2026/08/25</h2>
+<h2>Version 2.39.0 WIP - 2026/09/01</h2>
 
 <ul>
 <li>Bug fixes
@@ -75,6 +75,7 @@ BODY { FONT-SIZE: 12px; FONT-FAMILY: Arial; }
 <li>Fixed const method calling non-const method (Thanks AK)
 <li>Fixed namespace resolution issue where class and namespace have the same name (Thanks Miss)
 <li>Fixed assert failure after catching script exception raised from application registered constructor (Thanks gmp3 labs)
+<li>Fixed bytecode optimization with 64bit operation followed by 32bit conversion that lead to variables being overwritten (Thanks XertroV)
 </ul>
 <li>Library
 <ul>

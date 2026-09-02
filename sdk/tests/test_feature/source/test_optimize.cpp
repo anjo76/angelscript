@@ -408,6 +408,41 @@ bool TestOptimize()
 {
 	bool fail = false;
 
+	// Test segv with optimizations
+	// https://github.com/anjo76/angelscript/issues/91
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		CBufferedOutStream bout;
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+//		engine->SetEngineProperty(asEP_OPTIMIZE_BYTECODE, false);
+
+		asIScriptModule *mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", R"(
+			enum E { A, B, C, D }
+			int func() {
+			  uint64 b = 3;
+			  uint64 c = 42;
+			  E t = E(b & 3);
+			  return int(c) * 1000 + int(t);
+			})");
+
+		int r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+
+		if( ExecuteString(engine, "assert( func() == 42003 );", mod) != asEXECUTION_FINISHED )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test optimized operations
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();

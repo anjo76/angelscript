@@ -86,6 +86,12 @@ static bool TestEnum()
 		if (r != asEXECUTION_FINISHED)
 			TEST_FAILED;
 		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
 	}
 
 	// Test enum with underlying type
