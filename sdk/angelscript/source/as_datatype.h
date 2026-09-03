@@ -56,7 +56,6 @@ struct asSNameSpace;
 
 // TODO: refactor: Reference should not be part of the datatype. This should be stored separately, e.g. in asCExprValue
 //                 MakeReference, MakeReadOnly, IsReference, IsReadOnly should be removed
-
 class asCDataType
 {
 public:
@@ -100,7 +99,8 @@ public:
 	bool IsHandleToAuto()         const {return isAuto && isObjectHandle;}
 	bool IsHandleToConst()        const;
 	bool IsArrayType()            const;
-	bool IsEnumType()             const;
+	// returns 2 if it is a flag enum otherwise return 1 
+	unsigned int IsEnumType()             const;
 	bool IsAnyType()              const {return tokenType == ttQuestion;}
 	bool IsHandleToAsHandleType() const {return isHandleToAsHandleType;}
 	bool IsAbstractClass()        const;
