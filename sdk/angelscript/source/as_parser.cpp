@@ -106,7 +106,7 @@ asCScriptNode *asCParser::GetScriptNode()
 	return scriptNode;
 }
 
-int asCParser::ParseFunctionDefinition(asCScriptCode *in_script, bool in_expectListPattern)
+int asCParser::ParseFunctionDefinition(asCScriptCode *in_script, bool in_expectListPattern, bool in_expectLiteralPattern)
 {
 	Reset();
 
@@ -119,6 +119,8 @@ int asCParser::ParseFunctionDefinition(asCScriptCode *in_script, bool in_expectL
 
 	if( in_expectListPattern )
 		scriptNode->AddChildLast(ParseListPattern());
+	if (in_expectLiteralPattern)
+		scriptNode->AddChildLast(ParseLiteralPattern());
 
 	// The declaration should end after the definition
 	if( !isSyntaxError )
@@ -1297,6 +1299,65 @@ asCScriptNode *asCParser::ParseListPattern()
 	return node;
 }
 
+asCScriptNode* asCParser::ParseLiteralPattern()
+{
+	asCScriptNode* node = CreateNode(snLiteralPattern);
+	if (node == 0) return 0;
+
+	sToken t1;
+
+	GetToken(&t1);
+	if( t1.type != ttStartStatementBlock )
+	{
+		Error(ExpectedToken("{"), &t1);
+		Error(InsteadFound(t1), &t1);
+		return node;
+	}
+
+	node->UpdateSourcePos(t1.pos, t1.length);
+
+	GetToken(&t1);
+	if (t1.type != ttStringConstant)
+	{
+		Error(TXT_EXPECTED_STRING, &t1);
+		Error(InsteadFound(t1), &t1);
+		return node;
+	}
+	else
+		RewindTo(&t1);
+
+	node->AddChildLast(ParseStringConstant(false));
+
+	GetToken(&t1);
+	if ( t1.type == ttIdentifier )
+	{
+		if( IdentifierIs(t1, "suffix") || IdentifierIs(t1, "prefix") )
+		{
+			RewindTo(&t1);
+			node->AddChildLast(ParseIdentifier());
+		}
+		else
+		{
+			const char* expected[2] = { "suffix", "prefix" };
+			Error(ExpectedOneOf(expected, 2), &t1);
+			Error(InsteadFound(t1), &t1);
+			return node;
+		}
+	}
+
+	GetToken(&t1);
+	if( t1.type != ttEndStatementBlock )
+	{
+		Error(ExpectedToken("}"), &t1);
+		Error(InsteadFound(t1), &t1);
+		return node;
+	}
+
+	node->UpdateSourcePos(t1.pos, t1.length);
+
+	return node;
+}
+
 bool asCParser::IdentifierIs(const sToken &t, const char *str)
 {
 	if( t.type != ttIdentifier )
@@ -1691,7 +1752,9 @@ asCScriptNode *asCParser::ParseExprValue()
 	else if( t1.type == ttCast )
 		node->AddChildLast(ParseCast());
 	else if( IsConstant(t1.type) )
+	{
 		node->AddChildLast(ParseConstant());
+	}
 	else if( t1.type == ttOpenParenthesis)
 	{
 		GetToken(&t1);
@@ -1752,6 +1815,45 @@ asCScriptNode *asCParser::ParseConstant()
 
 		GetToken(&t);
 		RewindTo(&t);
+	}
+
+	// Check for user literal suffix on non-string constants (e.g. 3.14_f32)
+	// Only treat as user literal if the suffix is registered in the engine
+	if( t.type != ttStringConstant &&
+		t.type != ttMultilineStringConstant &&
+		t.type != ttHeredocStringConstant )
+	{
+		sToken next;
+		GetToken(&next);
+		if( next.type == ttIdentifier && next.pos == t.pos + t.length )
+		{
+			asCString suffix(&script->code[next.pos], next.length);
+			bool isRegistered = false;
+			if( engine )
+			{
+				asSMapNode<asCString, int> *cursor = 0;
+				if( engine->literals.suffix.uint64Literals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.doubleLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.userLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.uint64Literals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.doubleLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.userLiterals.MoveTo(&cursor, suffix) )
+				{
+					isRegistered = true;
+				}
+			}
+			if( isRegistered )
+			{
+				RewindTo(&next);
+				node->AddChildLast(ParseUserLiteral());
+			}
+			else
+				RewindTo(&next);
+		}
+		else
+			RewindTo(&next);
 	}
 
 	return node;
@@ -1904,7 +2006,7 @@ asCScriptNode *asCParser::ParseLambda()
 	return node;
 }
 
-asCScriptNode *asCParser::ParseStringConstant()
+asCScriptNode *asCParser::ParseStringConstant(bool allowUserLiteral)
 {
 	asCScriptNode *node = CreateNode(snConstant);
 	if( node == 0 ) return 0;
@@ -1920,6 +2022,31 @@ asCScriptNode *asCParser::ParseStringConstant()
 
 	node->SetToken(&t);
 	node->UpdateSourcePos(t.pos, t.length);
+
+	if (allowUserLiteral)
+	{
+		GetToken(&t);
+		RewindTo(&t);
+
+		if (t.type == ttIdentifier)
+		{
+			asCString suffix(&script->code[t.pos], t.length);
+			bool isRegistered = false;
+			if( engine )
+			{
+				asSMapNode<asCString, int> *cursor = 0;
+				if( engine->literals.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.stringLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literals.suffix.userLiterals.MoveTo(&cursor, suffix) ||
+				    engine->literalsCallback.suffix.userLiterals.MoveTo(&cursor, suffix) )
+				{
+					isRegistered = true;
+				}
+			}
+			if( isRegistered )
+				node->AddChildLast(ParseUserLiteral());
+		}
+	}
 
 	return node;
 }
@@ -4151,6 +4278,16 @@ asCScriptNode *asCParser::ParseInitList()
 		}
 	}
 	UNREACHABLE_RETURN;
+}
+
+asCScriptNode* asCParser::ParseUserLiteral()
+{
+	asCScriptNode* node = CreateNode(snUserLiteral);
+	if (node == 0) return 0;
+
+	node->AddChildLast(ParseIdentifier());
+
+	return node;
 }
 
 // BNF:1: VAR           ::= ('private'|'protected')? TYPE IDENTIFIER (( '=' (INITLIST | EXPR)) | ARGLIST)? (',' IDENTIFIER (( '=' (INITLIST | EXPR)) | ARGLIST)?)* ';'
