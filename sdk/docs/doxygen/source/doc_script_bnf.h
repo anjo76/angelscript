@@ -51,8 +51,8 @@ CASE          ::= (('case' EXPR) | 'default') ':' STATEMENT*
 EXPRTERM      ::= ((TYPE '=')? INITLIST) | (EXPRPREOP* EXPRVALUE EXPRPOSTOP*)
 EXPRVALUE     ::= 'void' | CONSTRUCTCALL | FUNCCALL | VARACCESS | CAST | LITERAL | '(' ASSIGN ')' | LAMBDA
 CONSTRUCTCALL ::= TYPE ARGLIST
-EXPRPREOP     ::= '-' | '+' | '!' | '++' | '--' | '~' | '@'
-EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' (IDENTIFIER ':')? ASSIGN (',' (IDENTIFIER ':')? ASSIGN)* ']') | ARGLIST | '++' | '--'
+EXPRPREOP     ::= '-' | '+' | '!' | '++' | '\--' | '~' | '@'
+EXPRPOSTOP    ::= ('.' (FUNCCALL | IDENTIFIER)) | ('[' (IDENTIFIER ':')? ASSIGN (',' (IDENTIFIER ':')? ASSIGN)* ']') | ARGLIST | '++' | '\--'
 CAST          ::= 'cast' '<' TYPE '>' '(' ASSIGN ')'
 LITERAL       ::= NUMBER | STRING | BITS | 'true' | 'false' | 'null'
 LAMBDA        ::= 'function' '(' ((TYPE TYPEMOD)? IDENTIFIER? (',' (TYPE TYPEMOD)? IDENTIFIER?)*)? ')' STATBLOCK
@@ -62,11 +62,11 @@ ARGLIST       ::= '(' (IDENTIFIER ':')? ASSIGN (',' (IDENTIFIER ':')? ASSIGN)* '
 ASSIGN        ::= CONDITION ( ASSIGNOP ASSIGN )?
 CONDITION     ::= EXPR ('?' ASSIGN ':' ASSIGN)?
 EXPROP        ::= MATHOP | COMPOP | LOGICOP | BITOP
-MATHOP        ::= '+' | '-' | '*' | '/' | '\%' | '**'
+MATHOP        ::= '+' | '-' | '\*' | '/' | '\%' | '\**'
 COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
-ASSIGNOP      ::= '=' | '+=' | '-=' | '*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '**=' | '<<=' | '>>=' | '>>>='
+ASSIGNOP      ::= '=' | '+=' | '-=' | '\*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '\**=' | '<<=' | '>>=' | '>>>='
 IDENTIFIER    ::= [A-Za-z_][A-Za-z0-9_]*            // single token:  starts with letter or _, can include any letter and digit, same as in C++
 NUMBER        ::= [0-9]+("."[0-9]+)?                // single token:  includes integers and real numbers, same as C++ 
 STRING        ::= '"' ("\". | [^"\#x0D\#x0A\\])* '"'   // single token:  single quoted ', double quoted ", or heredoc multi-line string """
