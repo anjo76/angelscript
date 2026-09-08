@@ -5345,6 +5345,10 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 	if (DeclareVariable("", rangeDt, rangeOffset, &rangeExpr.bc, node) < 0)
 		return;
 
+	// The instruction used for loading the container "this" from rangeOffset.
+	// Object handles already contain a pointer while value types don't.
+	asEBCInstr rangeLoadInstruction = rangeDt.IsObjectHandle() ? asBC_PshVPtr : asBC_PSF;
+
 	CompileInitializationWithAssignment(&rangeExpr.bc, rangeDt, rangeNode, rangeOffset, 0, asVGM_VARIABLE, rangeNode, &rangeExpr);
 	ProcessDeferredParams(&rangeExpr);
 	rangeExpr.bc.OptimizeLocally(tempVariableOffsets);
@@ -5545,7 +5549,7 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 
 	asCExprContext opForBeginExpr(engine);
 	{
-		opForBeginExpr.bc.InstrSHORT(asBC_PshVPtr, short(rangeOffset));
+		opForBeginExpr.bc.InstrSHORT(rangeLoadInstruction, short(rangeOffset));
 
 		asCArray<asCExprContext*> args;
 		int r = MakeFunctionCall(
@@ -5567,7 +5571,7 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 	// Compile the condition statement
 	asCExprContext opForEndExpr(engine);
 	{
-		opForEndExpr.bc.InstrSHORT(asBC_PshVPtr, short(rangeOffset));
+		opForEndExpr.bc.InstrSHORT(rangeLoadInstruction, short(rangeOffset));
 
 		asCArray<asCExprContext*> args;
 		asCExprContext arg(engine);
@@ -5614,7 +5618,7 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 	asCExprContext next(engine);
 	{
 		asCExprContext opForNextExpr(engine);
-		opForNextExpr.bc.InstrSHORT(asBC_PshVPtr, short(rangeOffset));
+		opForNextExpr.bc.InstrSHORT(rangeLoadInstruction, short(rangeOffset));
 
 		asCArray<asCExprContext*> args;
 		asCExprContext arg(engine);
@@ -5691,7 +5695,7 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 
 		asCExprContext opForValueNExpr(engine);
 
-		opForValueNExpr.bc.InstrSHORT(asBC_PshVPtr, short(rangeOffset));
+		opForValueNExpr.bc.InstrSHORT(rangeLoadInstruction, short(rangeOffset));
 
 		asCArray<asCExprContext*> args;
 		asCExprContext arg(engine);
