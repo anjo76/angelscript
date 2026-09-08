@@ -180,8 +180,16 @@ backwards compatibility for existing scripts before 2.38.0 that may be using the
 
 When this property to 0, the class members with an initialization expression in the declaration will always be initialized 
 after the call to super(). It is also not possible to explicitly initialize members within the body of the constructor. When 
-set to 1 (default), the class members will be initialized as described in \ref doc_script_class_memberinit. This mode was 
+set to 1 (default), the class members will be initialized as described in \ref doc_script_class_memberinit. This mode was
 added to provide backwards compatibility with versions before 2.38.0.
+
+\ref asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS
+
+Compound assignment operators (e.g. <tt>+=</tt>) used with property accessors (<tt>get_x</tt>/<tt>set_x</tt>) are normally
+rejected by the compiler when the property belongs to a value type or a scoped reference type, since the object cannot be
+guaranteed to stay alive between the get and set call. Turning on this option allows the compiler to accept such compound
+assignments anyway, at the application's own risk. Note that this does not introduce a new risk compared to a script writing
+the equivalent two statements manually, e.g. <tt>obj.x = obj.x + 1</tt>, which is always allowed.
 
 
 

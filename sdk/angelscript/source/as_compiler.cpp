@@ -13895,8 +13895,7 @@ int asCCompiler::CompileExpressionPreOp(asCScriptNode *node, asCExprContext *ctx
 		}
 		if( ctx->property_get || ctx->property_set )
 		{
-			Error(TXT_INVALID_REF_PROP_ACCESS, node);
-			return -1;
+			return ProcessPropertyIncDecAccessor(ctx, (eTokenType)op, false, node);
 		}
 		if( !ctx->type.isLValue )
 		{
@@ -14382,10 +14381,11 @@ int asCCompiler::ProcessPropertyGetSetAccessor(asCExprContext *ctx, asCExprConte
 		return -1;
 	}
 
-	// Property accessors on value types (or scoped references types) are not supported since
-	// it is not possible to guarantee that the object will stay alive between the two calls
+	// Property accessors on value types (or scoped references types) are not supported by default
+	// since it is not possible to guarantee that the object will stay alive between the two calls.
+	// The application may opt-in to accept this risk via asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS.
 	asCScriptFunction *func = engine->scriptFunctions[lctx->property_set];
-	if( func->objectType && (func->objectType->flags & (asOBJ_VALUE | asOBJ_SCOPED)) )
+	if( func->objectType && (func->objectType->flags & (asOBJ_VALUE | asOBJ_SCOPED)) && !engine->ep.enableValueTypedCompoundPropertyAccessors )
 	{
 		// Process the property to free the memory
 		ProcessPropertySetAccessor(lctx, rctx, errNode);
@@ -14425,7 +14425,20 @@ int asCCompiler::ProcessPropertyGetSetAccessor(asCExprContext *ctx, asCExprConte
 	}
 
 	asCExprContext before(engine);
-	if( func->objectType && (func->objectType->flags & (asOBJ_REF|asOBJ_SCOPED)) == asOBJ_REF )
+	bool takeExtraRef = func->objectType && (func->objectType->flags & (asOBJ_REF|asOBJ_SCOPED)) == asOBJ_REF;
+	// When compound assignment on value/scoped types has been allowed by the application (see above),
+	// the object cannot be given a protective extra reference the way ordinary reference types are
+	// below: value types have no refcounting at all, and scoped types don't permit taking a second
+	// owning reference (no AddRef). Instead the already computed address is copied into a non-owning
+	// local reference variable purely so it can be reused for the set call; this carries exactly the
+	// same risk as the script writing "obj.x = obj.x + 1" as two separate statements. Note that since
+	// this variable never owns what it points to, it must be explicitly cleared (see below) rather
+	// than released when done with it - and for scoped types (unlike value types) REFCPY's conditional
+	// release of the destination's *previous* content means that clear is mandatory, not optional: an
+	// uncleared, reused slot would otherwise be mistaken for a previously (validly) held reference and
+	// released out from under its real owner.
+	bool materializeUnsafeRef = !takeExtraRef && func->objectType && (func->objectType->flags & (asOBJ_VALUE|asOBJ_SCOPED));
+	if( takeExtraRef || materializeUnsafeRef )
 	{
 		// Keep a reference to the object in a local variable
 		before.bc.AddCode(&lctx->bc);
@@ -14434,8 +14447,22 @@ int asCCompiler::ProcessPropertyGetSetAccessor(asCExprContext *ctx, asCExprConte
 		rctx->bc.GetVarsUsed(reservedVariables);
 		before.bc.GetVarsUsed(reservedVariables);
 
-		asCDataType dt = asCDataType::CreateObjectHandle(func->objectType, false);
-		int offset = AllocateVariable(dt, true);
+		asCDataType dt;
+		int offset;
+		if( takeExtraRef )
+		{
+			dt = asCDataType::CreateObjectHandle(func->objectType, false);
+			offset = AllocateVariable(dt, true);
+		}
+		else
+		{
+			// Allocate a plain (non-owning) reference variable. Being a reference rather than a
+			// handle, no destructor/release will ever be emitted for it (see CallDestructor), which
+			// is correct since we don't own the object.
+			dt = asCDataType::CreateType(func->objectType, false);
+			offset = AllocateVariable(dt, true, false, true);
+			dt.MakeReference(true);
+		}
 
 		reservedVariables.SetLength(len);
 
@@ -14492,10 +14519,215 @@ int asCCompiler::ProcessPropertyGetSetAccessor(asCExprContext *ctx, asCExprConte
 	MergeExprBytecodeAndType(ctx, &llctx);
 
 	if( before.type.stackOffset )
-		ReleaseTemporaryVariable(before.type.stackOffset, &ctx->bc);
+	{
+		if( takeExtraRef )
+			ReleaseTemporaryVariable(before.type.stackOffset, &ctx->bc);
+		else
+		{
+			// This variable never owned the reference it aliased (see above), so it must not be
+			// released - instead it is explicitly cleared to null. This matters for value types only
+			// for hygiene (their memory is otherwise left with a stale, meaningless pointer), but for
+			// scoped types it is required for correctness: the variable's slot may be reused by a
+			// later, unrelated compound assignment, and if it were left holding a non-null value,
+			// that later use's REFCPY would mistake it for a previously (validly) held reference and
+			// release it out from under its real owner.
+			ctx->bc.InstrSHORT(asBC_ClrVPtr, (short)before.type.stackOffset);
+			DeallocateVariable(before.type.stackOffset);
+		}
+	}
 
 	MergeExprBytecode(ctx, &before);
 	ProcessDeferredParams(ctx);
+
+	return 0;
+}
+
+// Prefix/postfix ++ and -- on property accessors are essentially compound assignment (x += 1 or
+// x -= 1) with a synthesized constant 1, and so are subject to the exact same requirements and
+// limitations as ProcessPropertyGetSetAccessor above (both get and set accessors are required, and
+// value/scoped types require the application to opt-in via
+// asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS).
+//
+// Unlike compound assignment, both the *old* (pre-update) and *new* (post-update) value are needed
+// here - postfix returns the old value, prefix returns the new one - so this doesn't simply delegate
+// to ProcessPropertyGetSetAccessor (whose own result reflects whatever the set accessor call itself
+// returns, typically nothing usable, since setters are usually declared to return void). Instead the
+// get accessor is called exactly once, its result kept in its own temporary (the eventual old-value
+// result), the new value computed from that, and finally the set accessor called with the new value -
+// mirroring the address materialization/reuse done in ProcessPropertyGetSetAccessor (see there for
+// the full rationale) so that value/scoped types are supported under the same conditions.
+int asCCompiler::ProcessPropertyIncDecAccessor(asCExprContext *ctx, eTokenType op, bool isPostFix, asCScriptNode *errNode)
+{
+	asASSERT( op == ttInc || op == ttDec );
+
+	if( ctx->property_arg != 0 )
+	{
+		ProcessPropertyGetAccessor(ctx, errNode);
+		Error(TXT_COMPOUND_ASGN_WITH_IDX_PROP, errNode);
+		return -1;
+	}
+
+	if( ctx->property_set == 0 || ctx->property_get == 0 )
+	{
+		ProcessPropertyGetAccessor(ctx, errNode);
+		Error(TXT_COMPOUND_ASGN_REQUIRE_GET_SET, errNode);
+		return -1;
+	}
+
+	asCScriptFunction *func = engine->scriptFunctions[ctx->property_set];
+	if( func->objectType && (func->objectType->flags & (asOBJ_VALUE | asOBJ_SCOPED)) && !engine->ep.enableValueTypedCompoundPropertyAccessors )
+	{
+		ProcessPropertyGetAccessor(ctx, errNode);
+		Error(TXT_INVALID_REF_PROP_ACCESS, errNode);
+		return -1;
+	}
+
+	asCExprContext result(engine);
+
+	// Materialize the object's address into a local variable exactly like ProcessPropertyGetSetAccessor
+	// does internally (see there for the full rationale), so it can safely be reused: once for the get
+	// call below, and again further down for the set call. Note that unlike a plain resolved value,
+	// ctx must keep carrying real bytecode (a fresh PSF instruction, in the materialized case) up until
+	// the get call below actually consumes it to build the call.
+	bool takeExtraRef = func->objectType && (func->objectType->flags & (asOBJ_REF|asOBJ_SCOPED)) == asOBJ_REF;
+	bool materializeUnsafeRef = !takeExtraRef && func->objectType && (func->objectType->flags & (asOBJ_VALUE|asOBJ_SCOPED));
+	int materializedOffset = 0;
+	if( takeExtraRef || materializeUnsafeRef )
+	{
+		asCExprContext before(engine);
+		before.bc.AddCode(&ctx->bc);
+
+		asUINT len = reservedVariables.GetLength();
+		before.bc.GetVarsUsed(reservedVariables);
+
+		asCDataType dt;
+		int offset;
+		if( takeExtraRef )
+		{
+			dt = asCDataType::CreateObjectHandle(func->objectType, false);
+			offset = AllocateVariable(dt, true);
+		}
+		else
+		{
+			dt = asCDataType::CreateType(func->objectType, false);
+			offset = AllocateVariable(dt, true, false, true);
+			dt.MakeReference(true);
+		}
+
+		reservedVariables.SetLength(len);
+
+		if( ctx->property_ref )
+			before.bc.Instr(asBC_RDSPtr);
+		before.bc.InstrSHORT(asBC_PSF, (short)offset);
+		before.bc.InstrPTR(asBC_REFCPY, func->objectType);
+		before.bc.Instr(asBC_PopPtr);
+
+		if( ctx->type.isTemporary )
+		{
+			asSDeferredParam deferred;
+			deferred.origExpr = 0;
+			deferred.argInOutFlags = asTM_INREF;
+			deferred.argNode = 0;
+			deferred.argType.SetVariable(ctx->type.dataType, ctx->type.stackOffset, true);
+			before.deferredParams.PushLast(deferred);
+		}
+
+		// ctx keeps a fresh, single PSF instruction, ready to be consumed by the get call below
+		ctx->bc.InstrSHORT(asBC_PSF, (short)offset);
+		ctx->type.SetVariable(dt, offset, true);
+		ctx->property_ref = true;
+		ctx->type.isTemporary = false;
+		materializedOffset = offset;
+
+		result.bc.AddCode(&before.bc);
+		for( asUINT n = 0; n < before.deferredParams.GetLength(); n++ )
+			result.deferredParams.PushLast(before.deferredParams[n]);
+	}
+
+	// Keep the (now safely reusable) property/address information for the set call further down,
+	// before it gets consumed/cleared by fetching the current value below
+	asCExprContext llctx(engine);
+	llctx.type            = ctx->type;
+	llctx.property_arg    = ctx->property_arg;
+	llctx.property_const  = ctx->property_const;
+	llctx.property_get    = ctx->property_get;
+	llctx.property_handle = ctx->property_handle;
+	llctx.property_ref    = ctx->property_ref;
+	llctx.property_set    = ctx->property_set;
+
+	// Fetch the current value (the single call to the get accessor), using whatever addressing
+	// bytecode ctx currently carries (either the fresh PSF from materialization above, or its
+	// original, untouched addressing bytecode if no materialization was needed)
+	if( ProcessPropertyGetAccessor(ctx, errNode) < 0 )
+		return -1;
+
+	if( !ctx->type.dataType.IsPrimitive() )
+	{
+		Error(TXT_ILLEGAL_OPERATION, errNode);
+		return -1;
+	}
+
+	// Preserve the fetched value in its own temporary, independent from whatever the operator
+	// computation below does with it, since it may be the result of the whole expression (postfix)
+	ConvertToTempVariable(ctx);
+	asCExprValue oldValue = ctx->type;
+	ctx->type.isTemporary = false;
+	result.bc.AddCode(&ctx->bc);
+
+	// Compute the new value from the old one
+	asCExprContext one(engine);
+	one.type.SetConstantDW(asCDataType::CreatePrimitive(ttInt, true), 1);
+	asCExprContext newValue(engine);
+	if( CompileOperator(errNode, ctx, &one, &newValue, op == ttInc ? ttPlus : ttMinus, false) < 0 )
+		return -1;
+
+	// Preserve the new value in its own temporary too, independent from the argument-passing below
+	// (which would otherwise release its temp variable as soon as it's been passed to the set
+	// accessor), since it may be the result of the whole expression (prefix)
+	ConvertToTempVariable(&newValue);
+	asCExprValue newValueType = newValue.type;
+	newValue.type.isTemporary = false;
+
+	// If the address was materialized above it must be reused (a fresh instruction is needed each
+	// time, since bytecode - unlike the plain metadata above - cannot simply be copied/shared)
+	if( takeExtraRef || materializeUnsafeRef )
+		llctx.bc.InstrSHORT(asBC_PSF, (short)materializedOffset);
+
+	// Write the new value back through the set accessor
+	if( ProcessPropertySetAccessor(&llctx, &newValue, errNode) < 0 )
+		return -1;
+	MergeExprBytecode(&result, &llctx);
+
+	// Release (or clear, for the non-owning value/scoped case) our own materialized address variable,
+	// exactly as ProcessPropertyGetSetAccessor does for its own (single) use of the same pattern
+	if( takeExtraRef || materializeUnsafeRef )
+	{
+		if( takeExtraRef )
+			ReleaseTemporaryVariable(materializedOffset, &result.bc);
+		else
+		{
+			result.bc.InstrSHORT(asBC_ClrVPtr, (short)materializedOffset);
+			DeallocateVariable(materializedOffset);
+		}
+	}
+
+	// Release whichever of the old/new values isn't going to be the result of the expression
+	if( isPostFix )
+	{
+		ReleaseTemporaryVariable(newValueType.stackOffset, &result.bc);
+		oldValue.isTemporary = true;
+		result.type = oldValue;
+	}
+	else
+	{
+		ReleaseTemporaryVariable(oldValue.stackOffset, &result.bc);
+		newValueType.isTemporary = true;
+		result.type = newValueType;
+	}
+
+	ProcessDeferredParams(&result);
+
+	MergeExprBytecodeAndType(ctx, &result);
 
 	return 0;
 }
@@ -14666,8 +14898,7 @@ int asCCompiler::CompileExpressionPostOp(asCScriptNode *node, asCExprContext *ct
 		}
 		if( ctx->property_get || ctx->property_set )
 		{
-			Error(TXT_INVALID_REF_PROP_ACCESS, node);
-			return -1;
+			return ProcessPropertyIncDecAccessor(ctx, (eTokenType)op, true, node);
 		}
 		if( !ctx->type.isLValue )
 		{

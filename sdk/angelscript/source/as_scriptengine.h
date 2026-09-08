@@ -529,6 +529,7 @@ public:
 		asUINT memberInitMode;
 		asUINT boolConversionMode;
 		bool   foreachSupport;
+		bool   enableValueTypedCompoundPropertyAccessors;
 	} ep;
 
 	// Callbacks

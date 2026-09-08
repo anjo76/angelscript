@@ -98,6 +98,23 @@ void StringReplace(asIScriptGeneric *gen)
 	gen->SetReturnObject(&s);
 }
 
+struct SCompoundValueType
+{
+	int value;
+};
+int  CompoundValueType_GetValue(SCompoundValueType &obj)        { return obj.value; }
+void CompoundValueType_SetValue(SCompoundValueType &obj, int v) { obj.value = v; }
+
+class CCompoundScopedType
+{
+public:
+	static CCompoundScopedType *Factory() { return new CCompoundScopedType(); }
+	void Release() { delete this; }
+	int value;
+};
+int  CompoundScopedType_GetValue(CCompoundScopedType *obj)        { return obj->value; }
+void CompoundScopedType_SetValue(CCompoundScopedType *obj, int v) { obj->value = v; }
+
 bool Test()
 {
 	RET_ON_MAX_PORT
@@ -1106,6 +1123,161 @@ bool Test()
 		engine->ShutDownAndRelease();
 	}
 
+	// Compound assignments on value type properties are allowed when the application
+	// opts in via asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->SetEngineProperty(asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS, 1);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		engine->RegisterObjectType("type", sizeof(SCompoundValueType), asOBJ_VALUE | asOBJ_POD);
+		engine->RegisterObjectMethod("type", "int get_prop() const property", asFUNCTION(CompoundValueType_GetValue), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("type", "void set_prop(int) property", asFUNCTION(CompoundValueType_SetValue), asCALL_CDECL_OBJFIRST);
+
+		if( engine->GetEngineProperty(asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS) != 1 )
+			TEST_FAILED;
+
+		bout.buffer = "";
+		r = ExecuteString(engine, "type t; t.prop = 1; t.prop += 2; t.prop *= 3; assert(t.prop == 9);");
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
+	// Compound assignments on scoped reference type properties are also allowed when the
+	// application opts in via asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS. Unlike value
+	// types, scoped types are reference counted (just without AddRef), so this also exercises that
+	// the object doesn't get released prematurely nor more than once - both within a single compound
+	// assignment statement, and when the same statement is compiled once but executed repeatedly
+	// (e.g. in a loop), which reuses the same temporary variable slot across iterations.
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->SetEngineProperty(asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS, 1);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		engine->RegisterObjectType("scopedtype", 0, asOBJ_REF | asOBJ_SCOPED);
+		engine->RegisterObjectBehaviour("scopedtype", asBEHAVE_FACTORY, "scopedtype @f()", asFUNCTION(CCompoundScopedType::Factory), asCALL_CDECL);
+		engine->RegisterObjectBehaviour("scopedtype", asBEHAVE_RELEASE, "void f()", asMETHOD(CCompoundScopedType, Release), asCALL_THISCALL);
+		engine->RegisterObjectMethod("scopedtype", "int get_prop() const property", asFUNCTION(CompoundScopedType_GetValue), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("scopedtype", "void set_prop(int) property", asFUNCTION(CompoundScopedType_SetValue), asCALL_CDECL_OBJFIRST);
+
+		bout.buffer = "";
+		r = ExecuteString(engine, "scopedtype s; s.prop = 1; s.prop += 2; s.prop *= 3; assert(s.prop == 9);");
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		bout.buffer = "";
+		r = ExecuteString(engine,
+			"int sum = 0; \n"
+			"for( int i = 0; i < 5; i++ ) { \n"
+			"  scopedtype s2; s2.prop = i; s2.prop += 1; \n"
+			"  sum += s2.prop; \n"
+			"} \n"
+			"assert(sum == 15);"); // (0+1)+(1+1)+(2+1)+(3+1)+(4+1) = 15
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
+	// Prefix/postfix ++ and -- on value type property accessors are also allowed when the application
+	// opts in via asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS, just like compound assignment
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->SetEngineProperty(asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS, 1);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		engine->RegisterObjectType("type", sizeof(SCompoundValueType), asOBJ_VALUE | asOBJ_POD);
+		engine->RegisterObjectMethod("type", "int get_prop() const property", asFUNCTION(CompoundValueType_GetValue), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("type", "void set_prop(int) property", asFUNCTION(CompoundValueType_SetValue), asCALL_CDECL_OBJFIRST);
+
+		bout.buffer = "";
+		r = ExecuteString(engine,
+			"type t; t.prop = 1; \n"
+			"assert(t.prop++ == 1); assert(t.prop == 2); \n" // postfix: returns old value
+			"assert(++t.prop == 3); assert(t.prop == 3); \n" // prefix: returns new value
+			"assert(t.prop-- == 3); assert(t.prop == 2); \n"
+			"assert(--t.prop == 1); assert(t.prop == 1); \n");
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
+	// Prefix/postfix ++ and -- on scoped reference type property accessors are also allowed under the
+	// same engine property. As with compound assignment, this also exercises that the object isn't
+	// released prematurely nor more than once, including when the statement executes repeatedly in a
+	// loop (reusing the same temporary variable slot across iterations).
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->SetEngineProperty(asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS, 1);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		engine->RegisterObjectType("scopedtype", 0, asOBJ_REF | asOBJ_SCOPED);
+		engine->RegisterObjectBehaviour("scopedtype", asBEHAVE_FACTORY, "scopedtype @f()", asFUNCTION(CCompoundScopedType::Factory), asCALL_CDECL);
+		engine->RegisterObjectBehaviour("scopedtype", asBEHAVE_RELEASE, "void f()", asMETHOD(CCompoundScopedType, Release), asCALL_THISCALL);
+		engine->RegisterObjectMethod("scopedtype", "int get_prop() const property", asFUNCTION(CompoundScopedType_GetValue), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("scopedtype", "void set_prop(int) property", asFUNCTION(CompoundScopedType_SetValue), asCALL_CDECL_OBJFIRST);
+
+		bout.buffer = "";
+		r = ExecuteString(engine,
+			"scopedtype s; s.prop = 1; \n"
+			"assert(s.prop++ == 1); assert(s.prop == 2); \n" // postfix: returns old value
+			"assert(++s.prop == 3); assert(s.prop == 3); \n" // prefix: returns new value
+			"assert(s.prop-- == 3); assert(s.prop == 2); \n"
+			"assert(--s.prop == 1); assert(s.prop == 1); \n");
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		bout.buffer = "";
+		r = ExecuteString(engine,
+			"int sum = 0; \n"
+			"for( int i = 0; i < 5; i++ ) { \n"
+			"  scopedtype s2; s2.prop = i; s2.prop++; \n"
+			"  sum += s2.prop; \n"
+			"} \n"
+			"assert(sum == 15);"); // (0+1)+(1+1)+(2+1)+(3+1)+(4+1) = 15
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
 
 	// Test memory leak with shared classes and virtual properties
 	// http://www.gamedev.net/topic/644919-memory-leak-in-virtual-properties/
@@ -1567,34 +1739,39 @@ bool Test()
 		TEST_FAILED;
 	}
 
-	// Test pre and post ++. Should fail, since the expression is not a variable
-	const char *script9 = 
+	// Pre and post ++/-- on property accessors are allowed for ordinary reference types (unlike
+	// value/scoped types, which additionally require asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS)
+	const char *script9 =
 		"class Test                  \n"
 		"{                           \n"
-		"  uint get_p() property {return 0;}  \n"
-		"  void set_p(uint) property {}       \n"
+		"  uint _p;                  \n"
+		"  uint get_p() property {return _p;}  \n"
+		"  void set_p(uint v) property {_p = v;}       \n"
 		"}                           \n"
 		"void main()                 \n"
 		"{                           \n"
 		"  Test t;                   \n"
-		"  t.p++;                    \n"
-        "  --t.p;                    \n"
+		"  t.p = 1;                  \n"
+		"  assert(t.p++ == 1);       \n" // postfix: returns old value (1), t.p becomes 2
+		"  assert(--t.p == 1);       \n" // prefix: returns new value (1), t.p becomes 1
+		"  assert(t.p == 1);         \n"
 		"}                           \n";
 	mod->AddScriptSection("script", script9);
 	bout.buffer = "";
 	r = mod->Build();
-	if( r >= 0 )
+	if( r < 0 )
 	{
 		TEST_FAILED;
-		PRINTF("Didn't fail to compile the script\n");
+		PRINTF("%s", bout.buffer.c_str());
 	}
-	if( bout.buffer != "script (6, 1) : Info    : Compiling void main()\n"
-					   "script (9, 6) : Error   : Invalid reference. Property accessors cannot be used in combined read/write operations\n"
-				 	   "script (10, 3) : Error   : Invalid reference. Property accessors cannot be used in combined read/write operations\n" )
+	if( bout.buffer != "" )
 	{
 		PRINTF("%s", bout.buffer.c_str());
 		TEST_FAILED;
 	}
+	r = ExecuteString(engine, "main()", mod);
+	if( r != asEXECUTION_FINISHED )
+		TEST_FAILED;
 
 	// Test using property accessors from within class methods without 'this'
 	// Test accessor where the object is a handle
@@ -2472,13 +2649,16 @@ bool Test()
 		engine->Release();
 	}
 
-	// Test member property accessors with ++ where the set accessor takes a reference
+	// Test member property accessors with ++ where the set accessor takes a reference. This is now
+	// allowed for ordinary reference types like CTest here (see asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS
+	// for the value/scoped type case, which additionally requires opting in).
 	{
 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
 
 		bout.buffer = "";
-		const char *script = 
+		const char *script =
 			"class CTest \n"
 			"{ \n"
 			"  double _vol; \n"
@@ -2489,19 +2669,25 @@ bool Test()
 			"void main() \n"
 			"{ \n"
 			"  for( t.vol = 0; t.vol < 10; t.vol++ ); \n"
+			"  assert(t.vol == 10); \n"
 			"} \n";
 
 		mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
 		mod->AddScriptSection("script", script);
 		r = mod->Build();
-		if( r >= 0 )
-			TEST_FAILED;
-		if( bout.buffer != "script (8, 1) : Info    : Compiling void main()\n"
-		                   "script (10, 36) : Error   : Invalid reference. Property accessors cannot be used in combined read/write operations\n" )
+		if( r < 0 )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
 		}
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+		r = ExecuteString(engine, "main()", mod);
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
 
 		engine->Release();
 	}
