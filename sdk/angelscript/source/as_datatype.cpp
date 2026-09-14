@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2024 Andreas Jonsson
+   Copyright (c) 2003-2025 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied 
    warranty. In no event will the authors be held liable for any 
@@ -225,7 +225,10 @@ asCString asCDataType::Format(asSNameSpace *currNs, bool includeNamespace) const
 	}
 	else if(typeInfo)
 	{
-		str += typeInfo->name;
+		if (typeInfo->name == "$func")
+			str += "<function>"; // use a more friendly name for funcdefs and lambdas
+		else
+			str += typeInfo->name;
 		asCObjectType *ot = CastToObjectType(typeInfo);
 		if( ot && ot->templateSubTypes.GetLength() > 0 )
 		{
@@ -579,8 +582,14 @@ bool asCDataType::IsIntegerType() const
 		tokenType == ttInt64 )
 		return true;
 
-	// Enums are also integer types
-	return IsEnumType();
+	// Enums can also be integer types
+	if (IsEnumType())
+	{
+		asCEnumType * enumType = CastToEnumType(typeInfo);
+		return enumType->enumType.IsIntegerType();
+	}
+	
+	return false;
 }
 
 bool asCDataType::IsUnsignedType() const
@@ -591,6 +600,13 @@ bool asCDataType::IsUnsignedType() const
 		tokenType == ttUInt64 )
 		return true;
 
+	// Enums can also be unsigned integer types
+	if (IsEnumType())
+	{
+		asCEnumType * enumType = CastToEnumType(typeInfo);
+		return enumType->enumType.IsUnsignedType();
+	}
+	
 	return false;
 }
 

@@ -77,8 +77,8 @@ namespace TestThisCallMethod_ConfigErrors
 			CHECK_OK(engine->RegisterObjectBehaviour("Val2", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(0), asCALL_THISCALL_OBJLAST, (void*)1));
 
 			// Copy constructor behaviour
-			CHECK_OK(engine->RegisterObjectBehaviour("Val", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(0), asCALL_THISCALL_OBJFIRST, (void*)1));
-			CHECK_OK(engine->RegisterObjectBehaviour("Val2", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(0), asCALL_THISCALL_OBJLAST, (void*)1));
+			CHECK_OK(engine->RegisterObjectBehaviour("Val", asBEHAVE_CONSTRUCT, "void f(const Val &in)", asFUNCTION(0), asCALL_THISCALL_OBJFIRST, (void*)1));
+			CHECK_OK(engine->RegisterObjectBehaviour("Val2", asBEHAVE_CONSTRUCT, "void f(const Val2 &in)", asFUNCTION(0), asCALL_THISCALL_OBJLAST, (void*)1));
 
 			// List constructor behaviour
 			CHECK_OK(engine->RegisterObjectBehaviour("Val", asBEHAVE_LIST_CONSTRUCT, "void f(int &in) { float, float }", asFUNCTION(0), asCALL_THISCALL_OBJFIRST, (void*)1));

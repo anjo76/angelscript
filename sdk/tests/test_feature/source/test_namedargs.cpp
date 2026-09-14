@@ -15,6 +15,30 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptEngine *engine;
 
+	// Test named args and constant expr conversion
+	// Reported by Rémy Stivani 
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		r = engine->RegisterObjectType("Test", 0, asOBJ_REF | asOBJ_NOCOUNT);
+		r = engine->RegisterObjectMethod("Test", "void addValue(uint64 value)", asFUNCTION(0), asCALL_GENERIC); assert(r >= 0);
+		r = engine->RegisterGlobalProperty("Test t", (void *)1);
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void main() {\n"
+			"  t.addValue(value: 3);\n" // const int must be implicitly converted to uint64
+			"}\n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+		engine->ShutDownAndRelease();
+	}
+
 	// Test issue with named args and factories
 	// reported by Patrick Jeeves
 	{
@@ -94,7 +118,8 @@ bool Test()
 		if (bout.buffer != "test (3, 1) : Info    : Compiling void test()\n"
 						   "test (3, 16) : Error   : No matching signatures to 'func(b: const int)'\n"
 						   "test (3, 16) : Info    : Candidates are:\n"
-						   "test (3, 16) : Info    : void func(int a)\n")
+						   "test (3, 16) : Info    : void func(int a)\n"
+						   "test (3, 16) : Info    : Rejected due to named parameter 'b' missing\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -372,7 +397,8 @@ bool Test()
 						   "test (5, 16) : Error   : No matching signatures to 'func(const int, a: const int)'\n"
 						   "test (5, 16) : Info    : Candidates are:\n"
 						   "test (5, 16) : Info    : bool func(int a, int b, int c)\n"
-						   )
+						   "test (5, 16) : Info    : Rejected due to not enough parameters\n"
+		  )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -402,7 +428,7 @@ bool Test()
 			TEST_FAILED;
 
 		if( bout.buffer != "test (5, 1) : Info    : Compiling void test()\n"
-						   "test (5, 23) : Error   : Duplicate named argument\n"
+						   "test (5, 23) : Error   : Duplicate named argument 'a'\n"
 						   )
 		{
 			PRINTF("%s", bout.buffer.c_str());

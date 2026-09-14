@@ -203,7 +203,7 @@ protected:
 
 	asCScriptEngine *engine;
 	asCModule       *module;
-	asCMap<asSNameSpace*, asCArray<asSNameSpace*>>    namespaceVisibility;
+	asCMap< asSNameSpace*, asCArray<asSNameSpace*> >    namespaceVisibility;
 
 #ifndef AS_NO_COMPILER
 protected:
@@ -246,8 +246,8 @@ protected:
 	void               RegisterNonTypesFromScript(asCScriptNode *node, asCScriptCode *script, asSNameSpace *ns);
 	void               CompileFunctions();
 	void               CompileGlobalVariables();
-	int                GetEnumValueFromType(asCEnumType *type, const char *name, asCDataType &outDt, asDWORD &outValue);
-	int                GetEnumValue(const char *name, asCDataType &outDt, asDWORD &outValue, asSNameSpace *ns);
+	int                GetEnumValueFromType(asCEnumType *type, const char *name, asCDataType &outDt, asINT64 &outValue);
+	int                GetEnumValue(const char *name, asCDataType &outDt, asINT64 &outValue, asSNameSpace *ns);
 	bool               DoesTypeExist(const asCString &type);
 	asCObjectProperty *GetObjectProperty(asCDataType &obj, const char *prop);
 	asCScriptFunction *GetFunctionDescription(int funcId);

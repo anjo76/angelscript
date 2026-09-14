@@ -130,6 +130,8 @@ public:
 #endif
 			isReading = false;
 		}
+		if( f == 0 )
+			return -1;
 		size_t r = fwrite(ptr, size, 1, f);
 		fflush(f);
 		position += size;
@@ -151,6 +153,8 @@ public:
 #endif
 			isReading = true;
 		}
+		if( f == 0 )
+			return -1;
 		size_t r = fread(ptr, size, 1, f);
 		position += size;
 		if (r != 1)

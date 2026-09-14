@@ -1225,6 +1225,7 @@ bool Test()
 						   "test (7, 3) : Error   : No matching signatures to 'func({...})'\n"
 						   "test (7, 3) : Info    : Candidates are:\n"
 						   "test (7, 3) : Info    : void func(int a)\n"
+						   "test (7, 3) : Info    : Rejected due to type mismatch on parameter 'a'\n"
 						   "test (8, 3) : Error   : Multiple matching signatures to 'func2({...})'\n"
 						   "test (8, 3) : Info    : void func2(array<int>@ a)\n"
 						   "test (8, 3) : Info    : void func2(dictionary@ d)\n"
@@ -1279,7 +1280,6 @@ bool Test()
 		asIScriptFunction *func = mod->GetFunctionByName("func");
 		asBYTE expect[] =
 		{
-			asBC_SUSPEND,
 			asBC_PshVPtr,
 			asBC_RefCpyV, // The refcpy here is required because the function expects a ref to a handle
 			asBC_PopPtr,
@@ -1793,7 +1793,7 @@ bool Test()
 		if( r >= 0 )
 			TEST_FAILED;
 		if( bout.buffer != "array (0, 0) : Error   : The subtype 'single' has no default factory\n"
-						   "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template type 'array<single>'\n" )
+						   "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template 'array<single>'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2214,7 +2214,7 @@ bool Test()
 		if( r > 0 ) 
 			TEST_FAILED;
 		if( bout.buffer != "array (0, 0) : Error   : The subtype 'CTest' has no default factory\n"
-						   "script (5, 7) : Error   : Attempting to instantiate invalid template type 'array<CTest>'\n" )
+						   "script (5, 7) : Error   : Attempting to instantiate invalid template 'array<CTest>'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2483,7 +2483,7 @@ bool Test()
 		if( r >= 0 )
 			TEST_FAILED;
 		if( bout.buffer != "array (0, 0) : Error   : The subtype 'array<float>' has no default factory\n"
-						   "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template type 'array<array<float>>'\n" )
+						   "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template 'array<array<float>>'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

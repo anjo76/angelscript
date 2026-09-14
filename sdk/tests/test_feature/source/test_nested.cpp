@@ -10,6 +10,7 @@ static void CallExecuteString(string &str)
 	asIScriptEngine *engine = ctx->GetEngine();
 	ctx->PushState();
 	int r = ExecuteString(engine, str.c_str(), 0, ctx);
+	ctx->Unprepare(); // explicitly calling Unprepare is allowed but not necessary
 	ctx->PopState();
 
 	if( r < 0)

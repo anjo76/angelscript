@@ -156,6 +156,36 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test that multiple definitions of the same constructor signature / destructor is not allowed
+	// Reported by AK
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		mod = engine->GetModule("t", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", 
+			"class Test { \n"
+			"  Test(int i) {} \n"
+			"  Test(int i) {} \n"
+			"  ~Test() {} \n"
+			"  ~Test() {} \n"
+			"} \n");
+		r = mod->Build();
+		if( r >= 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer !=
+			"script (3, 3) : Error   : A function with the same name and parameters already exists\n"
+			"script (5, 3) : Error   : A function with the same name and parameters already exists\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Mixins do not support deleting methods
 	{
 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
@@ -2360,9 +2390,10 @@ bool Test()
 			"script (12, 8) : Error   : No default constructor for object of type 'CBar'.\n"
 			"script (12, 8) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 			"script (13, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
-			"script (14, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
+			"script (14, 9) : Error   : No matching signatures to 'CBar(CBar@&)'\n"
 			"script (14, 9) : Info    : Candidates are:\n"
-			"script (14, 9) : Info    : CBar@ CBar(int a)\n")
+			"script (14, 9) : Info    : CBar@ CBar(int a)\n"
+			"script (14, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2416,9 +2447,10 @@ bool Test()
 						   "script (13, 8) : Error   : No default constructor for object of type 'CBar'.\n"
 						   "script (13, 8) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 						   "script (14, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
-						   "script (15, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
+						   "script (15, 9) : Error   : No matching signatures to 'CBar(CBar@&)'\n"
 						   "script (15, 9) : Info    : Candidates are:\n"
-						   "script (15, 9) : Info    : CBar@ CBar(int a)\n" )
+						   "script (15, 9) : Info    : CBar@ CBar(int a)\n"
+						   "script (15, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -2518,9 +2550,10 @@ bool Test()
 			"script (13, 8) : Error   : No default constructor for object of type 'CBar'.\n"
 			"script (13, 8) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
 			"script (14, 5) : Error   : No appropriate opAssign method found in 'CBar' for value assignment\n"
-			"script (15, 9) : Error   : No matching signatures to 'CBar(CBar&)'\n"
+			"script (15, 9) : Error   : No matching signatures to 'CBar(CBar@&)'\n"
 			"script (15, 9) : Info    : Candidates are:\n"
 			"script (15, 9) : Info    : CBar@ CBar(int a)\n"
+			"script (15, 9) : Info    : Rejected due to type mismatch on parameter 'a'\n"
 			"script (16, 9) : Error   : Data type can't be 'CBar2'\n"
 			"script (17, 9) : Error   : Data type can't be 'CBar2'\n"
 			"script (18, 8) : Error   : No matching symbol 'a2'\n"

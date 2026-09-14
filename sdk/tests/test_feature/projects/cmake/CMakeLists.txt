@@ -10,6 +10,7 @@ add_executable(
         ../../source/scriptstring_utils.cpp
         ../../source/test2modules.cpp
         ../../source/test_2func.cpp
+        ../../source/test_addon_autowrapper.cpp
         ../../source/test_addon_contextmgr.cpp
         ../../source/test_addon_datetime.cpp
         ../../source/test_addon_debugger.cpp
@@ -79,6 +80,7 @@ add_executable(
         ../../source/test_inheritance.cpp
         ../../source/test_int8.cpp
         ../../source/test_interface.cpp
+		../../source/test_literal.cpp
         ../../source/test_mixin.cpp
         ../../source/test_module.cpp
         ../../source/test_multiassign.cpp

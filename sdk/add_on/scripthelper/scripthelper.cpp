@@ -281,11 +281,12 @@ int WriteConfigToStream(asIScriptEngine *engine, ostream &strm)
 			engine->SetDefaultNamespace(currNamespace.c_str());
 		}
 		const char *enumName = ti->GetName();
-		strm << "enum " << enumName << "\n";
+		const char* underlyingType = engine->GetTypeDeclaration(ti->GetUnderlyingTypeId());
+		strm << "enum " << enumName << " " << underlyingType << "\n";
 		for( asUINT m = 0; m < ti->GetEnumValueCount(); m++ )
 		{
 			const char *valName;
-			int val;
+			asINT64 val;
 			valName = ti->GetEnumValueByIndex(m, &val);
 			strm << "enumval " << enumName << " " << valName << " " << val << "\n";
 		}
@@ -351,7 +352,7 @@ int WriteConfigToStream(asIScriptEngine *engine, ostream &strm)
 			strm << "access " << hex << (unsigned int)(accessMask) << dec << "\n";
 			currAccessMask = accessMask;
 		}
-		strm << "typedef " << ti->GetName() << " \"" << engine->GetTypeDeclaration(ti->GetTypedefTypeId()) << "\"\n";
+		strm << "typedef " << ti->GetName() << " \"" << engine->GetTypeDeclaration(ti->GetUnderlyingTypeId()) << "\"\n";
 	}
 
 	c = engine->GetFuncdefCount();
@@ -861,10 +862,11 @@ int ConfigEngineFromStream(asIScriptEngine *engine, istream &strm, const char *c
 		}
 		else if( token == "enum" )
 		{
-			string type;
-			in::GetToken(engine, type, config, pos);
+			string typeName, typeOf;
+			in::GetToken(engine, typeName, config, pos);
+			in::GetToken(engine, typeOf, config, pos);
 
-			r = engine->RegisterEnum(type.c_str());
+			r = engine->RegisterEnum(typeName.c_str(), typeOf.c_str());
 			if( r < 0 )
 			{
 				engine->WriteMessage(configFile, in::GetLineNumber(config, pos), 0, asMSGTYPE_ERROR, "Failed to register enum type");
@@ -878,7 +880,7 @@ int ConfigEngineFromStream(asIScriptEngine *engine, istream &strm, const char *c
 			in::GetToken(engine, name, config, pos);
 			in::GetToken(engine, value, config, pos);
 
-			r = engine->RegisterEnumValue(type.c_str(), name.c_str(), atol(value.c_str()));
+			r = engine->RegisterEnumValue(type.c_str(), name.c_str(), atoll(value.c_str()));
 			if( r < 0 )
 			{
 				engine->WriteMessage(configFile, in::GetLineNumber(config, pos), 0, asMSGTYPE_ERROR, "Failed to register enum value");

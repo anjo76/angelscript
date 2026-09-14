@@ -2,6 +2,7 @@
 
 namespace TestShared
 {
+using namespace std;
 
 bool Test()
 {
@@ -9,6 +10,99 @@ bool Test()
 	CBufferedOutStream bout;
 	asIScriptEngine* engine;
 	int r;
+
+	// Test shared global property accessors
+	// Reported by Sam Tupy
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule* mod1 = engine->GetModule("test1", asGM_ALWAYS_CREATE);
+		// TODO: The syntax for virtual properties doesn't work with shared. Add support for this
+		mod1->AddScriptSection("test1", R"(
+//			shared string TryMe { 
+//				get { return tryme; } 
+//				set { tryme = value; } 
+//			}
+			// shared functions cannot access non-shared variables, so fake it with a hardcoded value
+			shared string get_TryMe() property { return "test"; }
+			shared void set_TryMe(string &in value) property { assert( value == "test" ); }
+			)");
+		r = mod1->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asIScriptModule* mod2 = engine->GetModule("test2", asGM_ALWAYS_CREATE);
+		mod2->AddScriptSection("test2", R"(
+//			external shared string TryMe { get; set; }
+			external shared string get_TryMe() property;
+			external shared void set_TryMe(string &in value) property;
+			void main() {
+				TryMe = "test";
+				string test = TryMe;
+				assert( test == "test" );
+			}
+			)");
+		r = mod2->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "main()", mod2);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		CBytecodeStream stream1((string("AS_DEBUG/bc_1") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+		r = mod1->SaveByteCode(&stream1);
+		if( r < 0 )
+			TEST_FAILED;
+
+		CBytecodeStream stream2((string("AS_DEBUG/bc_2") + (sizeof(void*) == 4 ? "32" : "64")).c_str());
+		r = mod2->SaveByteCode(&stream2);
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		// Test loading the bytecode
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		RegisterStdString(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		mod1 = engine->GetModule("test1", asGM_ALWAYS_CREATE);
+		r = mod1->LoadByteCode(&stream1);
+		if( r < 0 )
+			TEST_FAILED;
+
+		mod2 = engine->GetModule("test2", asGM_ALWAYS_CREATE);
+		r = mod2->LoadByteCode(&stream2);
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "main()", mod2);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test memory management on shared entities
 	// https://www.gamedev.net/forums/topic/718724-shared-types-refcounting-bug/5470582/
@@ -729,14 +823,14 @@ const char* file2 = "					\
 			TEST_FAILED;
 
 		asDWORD crc32 = ComputeCRC32(&bc1.buffer[0], asUINT(bc1.buffer.size()));
-		if (crc32 != 0xA190A327)
+		if (crc32 != 0x59B3E29)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
 		}
 
 		crc32 = ComputeCRC32(&bc2.buffer[0], asUINT(bc2.buffer.size()));
-		if (crc32 != 0xEC0607E7)
+		if (crc32 != 0x504D4243)
 		{
 			PRINTF("The saved byte code has different checksum than the expected. Got 0x%X\n", crc32);
 			TEST_FAILED;
@@ -1190,8 +1284,8 @@ const char* file2 = "					\
 		if( r >= 0 )
 			TEST_FAILED;
 
-		if( bout.buffer != "B (3, 13) : Error   : Shared type 'ielement' doesn't match the original declaration in other module\n"
-		                   "B (3, 18) : Error   : Shared type 'ielement' doesn't match the original declaration in other module\n" )
+		if( bout.buffer != "B (3, 13) : Error   : Shared type 'ielement' doesn't match the declaration in module 'A'\n"
+		                   "B (3, 18) : Error   : Shared type 'ielement' doesn't match the declaration in module 'A'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1236,15 +1330,15 @@ const char* file2 = "					\
 		engine->Release();
 	}
 
-	// Compiling a script with a shared class that refers to other non declared entities must give
-	// error even if the shared class is already existing in a previous module
+	// Compiling a script with a shared class that refers to other non declared entities must not give
+	// error if the shared class is already existing in a previous module
 	// http://www.gamedev.net/topic/632922-huge-problems-with-precompilde-byte-code/
 	{
 		const char *script1 = 
 			"shared class A { \n"
 			"  B @b; \n"
 			"  void setB(B@) {} \n"
-			"  void func() {B@ l;} \n" // TODO: The method isn't compiled so this error isn't seen. Should it be?
+			"  void func() {B@ l;} \n" // The method isn't compiled so this error isn't seen
 			"  string c; \n"
 			"} \n";
 
@@ -1269,9 +1363,7 @@ const char* file2 = "					\
 		if( r >= 0 )
 			TEST_FAILED;
 		if( bout.buffer != "A (3, 13) : Error   : Identifier 'B' is not a data type in global namespace\n"
-		                   "A (3, 3) : Error   : Shared type 'A' doesn't match the original declaration in other module\n"
-		                 /*  "A (2, 3) : Error   : Identifier 'B' is not a data type in global namespace\n"
-		                   "A (2, 6) : Error   : Shared type 'A' doesn't match the original declaration in other module\n" */)
+		                   "A (3, 3) : Error   : Shared type 'A' doesn't match the declaration in module 'A'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

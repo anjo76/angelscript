@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2023 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -106,17 +106,17 @@ static asQWORD __attribute__((noinline))
 	// Push the stack parameters, i.e. the arguments that won't be loaded into registers
 		"  movq %%rcx, %%rsi \n"
 		"  testl %%esi, %%esi \n"
-		"  jle endstack \n"
+		"  jle Lendstack \n"
 		"  subl $1, %%esi \n"
 		"  xorl %%edx, %%edx \n"
 		"  leaq 8(, %%rsi, 8), %%rcx \n"
-		"loopstack: \n"
+		"Lloopstack: \n"
 		"  movq 112(%%r10, %%rdx), %%rax \n"
 		"  pushq %%rax \n"
 		"  addq $8, %%rdx \n"
 		"  cmpq %%rcx, %%rdx \n"
-		"  jne loopstack \n"
-		"endstack: \n"
+		"  jne Lloopstack \n"
+		"Lendstack: \n"
 
 	// Populate integer and floating point parameters
 		"  movq %%r10, %%rax \n"
@@ -151,16 +151,16 @@ static asQWORD __attribute__((noinline))
 	// Put return value in retQW1 and retQW2, using either RAX:RDX or XMM0:XMM1 depending on type of return value
 		"  movl %5, %%ecx \n"
 		"  testb %%cl, %%cl \n"
-		"  je intret \n"
+		"  je Lintret \n"
 		"  lea %3, %%rax \n"
 		"  movq %%xmm0, (%%rax) \n"
 		"  lea %4, %%rdx \n"
 		"  movq %%xmm1, (%%rdx) \n"
-		"  jmp endcall \n"
-		"intret: \n"
+		"  jmp Lendcall \n"
+		"Lintret: \n"
 		"  movq %%rax, %3 \n"
 		"  movq %%rdx, %4 \n"
-		"endcall: \n"
+		"Lendcall: \n"
 
 		: : "g" ((asQWORD)cnt), "g" (args), "g" (func), "m" (retQW1), "m" (retQW2), "m" (returnFloat)
 		: "%xmm0", "%xmm1", "%xmm2", "%xmm3", "%xmm4", "%xmm5", "%xmm6", "%xmm7", 
@@ -215,6 +215,8 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	asQWORD  paramBuffer[X64_CALLSTACK_SIZE] = { 0 };
 	asBYTE	 argsType[X64_CALLSTACK_SIZE] = { 0 };
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
 	switch ( callConv ) 
 	{
 		case ICC_CDECL_RETURNINMEM:
@@ -231,6 +233,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 		case ICC_THISCALL_OBJLAST:
 		case ICC_VIRTUAL_THISCALL_OBJLAST:
 			param_post = 2;
+			// fall through
 #endif
 		case ICC_THISCALL:
 		case ICC_VIRTUAL_THISCALL:
@@ -247,6 +250,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 		case ICC_THISCALL_OBJLAST_RETURNINMEM:
 		case ICC_VIRTUAL_THISCALL_OBJLAST_RETURNINMEM:
 			param_post = 2;
+			// fall through
 #endif
 		case ICC_THISCALL_RETURNINMEM:
 		case ICC_VIRTUAL_THISCALL_RETURNINMEM:
@@ -301,6 +305,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			break;
 		}
 	}
+#pragma GCC diagnostic pop
 
 	int argumentCount = ( int )descr->parameterTypes.GetLength();
 	for( int a = 0; a < argumentCount; ++a ) 

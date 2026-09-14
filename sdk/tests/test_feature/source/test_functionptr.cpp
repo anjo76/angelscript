@@ -74,6 +74,114 @@ void SetCB(asIScriptGeneric *gen)
 	}
 }
 
+struct Callback
+{
+    // Delegates and free functions
+    asIScriptFunction* func = nullptr;
+
+    // Delegates
+    void* callbackObject = nullptr;
+    asITypeInfo* callbackObjectType = nullptr;
+};
+
+namespace zap
+{
+class ZapEvent
+{
+public:
+    static ZapEvent* Create(asITypeInfo* typeInfo);
+    static void CreateGeneric(asIScriptGeneric* gen);
+    static void InvokeGeneric(asIScriptGeneric* gen);
+
+    void AddListener(asIScriptFunction* func);
+    void Invoke(asIScriptGeneric* gen);
+
+	void AddRef() { count++;  }
+	void Release() { if( --count == 0 ) delete this; }
+
+private:
+    ZapEvent() = default;
+    ZapEvent(asITypeInfo* typeInfo);
+	~ZapEvent() 
+	{ 
+		for( Callback &callback : m_callbacks )
+		{
+			if( callback.callbackObject )
+				reinterpret_cast<asIScriptObject *>(callback.callbackObject)->Release();
+		}
+		m_typeInfo->Release();
+	}
+
+    asITypeInfo* m_typeInfo;
+    std::vector<Callback> m_callbacks;
+	int count;
+};
+asIScriptEngine *g_engine = 0;
+}  // namespace zap::zap_as
+
+// event.cpp
+zap::ZapEvent *zap::ZapEvent::Create(asITypeInfo *typeInfo)
+{
+    ZapEvent *a = new ZapEvent(typeInfo);
+    return a;
+}
+
+void zap::ZapEvent::CreateGeneric(asIScriptGeneric *gen)
+{
+    asITypeInfo *ti = *(asITypeInfo **)gen->GetAddressOfArg(0);
+
+    *reinterpret_cast<ZapEvent **>(gen->GetAddressOfReturnLocation()) = ZapEvent::Create(ti);
+}
+
+void zap::ZapEvent::InvokeGeneric(asIScriptGeneric *gen)
+{
+    ZapEvent *self = (ZapEvent *)gen->GetObject();
+    self->Invoke(gen);
+}
+
+void zap::ZapEvent::AddListener(asIScriptFunction *func)
+{
+    Callback callback = {};
+
+    if (func->GetFuncType() == asFUNC_DELEGATE)
+    {
+        callback.func = func->GetDelegateFunction();
+        callback.callbackObject = func->GetDelegateObject();
+        callback.callbackObjectType = func->GetDelegateObjectType();
+
+        g_engine->AddRefScriptObject(callback.callbackObject, callback.callbackObjectType);
+    }
+    else
+    {
+        callback.func = func;
+    }
+
+    m_callbacks.push_back(callback);
+}
+
+void zap::ZapEvent::Invoke(asIScriptGeneric *gen)
+{
+    for (Callback &callback : m_callbacks)
+    {
+        asIScriptContext *context = g_engine->CreateContext();
+        context->Prepare(callback.func);
+        if (callback.callbackObject)
+        {
+            context->SetObject(callback.callbackObject);
+        }
+        context->SetArgAddress(0, gen->GetArgAddress(0));
+        context->Execute();
+		context->Release();
+    }
+}
+
+zap::ZapEvent::ZapEvent(asITypeInfo *typeInfo)
+{
+    m_typeInfo = typeInfo;
+    m_typeInfo->AddRef();
+	count = 1;
+}
+
 bool Test()
 {
 	RET_ON_MAX_PORT
@@ -85,6 +193,150 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptContext *ctx;
 	CBufferedOutStream bout;
+
+	// Test delegates
+	// https://gamedev.net/forums/topic/719866-eventt-type-question/
+	{
+		using namespace zap;
+		g_engine = engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		engine->RegisterObjectType("ZapEvent<class T>", 0, asOBJ_REF | asOBJ_TEMPLATE);
+		engine->RegisterObjectBehaviour("ZapEvent<T>", asBEHAVE_ADDREF, "void f()", asMETHOD(ZapEvent, AddRef), asCALL_THISCALL);
+		engine->RegisterObjectBehaviour("ZapEvent<T>", asBEHAVE_RELEASE, "void f()", asMETHOD(ZapEvent, Release), asCALL_THISCALL);
+		engine->RegisterObjectBehaviour("ZapEvent<T>", asBEHAVE_FACTORY, "ZapEvent<T>@ f(int&in)",
+										asFUNCTION(ZapEvent::CreateGeneric), asCALL_GENERIC);
+		engine->RegisterFuncdef("void ZapEvent<T>::CallbackType(const T&in if_handle_then_const arg)");
+		engine->RegisterObjectMethod("ZapEvent<T>", "void AddListener(const CallbackType&in callback)",
+									 asMETHODPR(ZapEvent, AddListener, (asIScriptFunction *), void),
+									 asCALL_THISCALL);
+		engine->RegisterObjectMethod("ZapEvent<T>", "void Invoke(const T&in data)", asFUNCTION(ZapEvent::InvokeGeneric), asCALL_GENERIC);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"ZapEvent<string> event; \n"
+			"void Subscription(const string&in n) \n"
+			"{ \n"
+			"  //	Log::Info(format('Subscription called {}', n)); \n"
+			"} \n"
+			"class Test { \n"
+			"  void Method(const string&in n) \n"
+			"  { \n"
+			"  } \n"
+			"} \n"
+			"void Start() \n"
+			"{ \n"
+			"	event.AddListener(ZapEvent<string>::CallbackType(Subscription)); \n"
+			"   Test t; \n"
+			"   event.AddListener(ZapEvent<string>::CallbackType(t.Method)); \n"
+			"	event.Invoke('event'); \n"
+			"}\n");
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "Start()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test instantiating delegate from global function (no delegate object is actually created)
+	// https://github.com/anjo76/angelscript/issues/43
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test", R"(
+			void startnew(CoroutineFunc@ func) {}
+			funcdef void CoroutineFunc();
+			void Thing() {}
+			void Main() {
+				startnew(Thing); // OK
+				startnew(CoroutineFunc(Thing)); // identical (just more explicit)
+				CoroutineFunc @f1 = Thing;
+				CoroutineFunc @f2 = CoroutineFunc(Thing); 
+				assert( f1 is f2 );
+			} )");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		r = ExecuteString(engine, "Main()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test anon function taking a parameter with the same name as a type
+	// Reported by Aaron Baker
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test", R"(
+			class person
+			{
+
+			}
+			funcdef void callback_type(string);
+
+			// This works correctly:
+			/*
+			void callback_no_error()
+			{
+				callback_type@ callback;
+				@callback=function(p)
+				{
+//					alert("Name", "My name is "+p);
+				};
+
+				callback("Henry");
+			}
+			*/
+			// But this compile errors:
+			void callback_error()
+			{
+				callback_type@ callback;
+				@callback=function(person)
+				{
+//					alert("Name", "My name is "+person);
+				};
+
+				callback("Henry");
+			} )");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "test (22, 4) : Info    : Compiling void callback_error()\n"
+						   "test (26, 5) : Error   : Can't implicitly convert from '<auto> lambda(person)' to 'callback_type@'.\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test declaring a function to take funcdef by value must give error
 	// Reported by Sam Tupy
@@ -335,12 +587,14 @@ void test()
 
 		if (bout.buffer != 
 			"test (7, 1) : Info    : Compiling void func()\n"
-			"test (9, 3) : Error   : No matching signatures to 'GUI::OnMouseButton($func@const)'\n" // TODO: Show the signature of the lambda function in the error message
+			"test (9, 3) : Error   : No matching signatures to 'GUI::OnMouseButton(<auto> lambda(GUI::CallbackContext@, UI::MouseEvent&))'\n"
 			"test (9, 3) : Info    : Candidates are:\n"
 			"test (9, 3) : Info    : void GUI::OnMouseButton(GUI::boolMouseEventCallback@)\n"
-			"test (10, 3) : Error   : No matching signatures to 'GUI::OnMouseButton($func@const)'\n" // TODO: Show the signature of the lambda function in the error message
+			"test (9, 3) : Info    : Rejected due to type mismatch at positional parameter 1\n"
+			"test (10, 3) : Error   : No matching signatures to 'GUI::OnMouseButton(<auto> lambda(GUI::CallbackContext@, UI::MouseEvent))'\n"
 			"test (10, 3) : Info    : Candidates are:\n"
-			"test (10, 3) : Info    : void GUI::OnMouseButton(GUI::boolMouseEventCallback@)\n")
+			"test (10, 3) : Info    : void GUI::OnMouseButton(GUI::boolMouseEventCallback@)\n"
+			"test (10, 3) : Info    : Rejected due to type mismatch at positional parameter 1\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -965,7 +1219,7 @@ void test()
 			TEST_FAILED;
 		if (bout.buffer != "test (5, 1) : Info    : Compiling void main2()\n"
 						   "array (0, 0) : Error   : The subtype 'FD' has no default factory\n"
-						   "test (7, 8) : Error   : Attempting to instantiate invalid template type 'array<FD>'\n"
+						   "test (7, 8) : Error   : Attempting to instantiate invalid template 'array<FD>'\n"
 						   "test (8, 3) : Warning : 'a' is not initialized.\n"
 						   "test (8, 3) : Error   : Illegal operation on 'int'\n")
 		{
@@ -1094,6 +1348,12 @@ void test()
 		r = ExecuteString(engine, "main()", mod);
 		if (r != asEXECUTION_FINISHED)
 			TEST_FAILED;
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
 
 		// Test name conflict within class (funcdef vs funcdef, funcdef vs property, funcdef vs method)
 		bout.buffer = "";
@@ -1407,7 +1667,7 @@ void test()
 		r = ExecuteString(engine, "array<float>::MyCallback2 @cb;");
 		if (r >= 0)
 			TEST_FAILED;
-		if (bout.buffer != "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template type 'array<float>'\n")
+		if (bout.buffer != "ExecuteString (1, 7) : Error   : Attempting to instantiate invalid template 'array<float>'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1593,7 +1853,7 @@ void test()
 			TEST_FAILED;
 		if (bout.buffer != "glob (1, 1) : Error   : Identifier 'NotDeclared' is not a data type in global namespace\n"
 						   "glob (1, 14) : Info    : Compiling int nd\n"
-						   "glob (1, 31) : Error   : Can't implicitly convert from '$func@const' to 'int&'.\n")
+						   "glob (1, 31) : Error   : Can't implicitly convert from '<auto> lambda(<auto>)' to 'int&'.\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;
@@ -1641,10 +1901,9 @@ void test()
 		r = mod->Build();
 		if( r >= 0 )
 			TEST_FAILED;
-		// TODO: The error messages should be more more explicit
 		if( bout.buffer != "name (2, 1) : Info    : Compiling void func()\n"
-						   "name (3, 23) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
-						   "name (4, 26) : Error   : Can't implicitly convert from '$func@const' to 'CB1@&'.\n"
+						   "name (3, 23) : Error   : Can't implicitly convert from '<auto> lambda()' to 'CB1@&'.\n"
+						   "name (4, 26) : Error   : Can't implicitly convert from '<auto> lambda(<auto>, <auto>)' to 'CB1@&'.\n"
 						   "name (5, 15) : Error   : No matching signatures to '$func::opCall()'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
@@ -1668,7 +1927,7 @@ void test()
 		if (r >= 0)
 			TEST_FAILED;
 		if (bout.buffer != "name (5, 1) : Info    : Compiling void main()\n"
-						   "name (6, 3) : Error   : Multiple matching signatures to 'func($func@const)'\n"
+						   "name (6, 3) : Error   : Multiple matching signatures to 'func(<auto> lambda(<auto>))'\n"
 						   "name (6, 3) : Info    : void func(A@)\n"
 						   "name (6, 3) : Info    : void func(B@)\n")
 		{
@@ -2318,6 +2577,12 @@ void test()
 		r = ExecuteString(engine, "main()", mod);
 		if( r != asEXECUTION_FINISHED )
 			TEST_FAILED;
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
 
 		// Must not be possible to create delegate with const object and non-const method
 		bout.buffer = "";

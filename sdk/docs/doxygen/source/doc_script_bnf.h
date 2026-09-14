@@ -75,7 +75,9 @@ COMMENT       ::= ('//'[^\#x0A]*) | ('/*'[^*]*'*/')  // single token:  starts wi
 WHITESPACE    ::= [ \#x09\#x0A\#x0D]+                  // single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 </pre>
 
-
+\todo update NUMBER and BITS with number separators
+\todo update NUMBER with exponent
+\todo update ENUM with underlying type
 
 
 */

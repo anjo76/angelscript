@@ -14,6 +14,7 @@ CDebugger::CDebugger()
 	m_action = CONTINUE;
 	m_lastFunction = 0;
 	m_engine = 0;
+	m_useSectionFileNameOnly = true;
 }
 
 CDebugger::~CDebugger()
@@ -74,9 +75,9 @@ string CDebugger::ToString(void *value, asUINT typeId, int expandMembers, asIScr
 			asITypeInfo *t = engine->GetTypeInfoById(typeId);
 			for( int n = t->GetEnumValueCount(); n-- > 0; )
 			{
-				int enumVal;
+				asINT64 enumVal;
 				const char *enumName = t->GetEnumValueByIndex(n, &enumVal);
-				if( enumVal == *(int*)value )
+				if( enumVal == *(asINT64*)value )
 				{
 					s << ", " << enumName;
 					break;
@@ -227,11 +228,14 @@ bool CDebugger::CheckBreakPoint(asIScriptContext *ctx)
 	const char *tmp = 0;
 	int lineNbr = ctx->GetLineNumber(0, 0, &tmp);
 
-	// Consider just filename, not the full path
 	string file = tmp ? tmp : "";
-	size_t r = file.find_last_of("\\/");
-	if( r != string::npos )
-		file = file.substr(r+1);
+	if( m_useSectionFileNameOnly )
+	{
+		// Consider just filename, not the full path
+		size_t r = file.find_last_of("\\/");
+		if( r != string::npos )
+			file = file.substr(r+1);
+	}
 
 	// Did we move into a new function?
 	asIScriptFunction *func = ctx->GetFunction();
@@ -260,18 +264,66 @@ bool CDebugger::CheckBreakPoint(asIScriptContext *ctx)
 			else if( m_breakPoints[n].needsAdjusting &&
 					 m_breakPoints[n].name == file )
 			{
-				int line = func->FindNextLineWithCode(m_breakPoints[n].lineNbr);
-				if( line >= 0 )
+				// Use GetLineEntryCount and GetLineEntry to build a list of valid lines
+				// This will also work for functions compiled from multiple sections, e.g. inlined functions, injected code, etc.
+				int lowestLine = m_breakPoints[n].lineNbr + 1;
+				int nextLine = m_breakPoints[n].lineNbr - 1;
+
+				// The function may be declared earlier than the breakpoint even though the first line of code is only after it
+				int row;
+				const char* sectionName;
+				func->GetDeclaredAt(&sectionName, &row, 0);
+
+				// Only consider lines in the same section as the breakpoint
+				string entryFile = sectionName ? sectionName : "";
+				if (m_useSectionFileNameOnly)
+				{
+					// Consider just filename, not the full path
+					size_t r = entryFile.find_last_of("\\/");
+					if (r != string::npos)
+						entryFile = entryFile.substr(r + 1);
+				}
+				if (entryFile == file)
+				{
+					if (row < lowestLine)
+						lowestLine = row;
+				}
+
+				int lineEntries = func->GetLineEntryCount();
+				for( int i = 0; i < lineEntries; i++ )
+				{
+					func->GetLineEntry(i, &row, 0, &sectionName, 0);
+
+					// Only consider lines in the same section as the breakpoint
+					entryFile = sectionName ? sectionName : "";
+					if( m_useSectionFileNameOnly )
+					{
+						// Consider just filename, not the full path
+						size_t r = entryFile.find_last_of("\\/");
+						if( r != string::npos )
+							entryFile = entryFile.substr(r+1);
+					}
+					if (entryFile == file)
+					{
+						if( row < lowestLine )
+							lowestLine = row;
+						if (row >= m_breakPoints[n].lineNbr && (row < nextLine || nextLine < m_breakPoints[n].lineNbr))
+							nextLine = row;
+					}
+				}
+
+				// Only adjust the breakpoint if the currenct function has code before/on and after/on the breakpoint line in the same section
+				if( lowestLine <= m_breakPoints[n].lineNbr && nextLine >= m_breakPoints[n].lineNbr )
 				{
 					m_breakPoints[n].needsAdjusting = false;
-					if( line != m_breakPoints[n].lineNbr )
+					if( nextLine != m_breakPoints[n].lineNbr )
 					{
 						stringstream s;
-						s << "Moving break point " << n << " in file '" << file << "' to next line with code at line " << line << endl;
+						s << "Moving break point " << n << " in file '" << file << "' to next line with code at line " << nextLine << endl;
 						Output(s.str());
 
 						// Move the breakpoint to the next line
-						m_breakPoints[n].lineNbr = line;
+						m_breakPoints[n].lineNbr = nextLine;
 					}
 				}
 			}
@@ -801,18 +853,19 @@ void CDebugger::AddFuncBreakPoint(const string &func)
 
 void CDebugger::AddFileBreakPoint(const string &file, int lineNbr)
 {
-	// Store just file name, not entire path
-	size_t r = file.find_last_of("\\/");
-	string actual;
-	if( r != string::npos )
-		actual = file.substr(r+1);
-	else
-		actual = file;
-
-	// Trim the file name
-	size_t b = actual.find_first_not_of(" \t");
-	size_t e = actual.find_last_not_of(" \t");
-	actual = actual.substr(b, e != string::npos ? e-b+1 : string::npos);
+	string actual = file;
+	if( m_useSectionFileNameOnly )
+	{
+		// Store just file name, not entire path
+		size_t r = file.find_last_of("\\/");
+		if( r != string::npos )
+			actual = file.substr(r+1);
+		
+		// Trim the file name
+		size_t b = actual.find_first_not_of(" \t");
+		size_t e = actual.find_last_not_of(" \t");
+		actual = actual.substr(b, e != string::npos ? e-b+1 : string::npos);
+	}
 
 	stringstream s;
 	s << "Setting break point in file '" << actual << "' at line " << lineNbr << endl;
@@ -858,6 +911,16 @@ void CDebugger::SetEngine(asIScriptEngine *engine)
 asIScriptEngine *CDebugger::GetEngine()
 {
 	return m_engine;
+}
+
+bool CDebugger::GetUseSectionFileNameOnly() const
+{
+	return m_useSectionFileNameOnly;
+}
+
+void CDebugger::SetUseSectionFileNameOnly(bool useSectionFileNameOnly)
+{
+	m_useSectionFileNameOnly = useSectionFileNameOnly;
 }
 
 END_AS_NAMESPACE

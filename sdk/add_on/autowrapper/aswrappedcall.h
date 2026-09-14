@@ -723,10 +723,10 @@ struct Constructor <T (A0, A1, A2, A3)> {
 };
 template <typename T>
 struct Id {
-	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr  f(void) { return AS_NAMESPACE_QUALIFIER asFUNCTION(&Wrapper<T>::template f<fn_ptr>); }
-	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr fg(void) { return AS_NAMESPACE_QUALIFIER asFUNCTION(&WrapperGlobal<T>::template f<fn_ptr>); }
-	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr of(void) { return AS_NAMESPACE_QUALIFIER asFUNCTION(&ObjFirst<T>::template f<fn_ptr>); }
-	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr ol(void) { return AS_NAMESPACE_QUALIFIER asFUNCTION(&ObjLast<T>::template f<fn_ptr>); }
+	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr  f(void) { return asFUNCTION(&Wrapper<T>::template f<fn_ptr>); }
+	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr fg(void) { return asFUNCTION(&WrapperGlobal<T>::template f<fn_ptr>); }
+	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr of(void) { return asFUNCTION(&ObjFirst<T>::template f<fn_ptr>); }
+	template <T fn_ptr> AS_NAMESPACE_QUALIFIER asSFuncPtr ol(void) { return asFUNCTION(&ObjLast<T>::template f<fn_ptr>); }
 };
 
 template <typename T>

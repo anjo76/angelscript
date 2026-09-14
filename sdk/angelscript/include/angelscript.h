@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -58,8 +58,8 @@ BEGIN_AS_NAMESPACE
 
 // AngelScript version
 
-#define ANGELSCRIPT_VERSION        23800
-#define ANGELSCRIPT_VERSION_STRING "2.38.0"
+#define ANGELSCRIPT_VERSION        23900
+#define ANGELSCRIPT_VERSION_STRING "2.39.0 WIP"
 
 // Data types
 
@@ -210,7 +210,7 @@ enum asECallConvTypes
 };
 
 // Object type flags
-enum asEObjTypeFlags : asQWORD
+enum asEObjTypeFlags
 {
 	asOBJ_REF                         = (1<<0),
 	asOBJ_VALUE                       = (1<<1),
@@ -240,7 +240,6 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_APP_CLASS_A                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT),
 	asOBJ_APP_CLASS_AK                = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_ASSIGNMENT + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
 	asOBJ_APP_CLASS_K                 = (asOBJ_APP_CLASS + asOBJ_APP_CLASS_COPY_CONSTRUCTOR),
-	asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31),
 	asOBJ_APP_PRIMITIVE               = (1<<13),
 	asOBJ_APP_FLOAT                   = (1<<14),
 	asOBJ_APP_ARRAY                   = (1<<15),
@@ -249,8 +248,6 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_NOCOUNT                     = (1<<18),
 	asOBJ_APP_CLASS_ALIGN8            = (1<<19),
 	asOBJ_IMPLICIT_HANDLE             = (1<<20),
-	asOBJ_APP_CLASS_UNION             = (asQWORD(1)<<32),
-	asOBJ_MASK_VALID_FLAGS            = 0x1801FFFFFul,
 	// Internal flags
 	asOBJ_SCRIPT_OBJECT               = (1<<21),
 	asOBJ_SHARED                      = (1<<22),
@@ -263,6 +260,11 @@ enum asEObjTypeFlags : asQWORD
 	asOBJ_ABSTRACT                    = (1<<29),
 	asOBJ_APP_ALIGN16                 = (1<<30)
 };
+
+// These need to be here since they are too large for enum underlying type (int32 or uint32) on C++98 compliant compilers
+static const asQWORD asOBJ_MASK_VALID_FLAGS = 0x1801FFFFFLL;
+static const asQWORD asOBJ_APP_CLASS_MORE_CONSTRUCTORS = (asQWORD(1) << 31);
+static const asQWORD asOBJ_APP_CLASS_UNION = (asQWORD(1) << 32);
 
 // Behaviours
 enum asEBehaviours
@@ -426,7 +428,7 @@ typedef void (*asJITFunction)(asSVMRegisters* registers, asPWORD jitArg);
 #if !defined(_MSC_VER) || _MSC_VER >= 1700   // MSVC 2012
  #if !defined(__GNUC__) || defined(__clang__) || __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7)  // gnuc 4.7 or clang
   #if !(defined(__GNUC__) && defined(__cplusplus) && __cplusplus < 201103L) // gnuc and clang require compiler flag -std=c++11
-   #if !defined(__SUNPRO_CC) // Oracle Solaris Studio
+   #if !defined(__SUNPRO_CC) && !defined(__BORLANDC__) // Oracle Solaris Studio or Borland Builder
     #define AS_CAN_USE_CPP11 1
    #endif
   #endif
@@ -437,15 +439,15 @@ typedef void (*asJITFunction)(asSVMRegisters* registers, asPWORD jitArg);
 // GNUC should not complain about the usage as I'm not using 0 as the base pointer.
 #define asOFFSET(s,m) ((int)(size_t)(&reinterpret_cast<s*>(100000)->m)-100000)
 
-#define asFUNCTION(f) asFunctionPtr(f)
+#define asFUNCTION(f) AS_NAMESPACE_QUALIFIER asFunctionPtr(f)
 #if (defined(_MSC_VER) && _MSC_VER <= 1200) || (defined(__BORLANDC__) && __BORLANDC__ < 0x590)
 // MSVC 6 has a bug that prevents it from properly compiling using the correct asFUNCTIONPR with operator >
 // so we need to use ordinary C style cast instead of static_cast. The drawback is that the compiler can't
 // check that the cast is really valid.
 // BCC v5.8 (C++Builder 2006) and earlier have a similar bug which forces us to fall back to a C-style cast.
-#define asFUNCTIONPR(f,p,r) asFunctionPtr((void (*)())((r (*)p)(f)))
+#define asFUNCTIONPR(f,p,r) AS_NAMESPACE_QUALIFIER asFunctionPtr((void (*)())((r (*)p)(f)))
 #else
-#define asFUNCTIONPR(f,p,r) asFunctionPtr(reinterpret_cast<void (*)()>(static_cast<r (*)p>(f)))
+#define asFUNCTIONPR(f,p,r) AS_NAMESPACE_QUALIFIER asFunctionPtr(reinterpret_cast<void (*)()>(static_cast<r (*)p>(f)))
 #endif
 
 #ifndef AS_NO_CLASS_METHODS
@@ -499,8 +501,8 @@ template <typename T>
  #define AS_METHOD_AMBIGUITY_CAST(t) static_cast<t >
 #endif
 
-#define asMETHOD(c,m) asSMethodPtr<sizeof(void (c::*)())>::Convert((void (c::*)())(&c::m))
-#define asMETHODPR(c,m,p,r) asSMethodPtr<sizeof(void (c::*)())>::Convert(AS_METHOD_AMBIGUITY_CAST(r (c::*)p)(&c::m))
+#define asMETHOD(c,m) AS_NAMESPACE_QUALIFIER asSMethodPtr<sizeof(void (c::*)())>::Convert((void (c::*)())(&c::m))
+#define asMETHODPR(c,m,p,r) AS_NAMESPACE_QUALIFIER asSMethodPtr<sizeof(void (c::*)())>::Convert(AS_METHOD_AMBIGUITY_CAST(r (c::*)p)(&c::m))
 
 #else // Class methods are disabled
 
@@ -721,8 +723,8 @@ public:
 	virtual int GetDefaultArrayTypeId() const = 0;
 
 	// Enums
-	virtual int          RegisterEnum(const char *type) = 0;
-	virtual int          RegisterEnumValue(const char *type, const char *name, int value) = 0;
+	virtual int          RegisterEnum(const char* typeName, const char* underlyingType = "int32") = 0;
+	virtual int          RegisterEnumValue(const char* type, const char* name, asINT64 value) = 0;
 	virtual asUINT       GetEnumCount() const = 0;
 	virtual asITypeInfo *GetEnumByIndex(asUINT index) const = 0;
 
@@ -1090,6 +1092,7 @@ public:
 	virtual int              GetSubTypeId(asUINT subTypeIndex = 0) const = 0;
 	virtual asITypeInfo     *GetSubType(asUINT subTypeIndex = 0) const = 0;
 	virtual asUINT           GetSubTypeCount() const = 0;
+	virtual int              GetUnderlyingTypeId() const = 0;
 
 	// Interfaces
 	virtual asUINT           GetInterfaceCount() const = 0;
@@ -1123,10 +1126,13 @@ public:
 
 	// Enums
 	virtual asUINT      GetEnumValueCount() const = 0;
-	virtual const char *GetEnumValueByIndex(asUINT index, int *outValue) const = 0;
+	virtual const char *GetEnumValueByIndex(asUINT index, asINT64 *outValue) const = 0;
 
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-09-13, 2.39.0
 	// Typedef
 	virtual int GetTypedefTypeId() const = 0;
+#endif
 
 	// Funcdef
 	virtual asIScriptFunction *GetFuncdefSignature() const = 0;
@@ -1198,8 +1204,13 @@ public:
 	virtual asUINT           GetVarCount() const = 0;
 	virtual int              GetVar(asUINT index, const char **name, int *typeId = 0) const = 0;
 	virtual const char      *GetVarDecl(asUINT index, bool includeNamespace = false) const = 0;
+#ifdef AS_DEPRECATED
+	// deprecated since 2025-11-14, 2.39.0
 	virtual int              FindNextLineWithCode(int line) const = 0;
+#endif
 	virtual int              GetDeclaredAt(const char** scriptSection, int* row, int* col) const = 0;
+	virtual int              GetLineEntryCount() const = 0;
+	virtual int              GetLineEntry(asUINT index, int* row, int* col, const char** sectionName, const asDWORD** byteCode) const = 0;
 
 	// For JIT compilation
 	virtual asDWORD         *GetByteCode(asUINT *length = 0) = 0;
@@ -1511,7 +1522,7 @@ enum asEBCInstr
 	asBC_JMPP			= 57,
 	asBC_PopRPtr		= 58,
 	asBC_PshRPtr		= 59,
-	asBC_STR			= 60,
+	asBC_STR			= 60,  // Not used anymore
 	asBC_CALLSYS		= 61,
 	asBC_CALLBND		= 62,
 	asBC_SUSPEND		= 63,
@@ -1686,11 +1697,14 @@ enum asEBCType
 	asBCTYPE_rW_QW_ARG    = 17,
 	asBCTYPE_W_DW_ARG     = 18,
 	asBCTYPE_rW_W_DW_ARG  = 19,
-	asBCTYPE_rW_DW_DW_ARG = 20
+	asBCTYPE_rW_DW_DW_ARG = 20,
+	asBCTYPE_W_DW_DW_ARG  = 21,
+	asBCTYPE_W_QW_DW_ARG  = 22,
+	asBCTYPE_W_rW_ARG     = 23
 };
 
 // Instruction type sizes
-const int asBCTypeSize[21] =
+const int asBCTypeSize[24] =
 {
 	0, // asBCTYPE_INFO
 	1, // asBCTYPE_NO_ARG
@@ -1712,7 +1726,10 @@ const int asBCTypeSize[21] =
 	3, // asBCTYPE_rW_QW_ARG
 	2, // asBCTYPE_W_DW_ARG
 	3, // asBCTYPE_rW_W_DW_ARG
-	3  // asBCTYPE_rW_DW_DW_ARG
+	3, // asBCTYPE_rW_DW_DW_ARG
+	3, // asBCTYPE_W_DW_DW_ARG
+	4, // asBCTYPE_W_QW_DW_ARG
+	2  // asBCTYPE_W_rW_ARG
 };
 
 // Instruction info
@@ -1722,232 +1739,235 @@ struct asSBCInfo
 	asEBCType   type;
 	int         stackInc;
 	const char *name;
+	int         writeSize;
 };
 
 #ifndef AS_64BIT_PTR
-	#define asBCTYPE_PTR_ARG    asBCTYPE_DW_ARG
-	#define asBCTYPE_PTR_DW_ARG asBCTYPE_DW_DW_ARG
-	#define asBCTYPE_wW_PTR_ARG asBCTYPE_wW_DW_ARG
-	#define asBCTYPE_rW_PTR_ARG asBCTYPE_rW_DW_ARG
+	#define asBCTYPE_PTR_ARG      asBCTYPE_DW_ARG
+	#define asBCTYPE_PTR_DW_ARG   asBCTYPE_DW_DW_ARG
+	#define asBCTYPE_W_PTR_DW_ARG asBCTYPE_W_DW_DW_ARG
+	#define asBCTYPE_wW_PTR_ARG   asBCTYPE_wW_DW_ARG
+	#define asBCTYPE_rW_PTR_ARG   asBCTYPE_rW_DW_ARG
 	#ifndef AS_PTR_SIZE
 		#define AS_PTR_SIZE 1
 	#endif
 #else
-	#define asBCTYPE_PTR_ARG    asBCTYPE_QW_ARG
-	#define asBCTYPE_PTR_DW_ARG asBCTYPE_QW_DW_ARG
-	#define asBCTYPE_wW_PTR_ARG asBCTYPE_wW_QW_ARG
-	#define asBCTYPE_rW_PTR_ARG asBCTYPE_rW_QW_ARG
+	#define asBCTYPE_PTR_ARG      asBCTYPE_QW_ARG
+	#define asBCTYPE_PTR_DW_ARG   asBCTYPE_QW_DW_ARG
+	#define asBCTYPE_W_PTR_DW_ARG asBCTYPE_W_QW_DW_ARG
+	#define asBCTYPE_wW_PTR_ARG   asBCTYPE_wW_QW_ARG
+	#define asBCTYPE_rW_PTR_ARG   asBCTYPE_rW_QW_ARG
 	#ifndef AS_PTR_SIZE
 		#define AS_PTR_SIZE 2
 	#endif
 #endif
 
-#define asBCINFO(b,t,s) {asBC_##b, asBCTYPE_##t, s, #b}
-#define asBCINFO_DUMMY(b) {asBC_MAXBYTECODE, asBCTYPE_INFO, 0, "BC_" #b}
+#define asBCINFO(b,t,s,w) {AS_NAMESPACE_QUALIFIER asBC_##b, AS_NAMESPACE_QUALIFIER asBCTYPE_##t, s, #b, w}
+#define asBCINFO_DUMMY(b) {AS_NAMESPACE_QUALIFIER asBC_MAXBYTECODE, AS_NAMESPACE_QUALIFIER asBCTYPE_INFO, 0, "BC_" #b, 0}
 
 const asSBCInfo asBCInfo[256] =
 {
-	asBCINFO(PopPtr,	NO_ARG,			-AS_PTR_SIZE),
-	asBCINFO(PshGPtr,	PTR_ARG,		AS_PTR_SIZE),
-	asBCINFO(PshC4,		DW_ARG,			1),
-	asBCINFO(PshV4,		rW_ARG,			1),
-	asBCINFO(PSF,		rW_ARG,			AS_PTR_SIZE),
-	asBCINFO(SwapPtr,	NO_ARG,			0),
-	asBCINFO(NOT,		rW_ARG,			0),
-	asBCINFO(PshG4,		PTR_ARG,		1),
-	asBCINFO(LdGRdR4,	wW_PTR_ARG,		0),
-	asBCINFO(CALL,		DW_ARG,			0xFFFF),
-	asBCINFO(RET,		W_ARG,			0xFFFF),
-	asBCINFO(JMP,		DW_ARG,			0),
-	asBCINFO(JZ,		DW_ARG,			0),
-	asBCINFO(JNZ,		DW_ARG,			0),
-	asBCINFO(JS,		DW_ARG,			0),
-	asBCINFO(JNS,		DW_ARG,			0),
-	asBCINFO(JP,		DW_ARG,			0),
-	asBCINFO(JNP,		DW_ARG,			0),
-	asBCINFO(TZ,		NO_ARG,			0),
-	asBCINFO(TNZ,		NO_ARG,			0),
-	asBCINFO(TS,		NO_ARG,			0),
-	asBCINFO(TNS,		NO_ARG,			0),
-	asBCINFO(TP,		NO_ARG,			0),
-	asBCINFO(TNP,		NO_ARG,			0),
-	asBCINFO(NEGi,		rW_ARG,			0),
-	asBCINFO(NEGf,		rW_ARG,			0),
-	asBCINFO(NEGd,		rW_ARG,			0),
-	asBCINFO(INCi16,	NO_ARG,			0),
-	asBCINFO(INCi8,		NO_ARG,			0),
-	asBCINFO(DECi16,	NO_ARG,			0),
-	asBCINFO(DECi8,		NO_ARG,			0),
-	asBCINFO(INCi,		NO_ARG,			0),
-	asBCINFO(DECi,		NO_ARG,			0),
-	asBCINFO(INCf,		NO_ARG,			0),
-	asBCINFO(DECf,		NO_ARG,			0),
-	asBCINFO(INCd,		NO_ARG,			0),
-	asBCINFO(DECd,		NO_ARG,			0),
-	asBCINFO(IncVi,		rW_ARG,			0),
-	asBCINFO(DecVi,		rW_ARG,			0),
-	asBCINFO(BNOT,		rW_ARG,			0),
-	asBCINFO(BAND,		wW_rW_rW_ARG,	0),
-	asBCINFO(BOR,		wW_rW_rW_ARG,	0),
-	asBCINFO(BXOR,		wW_rW_rW_ARG,	0),
-	asBCINFO(BSLL,		wW_rW_rW_ARG,	0),
-	asBCINFO(BSRL,		wW_rW_rW_ARG,	0),
-	asBCINFO(BSRA,		wW_rW_rW_ARG,	0),
-	asBCINFO(COPY,		W_DW_ARG,		-AS_PTR_SIZE),
-	asBCINFO(PshC8,		QW_ARG,			2),
-	asBCINFO(PshVPtr,	rW_ARG,			AS_PTR_SIZE),
-	asBCINFO(RDSPtr,	NO_ARG,			0),
-	asBCINFO(CMPd,		rW_rW_ARG,		0),
-	asBCINFO(CMPu,		rW_rW_ARG,		0),
-	asBCINFO(CMPf,		rW_rW_ARG,		0),
-	asBCINFO(CMPi,		rW_rW_ARG,		0),
-	asBCINFO(CMPIi,		rW_DW_ARG,		0),
-	asBCINFO(CMPIf,		rW_DW_ARG,		0),
-	asBCINFO(CMPIu,		rW_DW_ARG,		0),
-	asBCINFO(JMPP,		rW_ARG,			0),
-	asBCINFO(PopRPtr,	NO_ARG,			-AS_PTR_SIZE),
-	asBCINFO(PshRPtr,	NO_ARG,			AS_PTR_SIZE),
-	asBCINFO(STR,		W_ARG,			1+AS_PTR_SIZE),
-	asBCINFO(CALLSYS,	DW_ARG,			0xFFFF),
-	asBCINFO(CALLBND,	DW_ARG,			0xFFFF),
-	asBCINFO(SUSPEND,	NO_ARG,			0),
-	asBCINFO(ALLOC,		PTR_DW_ARG,		0xFFFF),
-	asBCINFO(FREE,		wW_PTR_ARG,		0),
-	asBCINFO(LOADOBJ,	rW_ARG,			0),
-	asBCINFO(STOREOBJ,	wW_ARG,			0),
-	asBCINFO(GETOBJ,	W_ARG,			0),
-	asBCINFO(REFCPY,	PTR_ARG,		-AS_PTR_SIZE),
-	asBCINFO(CHKREF,	NO_ARG,			0),
-	asBCINFO(GETOBJREF,	W_ARG,			0),
-	asBCINFO(GETREF,	W_ARG,			0),
-	asBCINFO(PshNull,	NO_ARG,			AS_PTR_SIZE),
-	asBCINFO(ClrVPtr,	wW_ARG,			0),
-	asBCINFO(OBJTYPE,	PTR_ARG,		AS_PTR_SIZE),
-	asBCINFO(TYPEID,	DW_ARG,			1),
-	asBCINFO(SetV4,		wW_DW_ARG,		0),
-	asBCINFO(SetV8,		wW_QW_ARG,		0),
-	asBCINFO(ADDSi,		W_DW_ARG,		0),
-	asBCINFO(CpyVtoV4,	wW_rW_ARG,		0),
-	asBCINFO(CpyVtoV8,	wW_rW_ARG,		0),
-	asBCINFO(CpyVtoR4,	rW_ARG,			0),
-	asBCINFO(CpyVtoR8,	rW_ARG,			0),
-	asBCINFO(CpyVtoG4,	rW_PTR_ARG,		0),
-	asBCINFO(CpyRtoV4,	wW_ARG,			0),
-	asBCINFO(CpyRtoV8,	wW_ARG,			0),
-	asBCINFO(CpyGtoV4,	wW_PTR_ARG,		0),
-	asBCINFO(WRTV1,		rW_ARG,			0),
-	asBCINFO(WRTV2,		rW_ARG,			0),
-	asBCINFO(WRTV4,		rW_ARG,			0),
-	asBCINFO(WRTV8,		rW_ARG,			0),
-	asBCINFO(RDR1,		wW_ARG,			0),
-	asBCINFO(RDR2,		wW_ARG,			0),
-	asBCINFO(RDR4,		wW_ARG,			0),
-	asBCINFO(RDR8,		wW_ARG,			0),
-	asBCINFO(LDG,		PTR_ARG,		0),
-	asBCINFO(LDV,		rW_ARG,			0),
-	asBCINFO(PGA,		PTR_ARG,		AS_PTR_SIZE),
-	asBCINFO(CmpPtr,	rW_rW_ARG,		0),
-	asBCINFO(VAR,		rW_ARG,			AS_PTR_SIZE),
-	asBCINFO(iTOf,		rW_ARG,			0),
-	asBCINFO(fTOi,		rW_ARG,			0),
-	asBCINFO(uTOf,		rW_ARG,			0),
-	asBCINFO(fTOu,		rW_ARG,			0),
-	asBCINFO(sbTOi,		rW_ARG,			0),
-	asBCINFO(swTOi,		rW_ARG,			0),
-	asBCINFO(ubTOi,		rW_ARG,			0),
-	asBCINFO(uwTOi,		rW_ARG,			0),
-	asBCINFO(dTOi,		wW_rW_ARG,		0),
-	asBCINFO(dTOu,		wW_rW_ARG,		0),
-	asBCINFO(dTOf,		wW_rW_ARG,		0),
-	asBCINFO(iTOd,		wW_rW_ARG,		0),
-	asBCINFO(uTOd,		wW_rW_ARG,		0),
-	asBCINFO(fTOd,		wW_rW_ARG,		0),
-	asBCINFO(ADDi,		wW_rW_rW_ARG,	0),
-	asBCINFO(SUBi,		wW_rW_rW_ARG,	0),
-	asBCINFO(MULi,		wW_rW_rW_ARG,	0),
-	asBCINFO(DIVi,		wW_rW_rW_ARG,	0),
-	asBCINFO(MODi,		wW_rW_rW_ARG,	0),
-	asBCINFO(ADDf,		wW_rW_rW_ARG,	0),
-	asBCINFO(SUBf,		wW_rW_rW_ARG,	0),
-	asBCINFO(MULf,		wW_rW_rW_ARG,	0),
-	asBCINFO(DIVf,		wW_rW_rW_ARG,	0),
-	asBCINFO(MODf,		wW_rW_rW_ARG,	0),
-	asBCINFO(ADDd,		wW_rW_rW_ARG,	0),
-	asBCINFO(SUBd,		wW_rW_rW_ARG,	0),
-	asBCINFO(MULd,		wW_rW_rW_ARG,	0),
-	asBCINFO(DIVd,		wW_rW_rW_ARG,	0),
-	asBCINFO(MODd,		wW_rW_rW_ARG,	0),
-	asBCINFO(ADDIi,		wW_rW_DW_ARG,	0),
-	asBCINFO(SUBIi,		wW_rW_DW_ARG,	0),
-	asBCINFO(MULIi,		wW_rW_DW_ARG,	0),
-	asBCINFO(ADDIf,		wW_rW_DW_ARG,	0),
-	asBCINFO(SUBIf,		wW_rW_DW_ARG,	0),
-	asBCINFO(MULIf,		wW_rW_DW_ARG,	0),
-	asBCINFO(SetG4,		PTR_DW_ARG,		0),
-	asBCINFO(ChkRefS,	NO_ARG,			0),
-	asBCINFO(ChkNullV,	rW_ARG,			0),
-	asBCINFO(CALLINTF,	DW_ARG,			0xFFFF),
-	asBCINFO(iTOb,		rW_ARG,			0),
-	asBCINFO(iTOw,		rW_ARG,			0),
-	asBCINFO(SetV1,		wW_DW_ARG,		0),
-	asBCINFO(SetV2,		wW_DW_ARG,		0),
-	asBCINFO(Cast,		DW_ARG,			-AS_PTR_SIZE),
-	asBCINFO(i64TOi,	wW_rW_ARG,		0),
-	asBCINFO(uTOi64,	wW_rW_ARG,		0),
-	asBCINFO(iTOi64,	wW_rW_ARG,		0),
-	asBCINFO(fTOi64,	wW_rW_ARG,		0),
-	asBCINFO(dTOi64,	rW_ARG,			0),
-	asBCINFO(fTOu64,	wW_rW_ARG,		0),
-	asBCINFO(dTOu64,	rW_ARG,			0),
-	asBCINFO(i64TOf,	wW_rW_ARG,		0),
-	asBCINFO(u64TOf,	wW_rW_ARG,		0),
-	asBCINFO(i64TOd,	rW_ARG,			0),
-	asBCINFO(u64TOd,	rW_ARG,			0),
-	asBCINFO(NEGi64,	rW_ARG,			0),
-	asBCINFO(INCi64,	NO_ARG,			0),
-	asBCINFO(DECi64,	NO_ARG,			0),
-	asBCINFO(BNOT64,	rW_ARG,			0),
-	asBCINFO(ADDi64,	wW_rW_rW_ARG,	0),
-	asBCINFO(SUBi64,	wW_rW_rW_ARG,	0),
-	asBCINFO(MULi64,	wW_rW_rW_ARG,	0),
-	asBCINFO(DIVi64,	wW_rW_rW_ARG,	0),
-	asBCINFO(MODi64,	wW_rW_rW_ARG,	0),
-	asBCINFO(BAND64,	wW_rW_rW_ARG,	0),
-	asBCINFO(BOR64,		wW_rW_rW_ARG,	0),
-	asBCINFO(BXOR64,	wW_rW_rW_ARG,	0),
-	asBCINFO(BSLL64,	wW_rW_rW_ARG,	0),
-	asBCINFO(BSRL64,	wW_rW_rW_ARG,	0),
-	asBCINFO(BSRA64,	wW_rW_rW_ARG,	0),
-	asBCINFO(CMPi64,	rW_rW_ARG,		0),
-	asBCINFO(CMPu64,	rW_rW_ARG,		0),
-	asBCINFO(ChkNullS,	W_ARG,			0),
-	asBCINFO(ClrHi,		NO_ARG,			0),
-	asBCINFO(JitEntry,	PTR_ARG,		0),
-	asBCINFO(CallPtr,	rW_ARG,			0xFFFF),
-	asBCINFO(FuncPtr,	PTR_ARG,		AS_PTR_SIZE),
-	asBCINFO(LoadThisR,	W_DW_ARG,		0),
-	asBCINFO(PshV8,		rW_ARG,			2),
-	asBCINFO(DIVu,		wW_rW_rW_ARG,	0),
-	asBCINFO(MODu,		wW_rW_rW_ARG,	0),
-	asBCINFO(DIVu64,	wW_rW_rW_ARG,	0),
-	asBCINFO(MODu64,	wW_rW_rW_ARG,	0),
-	asBCINFO(LoadRObjR,	rW_W_DW_ARG,	0),
-	asBCINFO(LoadVObjR,	rW_W_DW_ARG,	0),
-	asBCINFO(RefCpyV,	wW_PTR_ARG,		0),
-	asBCINFO(JLowZ,		DW_ARG,			0),
-	asBCINFO(JLowNZ,	DW_ARG,			0),
-	asBCINFO(AllocMem,	wW_DW_ARG,		0),
-	asBCINFO(SetListSize, rW_DW_DW_ARG,	0),
-	asBCINFO(PshListElmnt, rW_DW_ARG,	AS_PTR_SIZE),
-	asBCINFO(SetListType, rW_DW_DW_ARG,	0),
-	asBCINFO(POWi,		wW_rW_rW_ARG,	0),
-	asBCINFO(POWu,		wW_rW_rW_ARG,	0),
-	asBCINFO(POWf,		wW_rW_rW_ARG,	0),
-	asBCINFO(POWd,		wW_rW_rW_ARG,	0),
-	asBCINFO(POWdi,		wW_rW_rW_ARG,	0),
-	asBCINFO(POWi64,	wW_rW_rW_ARG,	0),
-	asBCINFO(POWu64,	wW_rW_rW_ARG,	0),
-	asBCINFO(Thiscall1, DW_ARG,			-AS_PTR_SIZE-1),
+	asBCINFO(PopPtr,	NO_ARG,			-AS_PTR_SIZE, 0),
+	asBCINFO(PshGPtr,	PTR_ARG,		AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(PshC4,		DW_ARG,			1,            4),
+	asBCINFO(PshV4,		rW_ARG,			1,            4),
+	asBCINFO(PSF,		rW_ARG,			AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(SwapPtr,	NO_ARG,			0,            AS_PTR_SIZE*4),
+	asBCINFO(NOT,		rW_ARG,			0,            4),
+	asBCINFO(PshG4,		PTR_ARG,		1,            4),
+	asBCINFO(LdGRdR4,	wW_PTR_ARG,		0,            4),
+	asBCINFO(CALL,		DW_ARG,			0xFFFF,       0),
+	asBCINFO(RET,		W_ARG,			0xFFFF,       0),
+	asBCINFO(JMP,		DW_ARG,			0,            0),
+	asBCINFO(JZ,		DW_ARG,			0,            0),
+	asBCINFO(JNZ,		DW_ARG,			0,            0),
+	asBCINFO(JS,		DW_ARG,			0,            0),
+	asBCINFO(JNS,		DW_ARG,			0,            0),
+	asBCINFO(JP,		DW_ARG,			0,            0),
+	asBCINFO(JNP,		DW_ARG,			0,            0),
+	asBCINFO(TZ,		NO_ARG,			0,            0),
+	asBCINFO(TNZ,		NO_ARG,			0,            0),
+	asBCINFO(TS,		NO_ARG,			0,            0),
+	asBCINFO(TNS,		NO_ARG,			0,            0),
+	asBCINFO(TP,		NO_ARG,			0,            0),
+	asBCINFO(TNP,		NO_ARG,			0,            0),
+	asBCINFO(NEGi,		rW_ARG,			0,            4),
+	asBCINFO(NEGf,		rW_ARG,			0,            4),
+	asBCINFO(NEGd,		rW_ARG,			0,            8),
+	asBCINFO(INCi16,	NO_ARG,			0,            2),
+	asBCINFO(INCi8,		NO_ARG,			0,            1),
+	asBCINFO(DECi16,	NO_ARG,			0,            2),
+	asBCINFO(DECi8,		NO_ARG,			0,            1),
+	asBCINFO(INCi,		NO_ARG,			0,            4),
+	asBCINFO(DECi,		NO_ARG,			0,            4),
+	asBCINFO(INCf,		NO_ARG,			0,            4),
+	asBCINFO(DECf,		NO_ARG,			0,            4),
+	asBCINFO(INCd,		NO_ARG,			0,            8),
+	asBCINFO(DECd,		NO_ARG,			0,            8),
+	asBCINFO(IncVi,		rW_ARG,			0,            4),
+	asBCINFO(DecVi,		rW_ARG,			0,            4),
+	asBCINFO(BNOT,		rW_ARG,			0,            4),
+	asBCINFO(BAND,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(BOR,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(BXOR,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(BSLL,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(BSRL,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(BSRA,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(COPY,		W_DW_ARG,		-AS_PTR_SIZE, -1),  // variable number of bytes are copied
+	asBCINFO(PshC8,		QW_ARG,			2,            8),
+	asBCINFO(PshVPtr,	rW_ARG,			AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(RDSPtr,	NO_ARG,			0,            AS_PTR_SIZE*4),
+	asBCINFO(CMPd,		rW_rW_ARG,		0,            0),
+	asBCINFO(CMPu,		rW_rW_ARG,		0,            0),
+	asBCINFO(CMPf,		rW_rW_ARG,		0,            0),
+	asBCINFO(CMPi,		rW_rW_ARG,		0,            0),
+	asBCINFO(CMPIi,		rW_DW_ARG,		0,            0),
+	asBCINFO(CMPIf,		rW_DW_ARG,		0,            0),
+	asBCINFO(CMPIu,		rW_DW_ARG,		0,            0),
+	asBCINFO(JMPP,		rW_ARG,			0,            0),
+	asBCINFO(PopRPtr,	NO_ARG,			-AS_PTR_SIZE, 0),
+	asBCINFO(PshRPtr,	NO_ARG,			AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(STR,		W_ARG,			1+AS_PTR_SIZE, 0),
+	asBCINFO(CALLSYS,	W_DW_ARG,		0xFFFF,       0),
+	asBCINFO(CALLBND,	DW_ARG,			0xFFFF,       0),
+	asBCINFO(SUSPEND,	NO_ARG,			0,            0),
+	asBCINFO(ALLOC,		W_PTR_DW_ARG,	0xFFFF,       AS_PTR_SIZE*4),
+	asBCINFO(FREE,		wW_PTR_ARG,		0,            0),
+	asBCINFO(LOADOBJ,	rW_ARG,			0,            0),
+	asBCINFO(STOREOBJ,	wW_ARG,			0,            AS_PTR_SIZE*4),
+	asBCINFO(GETOBJ,	W_ARG,			0,            AS_PTR_SIZE*4),
+	asBCINFO(REFCPY,	PTR_ARG,		-AS_PTR_SIZE, AS_PTR_SIZE*4),
+	asBCINFO(CHKREF,	NO_ARG,			0,            0),
+	asBCINFO(GETOBJREF,	W_ARG,			0,            AS_PTR_SIZE*4),
+	asBCINFO(GETREF,	W_ARG,			0,            AS_PTR_SIZE*4),
+	asBCINFO(PshNull,	NO_ARG,			AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(ClrVPtr,	wW_ARG,			0,            AS_PTR_SIZE*4),
+	asBCINFO(OBJTYPE,	PTR_ARG,		AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(TYPEID,	DW_ARG,			1,            4),
+	asBCINFO(SetV4,		wW_DW_ARG,		0,            4),
+	asBCINFO(SetV8,		wW_QW_ARG,		0,            8),
+	asBCINFO(ADDSi,		W_DW_ARG,		0,            4),
+	asBCINFO(CpyVtoV4,	wW_rW_ARG,		0,            4),
+	asBCINFO(CpyVtoV8,	wW_rW_ARG,		0,            8),
+	asBCINFO(CpyVtoR4,	rW_ARG,			0,            0),
+	asBCINFO(CpyVtoR8,	rW_ARG,			0,            0),
+	asBCINFO(CpyVtoG4,	rW_PTR_ARG,		0,            0),
+	asBCINFO(CpyRtoV4,	wW_ARG,			0,            4),
+	asBCINFO(CpyRtoV8,	wW_ARG,			0,            8),
+	asBCINFO(CpyGtoV4,	wW_PTR_ARG,		0,            4),
+	asBCINFO(WRTV1,		rW_ARG,			0,            0),
+	asBCINFO(WRTV2,		rW_ARG,			0,            0),
+	asBCINFO(WRTV4,		rW_ARG,			0,            0),
+	asBCINFO(WRTV8,		rW_ARG,			0,            0),
+	asBCINFO(RDR1,		wW_ARG,			0,            1),
+	asBCINFO(RDR2,		wW_ARG,			0,            2),
+	asBCINFO(RDR4,		wW_ARG,			0,            4),
+	asBCINFO(RDR8,		wW_ARG,			0,            8),
+	asBCINFO(LDG,		PTR_ARG,		0,            0),
+	asBCINFO(LDV,		rW_ARG,			0,            0),
+	asBCINFO(PGA,		PTR_ARG,		AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(CmpPtr,	rW_rW_ARG,		0,            0),
+	asBCINFO(VAR,		rW_ARG,			AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(iTOf,		rW_ARG,			0,            4),
+	asBCINFO(fTOi,		rW_ARG,			0,            4),
+	asBCINFO(uTOf,		rW_ARG,			0,            4),
+	asBCINFO(fTOu,		rW_ARG,			0,            4),
+	asBCINFO(sbTOi,		rW_ARG,			0,            4),
+	asBCINFO(swTOi,		rW_ARG,			0,            4),
+	asBCINFO(ubTOi,		rW_ARG,			0,            4),
+	asBCINFO(uwTOi,		rW_ARG,			0,            4),
+	asBCINFO(dTOi,		wW_rW_ARG,		0,            4),
+	asBCINFO(dTOu,		wW_rW_ARG,		0,            4),
+	asBCINFO(dTOf,		wW_rW_ARG,		0,            4),
+	asBCINFO(iTOd,		wW_rW_ARG,		0,            8),
+	asBCINFO(uTOd,		wW_rW_ARG,		0,            8),
+	asBCINFO(fTOd,		wW_rW_ARG,		0,            8),
+	asBCINFO(ADDi,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(SUBi,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(MULi,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(DIVi,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(MODi,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(ADDf,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(SUBf,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(MULf,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(DIVf,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(MODf,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(ADDd,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(SUBd,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(MULd,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(DIVd,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(MODd,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(ADDIi,		wW_rW_DW_ARG,	0,            4),
+	asBCINFO(SUBIi,		wW_rW_DW_ARG,	0,            4),
+	asBCINFO(MULIi,		wW_rW_DW_ARG,	0,            4),
+	asBCINFO(ADDIf,		wW_rW_DW_ARG,	0,            4),
+	asBCINFO(SUBIf,		wW_rW_DW_ARG,	0,            4),
+	asBCINFO(MULIf,		wW_rW_DW_ARG,	0,            4),
+	asBCINFO(SetG4,		PTR_DW_ARG,		0,            0),
+	asBCINFO(ChkRefS,	NO_ARG,			0,            0),
+	asBCINFO(ChkNullV,	rW_ARG,			0,            0),
+	asBCINFO(CALLINTF,	DW_ARG,			0xFFFF,       0),
+	asBCINFO(iTOb,		rW_ARG,			0,            4),
+	asBCINFO(iTOw,		rW_ARG,			0,            4),
+	asBCINFO(SetV1,		wW_DW_ARG,		0,            4),
+	asBCINFO(SetV2,		wW_DW_ARG,		0,            4),
+	asBCINFO(Cast,		DW_ARG,			-AS_PTR_SIZE, 0),
+	asBCINFO(i64TOi,	wW_rW_ARG,		0,            4),
+	asBCINFO(uTOi64,	wW_rW_ARG,		0,            8),
+	asBCINFO(iTOi64,	wW_rW_ARG,		0,            8),
+	asBCINFO(fTOi64,	wW_rW_ARG,		0,            8),
+	asBCINFO(dTOi64,	rW_ARG,			0,            8),
+	asBCINFO(fTOu64,	wW_rW_ARG,		0,            8),
+	asBCINFO(dTOu64,	rW_ARG,			0,            8),
+	asBCINFO(i64TOf,	wW_rW_ARG,		0,            4),
+	asBCINFO(u64TOf,	wW_rW_ARG,		0,            4),
+	asBCINFO(i64TOd,	rW_ARG,			0,            8),
+	asBCINFO(u64TOd,	rW_ARG,			0,            8),
+	asBCINFO(NEGi64,	rW_ARG,			0,            8),
+	asBCINFO(INCi64,	NO_ARG,			0,            8),
+	asBCINFO(DECi64,	NO_ARG,			0,            8),
+	asBCINFO(BNOT64,	rW_ARG,			0,            8),
+	asBCINFO(ADDi64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(SUBi64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(MULi64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(DIVi64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(MODi64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(BAND64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(BOR64,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(BXOR64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(BSLL64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(BSRL64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(BSRA64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(CMPi64,	rW_rW_ARG,		0,            8),
+	asBCINFO(CMPu64,	rW_rW_ARG,		0,            8),
+	asBCINFO(ChkNullS,	W_ARG,			0,            0),
+	asBCINFO(ClrHi,		NO_ARG,			0,            4),
+	asBCINFO(JitEntry,	PTR_ARG,		0,            0),
+	asBCINFO(CallPtr,	W_rW_ARG,		0xFFFF,       0),
+	asBCINFO(FuncPtr,	PTR_ARG,		AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(LoadThisR,	W_DW_ARG,		0,            0),
+	asBCINFO(PshV8,		rW_ARG,			2,            8),
+	asBCINFO(DIVu,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(MODu,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(DIVu64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(MODu64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(LoadRObjR,	rW_W_DW_ARG,	0,            0),
+	asBCINFO(LoadVObjR,	rW_W_DW_ARG,	0,            0),
+	asBCINFO(RefCpyV,	wW_PTR_ARG,		0,            AS_PTR_SIZE*4),
+	asBCINFO(JLowZ,		DW_ARG,			0,            0),
+	asBCINFO(JLowNZ,	DW_ARG,			0,            0),
+	asBCINFO(AllocMem,	wW_DW_ARG,		0,            AS_PTR_SIZE*4),
+	asBCINFO(SetListSize, rW_DW_DW_ARG,	0,            4),
+	asBCINFO(PshListElmnt, rW_DW_ARG,	AS_PTR_SIZE,  AS_PTR_SIZE*4),
+	asBCINFO(SetListType, rW_DW_DW_ARG,	0,            4),
+	asBCINFO(POWi,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(POWu,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(POWf,		wW_rW_rW_ARG,	0,            4),
+	asBCINFO(POWd,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(POWdi,		wW_rW_rW_ARG,	0,            8),
+	asBCINFO(POWi64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(POWu64,	wW_rW_rW_ARG,	0,            8),
+	asBCINFO(Thiscall1, DW_ARG,			-AS_PTR_SIZE-1, 0),
 
 	asBCINFO_DUMMY(201),
 	asBCINFO_DUMMY(202),
@@ -1999,22 +2019,22 @@ const asSBCInfo asBCInfo[256] =
 	asBCINFO_DUMMY(248),
 	asBCINFO_DUMMY(249),
 
-	asBCINFO(TryBlock,		DW_ARG,			0),
-	asBCINFO(VarDecl,		W_ARG,			0),
-	asBCINFO(Block,			INFO,			0),
-	asBCINFO(ObjInfo,		rW_DW_ARG,		0),
-	asBCINFO(LINE,			INFO,			0),
-	asBCINFO(LABEL,			INFO,			0)
+	asBCINFO(TryBlock,		DW_ARG,			0, 0),
+	asBCINFO(VarDecl,		W_ARG,			0, 0),
+	asBCINFO(Block,			INFO,			0, 0),
+	asBCINFO(ObjInfo,		rW_DW_ARG,		0, 0),
+	asBCINFO(LINE,			INFO,			0, 0),
+	asBCINFO(LABEL,			INFO,			0, 0)
 };
 
 // Macros to access bytecode instruction arguments
-#define asBC_DWORDARG(x)  (*(((asDWORD*)x)+1))
-#define asBC_INTARG(x)    (*(int*)(((asDWORD*)x)+1))
-#define asBC_QWORDARG(x)  (*(asQWORD*)(((asDWORD*)x)+1))
-#define asBC_FLOATARG(x)  (*(float*)(((asDWORD*)x)+1))
-#define asBC_PTRARG(x)    (*(asPWORD*)(((asDWORD*)x)+1))
-#define asBC_WORDARG0(x)  (*(((asWORD*)x)+1))
-#define asBC_WORDARG1(x)  (*(((asWORD*)x)+2))
+#define asBC_DWORDARG(x)  (*(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_INTARG(x)    (*(int*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_QWORDARG(x)  (*(AS_NAMESPACE_QUALIFIER asQWORD*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_FLOATARG(x)  (*(float*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_PTRARG(x)    (*(AS_NAMESPACE_QUALIFIER asPWORD*)(((AS_NAMESPACE_QUALIFIER asDWORD*)x)+1))
+#define asBC_WORDARG0(x)  (*(((AS_NAMESPACE_QUALIFIER asWORD*)x)+1))
+#define asBC_WORDARG1(x)  (*(((AS_NAMESPACE_QUALIFIER asWORD*)x)+2))
 #define asBC_SWORDARG0(x) (*(((short*)x)+1))
 #define asBC_SWORDARG1(x) (*(((short*)x)+2))
 #define asBC_SWORDARG2(x) (*(((short*)x)+3))

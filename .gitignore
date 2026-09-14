@@ -1,0 +1,84 @@
+# Exclude common C/C++ generated files
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Linker files
+*.ilk
+*.exp
+
+# Debugger Files
+*.pdb
+*.dwo
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Exclude Visual Studio generated files
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.env
+.vs/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+
+[Dd]ebug/x64/
+[Dd]ebugPublic/x64/
+[Rr]elease/x64/
+[Rr]eleases/x64/
+bin/x64/
+obj/x64/
+
+[Dd]ebug/x86/
+[Dd]ebugPublic/x86/
+[Rr]elease/x86/
+[Rr]eleases/x86/
+bin/x86/
+obj/x86/
+
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+[Aa][Rr][Mm]64[Ee][Cc]/
+bld/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Exclude CMake generated files
+CMakeFiles/
+
+# Exclude doxygen output files
+sdk/docs/doxygen/output/
+sdk/docs/manual/
+
+# Exclude AngelScript debug output files
+AS_DEBUG/
+
+

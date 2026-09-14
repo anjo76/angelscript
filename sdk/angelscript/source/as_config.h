@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -51,6 +51,9 @@
 
 // AS_WINDOWS_THREADS
 // If the library should be compiled using windows threads.
+
+// AS_WINDOWS_USEFLS
+// If the library should use Fiber Local Storage on Windows, instead of Thread Local Storage.
 
 // AS_POSIX_THREADS
 // If the library should be compiled using posix threads.
@@ -398,9 +401,9 @@
   #error "Configuration doesn't yet support BCC for AMD64."
  #endif
 
-	#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
 	#define HAVE_VIRTUAL_BASE_OFFSET
-	#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+2))
+	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+2))
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 	#define CDECL_RETURN_SIMPLE_IN_MEMORY
 	#define STDCALL_RETURN_SIMPLE_IN_MEMORY
@@ -440,15 +443,23 @@
 	#endif
 
 	#ifdef _M_X64
-		#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+2))
-		#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+4))
+		#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+2))
+		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+4))
 	#else
-		#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
-		#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+3))
+		#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
+		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+3))
 	#endif
 	#define HAVE_VIRTUAL_BASE_OFFSET
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 	#define THISCALL_PASS_OBJECT_POINTER_IN_ECX
+
+	// Enable use of computed gotos by default
+	#ifndef AS_USE_COMPUTED_GOTOS
+		// When compiling with clang-cl we can use computed gotos, but not when using the MSVC native compiler
+		#if defined(__clang__) 
+			#define AS_USE_COMPUTED_GOTOS 1
+		#endif
+	#endif
 
 	// http://www.madewithmarmalade.com/
 	#if defined(__S3E__)
@@ -551,9 +562,9 @@
 
 // Metrowerks CodeWarrior (experimental, let me know if something isn't working)
 #if defined(__MWERKS__) && !defined(EPPC) // JWC -- If Wii DO NOT use this even when using Metrowerks Compiler. Even though they are called Freescale...
-	#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+1))
 	#define HAVE_VIRTUAL_BASE_OFFSET
-	#define VIRTUAL_BASE_OFFSET(x) (*((asDWORD*)(&x)+3))
+	#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+3))
 	#define THISCALL_RETURN_SIMPLE_IN_MEMORY
 	#define THISCALL_PASS_OBJECT_POINTER_IN_ECX
 	#define asVSNPRINTF(a, b, c, d) _vsnprintf(a, b, c, d)
@@ -575,7 +586,7 @@
 
 // SN Systems ProDG
 #if defined(__SNC__) || defined(SNSYS)
-	#define MULTI_BASE_OFFSET(x) (*((asDWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*(const asDWORD*)(&x)+1))
 	#define CALLEE_POPS_HIDDEN_RETURN_POINTER
 	#define COMPLEX_OBJS_PASSED_BY_REF
 
@@ -645,7 +656,7 @@
 // MSVC2015 can now use CLang too, but it shouldn't go in here
 #if (defined(__GNUC__) && !defined(__SNC__) && !defined(_MSC_VER)) || defined(EPPC) || defined(__CYGWIN__) // JWC -- use this instead for Wii
 	#define GNU_STYLE_VIRTUAL_METHOD
-	#define MULTI_BASE_OFFSET(x) (*((asPWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asPWORD*)(&x)+1))
 	#define asVSNPRINTF(a, b, c, d) vsnprintf(a, b, c, d)
 	#define CALLEE_POPS_HIDDEN_RETURN_POINTER
 	#define COMPLEX_OBJS_PASSED_BY_REF
@@ -1339,7 +1350,7 @@
 	#endif
 
 	// I presume Sun CC uses a similar structure of method pointers as gnuc
-	#define MULTI_BASE_OFFSET(x) (*((asPWORD*)(&x)+1))
+	#define MULTI_BASE_OFFSET(x) (*((const asPWORD*)(&x)+1))
 
 	#if !defined(AS_SIZEOF_BOOL)
 		#define AS_SIZEOF_BOOL 1 // sizeof(bool) == 1

@@ -4,6 +4,9 @@ using std::string;
 #include "../../../add_on/scripthelper/scripthelper.h"
 #include <vector>
 
+// Implemented in as_string_util.cpp
+extern int asCompareStrings(const char *str1, size_t len1, const char *str2, size_t len2);
+
 namespace TestScriptString
 {
 
@@ -86,6 +89,9 @@ void PrintRef(asIScriptGeneric *gen)
 bool TestUTF16();
 bool Test2();
 
+
+
+
 bool Test()
 {
 	bool fail = false;
@@ -94,6 +100,44 @@ bool Test()
 	asIScriptEngine *engine = 0;
 	asIScriptModule *mod = 0;
 	int r;
+
+	// Test asCompareStrings
+	// https://github.com/anjo76/angelscript/issues/50
+	#if !defined(__clang__) // the clang project is not making the asCompareString visible, so let's just skip it
+	{
+		int r1, r2;
+		if( (r1 = asCompareStrings("Test", 4, "Test", 4)) != 0 )
+		{
+			PRINTF("result1 : %d\n", r1);
+			TEST_FAILED;
+		}
+		if( (r1 = asCompareStrings("Test", 4, "A", 1)) <= 0 || (r2 = strcmp("Test", "A")) <= 0 ) // memcmp used by asCompareString is only guaranteed to return positive, but not necessarily 1
+		{
+			PRINTF("result1: %d, result2: %d\n", r1, r2);
+			TEST_FAILED;
+		}
+		if( (r1 = asCompareStrings("A", 1, "Test", 4)) >= 0 )
+		{
+			PRINTF("result1 : %d\n", r1);
+			TEST_FAILED;
+		}
+		if( (r1 = asCompareStrings("Test", 4, "Tes", 3)) <= 0 )
+		{
+			PRINTF("result1 : %d\n", r1);
+			TEST_FAILED;
+		}
+		if( (r1 = asCompareStrings("Tes", 3, "Test", 4)) >= 0 || (r2 = strcmp("Tes", "Test")) >= 0 )
+		{
+			PRINTF("result1: %d, result2: %d\n", r1, r2);
+			TEST_FAILED;
+		}
+		if( (r1 = asCompareStrings("Test", 4, "", 0)) <= 0 )
+		{
+			PRINTF("result1 : %d\n", r1);
+			TEST_FAILED;
+		}
+	}
+	#endif
 
 	// Test non-terminated heredoc string
 	// https://www.gamedev.net/forums/topic/714946-crash-parsing-non-terminated-heredoc-string/5459282/
@@ -431,7 +475,8 @@ bool Test()
 		if (bout.buffer != "TestScriptString (1, 1) : Info    : Compiling void Main()\n"
 						   "TestScriptString (4, 4) : Error   : No matching signatures to 'test(const string@&)'\n"
 						   "TestScriptString (4, 4) : Info    : Candidates are:\n"
-						   "TestScriptString (4, 4) : Info    : void test(string@ s)\n")
+						   "TestScriptString (4, 4) : Info    : void test(string@ s)\n"
+						   "TestScriptString (4, 4) : Info    : Rejected due to type mismatch on parameter 's'\n")
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

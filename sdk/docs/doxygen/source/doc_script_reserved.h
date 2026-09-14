@@ -194,4 +194,6 @@ _Abc123
 The characters space (32), tab (9), carriage return (13), line feed (10), and the 
 UTF8 byte-order-mark (U+FEFF) are all recognized as whitespace.
 
+\todo number literals now support separators
+
 */

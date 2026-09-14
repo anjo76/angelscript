@@ -75,6 +75,17 @@ public:
 class C: public A, public B {
 };
 
+class TemplateCallback
+{
+public:
+	bool Callback(asITypeInfo *ti, bool &dontGarbageCollect)
+	{
+		called = true;
+		return false;
+	}
+	bool called = false;
+};
+
 bool Test()
 {
 	bool fail = false;
@@ -82,6 +93,40 @@ bool Test()
 	asIScriptEngine *engine;
 	COutStream out;
 	CBufferedOutStream bout;
+
+	// Use THISCALL_ASGLOBAL with template callback
+	// Reported by HenryAWE
+	SKIP_ON_MAX_PORT
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		TemplateCallback t;
+
+		r = engine->RegisterObjectType("array<class T>", 0, asOBJ_REF | asOBJ_TEMPLATE); assert( r >= 0 );
+		r = engine->RegisterObjectBehaviour("array<T>", asBEHAVE_FACTORY, "array<T>@ f(int&in)", asFUNCTIONPR(CScriptArray::Create, (asITypeInfo*), CScriptArray*), asCALL_CDECL); assert( r >= 0 );
+		r = engine->RegisterObjectBehaviour("array<T>", asBEHAVE_TEMPLATE_CALLBACK, "bool f(int&in, bool&out)", asMETHOD(TemplateCallback, Callback), asCALL_THISCALL_ASGLOBAL, &t); assert( r >= 0 );
+		r = engine->RegisterObjectBehaviour("array<T>", asBEHAVE_ADDREF, "void f()", asMETHOD(CScriptArray,AddRef), asCALL_THISCALL); assert( r >= 0 );
+		r = engine->RegisterObjectBehaviour("array<T>", asBEHAVE_RELEASE, "void f()", asMETHOD(CScriptArray,Release), asCALL_THISCALL); assert( r >= 0 );
+
+		asIScriptModule *mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", "array<int> a;");
+		r = mod->Build();
+		if( r >= 0 )
+			TEST_FAILED;
+
+		if( t.called == false )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if( bout.buffer != "script (1, 7) : Error   : Attempting to instantiate invalid template 'array<int>'\n" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// THISCALL_ASGLOBAL with multiple inheritance
 	// https://www.gamedev.net/forums/topic/702126-angelscript-2331-bugs-features/

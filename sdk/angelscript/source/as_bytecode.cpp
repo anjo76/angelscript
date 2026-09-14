@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -138,6 +138,10 @@ void asCByteCode::GetVarsUsed(asCArray<int> &vars)
 			InsertIfNotExists(vars, curr->wArg[0]);
 			InsertIfNotExists(vars, curr->wArg[1]);
 		}
+		else if (asBCInfo[curr->op].type == asBCTYPE_W_rW_ARG)
+		{
+			InsertIfNotExists(vars, curr->wArg[1]);
+		}
 		else if( curr->op == asBC_LoadThisR )
 		{
 			InsertIfNotExists(vars, 0);
@@ -177,6 +181,11 @@ bool asCByteCode::IsVarUsed(int offset)
 				 asBCInfo[curr->op].type == asBCTYPE_wW_rW_DW_ARG )
 		{
 			if( curr->wArg[0] == offset || curr->wArg[1] == offset )
+				return true;
+		}
+		else if( asBCInfo[curr->op].type == asBCTYPE_W_rW_ARG )
+		{
+			if( curr->wArg[1] == offset )
 				return true;
 		}
 		else if( curr->op == asBC_LoadThisR )
@@ -225,6 +234,11 @@ void asCByteCode::ExchangeVar(int oldOffset, int newOffset)
 		{
 			if( curr->wArg[0] == oldOffset )
 				curr->wArg[0] = (short)newOffset;
+			if( curr->wArg[1] == oldOffset )
+				curr->wArg[1] = (short)newOffset;
+		}
+		else if( asBCInfo[curr->op].type == asBCTYPE_W_rW_ARG )
+		{
 			if( curr->wArg[1] == oldOffset )
 				curr->wArg[1] = (short)newOffset;
 		}
@@ -443,7 +457,7 @@ bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction
 			else if( curr->next->op == asBC_CMPf ) curr->next->op = asBC_CMPIf;
 			else if( curr->next->op == asBC_CMPu ) curr->next->op = asBC_CMPIu;
 			curr->next->size = asBCTypeSize[asBCInfo[asBC_CMPIi].type];
-			curr->next->arg = curr->arg;
+			curr->next->arg[0] = curr->arg[0];
 			*next = GoForward(DeleteInstruction(curr));
 			return true;
 		}
@@ -467,7 +481,7 @@ bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction
 			else if( curr->next->op == asBC_SUBf ) curr->next->op = asBC_SUBIf;
 			else if( curr->next->op == asBC_MULf ) curr->next->op = asBC_MULIf;
 			curr->next->size = asBCTypeSize[asBCInfo[asBC_ADDIi].type];
-			curr->next->arg = curr->arg;
+			curr->next->arg[0] = curr->arg[0];
 			*next = GoForward(DeleteInstruction(curr));
 			return true;
 		}
@@ -486,7 +500,7 @@ bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction
 			else if( curr->next->op == asBC_ADDf ) curr->next->op = asBC_ADDIf;
 			else if( curr->next->op == asBC_MULf ) curr->next->op = asBC_MULIf;
 			curr->next->size = asBCTypeSize[asBCInfo[asBC_ADDIi].type];
-			curr->next->arg = curr->arg;
+			curr->next->arg[0] = curr->arg[0];
 
 			// The order of the operands are changed
 			curr->next->wArg[1] = curr->next->wArg[2];
@@ -534,8 +548,10 @@ bool asCByteCode::RemoveUnusedValue(asCByteInstruction *curr, asCByteInstruction
 	}
 
 	// The value is immediately moved to another variable and then not used again
+	// The value written to the temp is not larger than the target variable
 	if( (asBCInfo[curr->op].type == asBCTYPE_wW_rW_rW_ARG ||
 		 asBCInfo[curr->op].type == asBCTYPE_wW_rW_DW_ARG) &&
+	     asBCInfo[curr->op].writeSize != 8 &&
 		curr->next && curr->next->op == asBC_CpyVtoV4 &&
 		curr->wArg[0] == curr->next->wArg[1] &&
 		IsTemporary(curr->wArg[0]) &&
@@ -1211,6 +1227,9 @@ bool asCByteCode::IsTempVarReadByInstr(asCByteInstruction *curr, int offset)
 	else if( asBCInfo[curr->op].type == asBCTYPE_rW_rW_ARG &&
 			 (int(curr->wArg[0]) == offset || int(curr->wArg[1]) == offset) )
 		return true;
+	else if( asBCInfo[curr->op].type == asBCTYPE_W_rW_ARG &&
+			 int(curr->wArg[1]) == offset )
+		return true;
 	else if( curr->op == asBC_LoadThisR && offset == 0 )
 		return true;
 
@@ -1481,7 +1500,18 @@ void asCByteCode::ExtractLineNumbers()
 			lineNumbers.PushLast(*(int*)ARG_DW(curr->arg));
 			sectionIdxs.PushLast(*((int*)ARG_DW(curr->arg)+1));
 
-			if( !engine->ep.buildWithoutLineCues )
+			// Check if this is the first instruction in the function
+			asCByteInstruction* c = curr->prev;
+			while (c && (c->op == asBC_VarDecl || c->op == asBC_ObjInfo))
+				c = c->prev;
+
+			if (c == 0)
+			{
+				// Delete the first asBC_SUSPEND instruction in the function since it is not needed, given that
+				// the asCContext::PrepareScriptFunction will anyway call the line callback to allow suspending.
+				DeleteInstruction(curr);
+			}
+			else if( !engine->ep.buildWithoutLineCues )
 			{
 				// Transform BC_LINE into BC_SUSPEND
 				curr->op = asBC_SUSPEND;
@@ -1668,39 +1698,41 @@ int asCByteCode::AddInstructionFirst()
 	return 0;
 }
 
-void asCByteCode::Call(asEBCInstr instr, int funcID, int pop)
+void asCByteCode::Call(asEBCInstr instr, int funcID, int pop, asWORD argCount)
 {
 	if( AddInstruction() < 0 )
 		return;
 
-	asASSERT(asBCInfo[instr].type == asBCTYPE_DW_ARG);
+	asASSERT(asBCInfo[instr].type == asBCTYPE_DW_ARG || asBCInfo[instr].type == asBCTYPE_W_DW_ARG);
 
 	last->op = instr;
 	last->size = asBCTypeSize[asBCInfo[instr].type];
 	last->stackInc = -pop; // BC_CALL and BC_CALLBND doesn't pop the argument but when the callee returns the arguments are already popped
 	*((int*)ARG_DW(last->arg)) = funcID;
+	last->wArg[0] = argCount; // Store the argument count for variadic functions for bytecode serialization and exception handling
 
     // Add a JitEntry instruction after function calls so that JIT's can resume execution
     InstrPTR(asBC_JitEntry, 0);
 }
 
-void asCByteCode::CallPtr(asEBCInstr instr, int funcPtrVar, int pop)
+void asCByteCode::CallPtr(asEBCInstr instr, int funcPtrVar, int pop, asWORD argCount)
 {
 	if( AddInstruction() < 0 )
 		return;
 
-	asASSERT(asBCInfo[instr].type == asBCTYPE_rW_ARG);
+	asASSERT(asBCInfo[instr].type == asBCTYPE_W_rW_ARG);
 
 	last->op = instr;
 	last->size = asBCTypeSize[asBCInfo[instr].type];
 	last->stackInc = -pop;
-	last->wArg[0] = (short)funcPtrVar;
+	last->wArg[1] = (short)funcPtrVar;
+	last->wArg[0] = argCount; // Store the argument count for variadic functions as a hint for bytecode serialization and exception handling
 
     // Add a JitEntry instruction after function calls so that JIT's can resume execution
     InstrPTR(asBC_JitEntry, 0);
 }
 
-void asCByteCode::Alloc(asEBCInstr instr, void *objID, int funcID, int pop)
+void asCByteCode::Alloc(asEBCInstr instr, void *objID, int funcID, int pop, asWORD argCount)
 {
 	if( AddInstruction() < 0 )
 		return;
@@ -1709,9 +1741,10 @@ void asCByteCode::Alloc(asEBCInstr instr, void *objID, int funcID, int pop)
 	last->size = asBCTypeSize[asBCInfo[instr].type];
 	last->stackInc = -pop; // BC_ALLOC
 
-	asASSERT(asBCInfo[instr].type == asBCTYPE_PTR_DW_ARG);
+	asASSERT(asBCInfo[instr].type == asBCTYPE_W_PTR_DW_ARG);
 	*ARG_PTR(last->arg) = (asPWORD)objID;
 	*((int*)(ARG_DW(last->arg)+AS_PTR_SIZE)) = funcID;
+	last->wArg[0] = argCount; // Store the argument count for variadic functions for bytecode serialization and exception handling
 
     // Add a JitEntry instruction after function calls so that JIT's can resume execution
     InstrPTR(asBC_JitEntry, 0);
@@ -1974,7 +2007,7 @@ void asCByteCode::Output(asDWORD *array)
 			case asBCTYPE_wW_QW_ARG:
 			case asBCTYPE_rW_QW_ARG:
 				*(((asWORD*)ap)+1) = instr->wArg[0];
-				*(asQWORD*)(ap+1) = asQWORD(instr->arg);
+				*(asQWORD*)(ap+1) = *(asQWORD*)&instr->arg;
 				break;
 			case asBCTYPE_W_ARG:
 			case asBCTYPE_rW_ARG:
@@ -1984,6 +2017,7 @@ void asCByteCode::Output(asDWORD *array)
 			case asBCTYPE_wW_rW_ARG:
 			case asBCTYPE_rW_rW_ARG:
 			case asBCTYPE_wW_W_ARG:
+			case asBCTYPE_W_rW_ARG:
 				*(((asWORD *)ap)+1) = instr->wArg[0];
 				*(((asWORD *)ap)+2) = instr->wArg[1];
 				break;
@@ -1995,6 +2029,8 @@ void asCByteCode::Output(asDWORD *array)
 				memcpy(ap+1, &instr->arg, instr->GetSize()*4-4);
 				break;
 			case asBCTYPE_rW_DW_DW_ARG:
+			case asBCTYPE_W_DW_DW_ARG:
+			case asBCTYPE_W_QW_DW_ARG:
 				*(((asWORD*)ap)+1) = instr->wArg[0];
 				memcpy(ap+1, &instr->arg, instr->GetSize()*4-4);
 				break;
@@ -2224,6 +2260,7 @@ void asCByteCode::DebugOutput(const char *name, asCScriptFunction *func)
 
 		case asBCTYPE_wW_rW_ARG:
 		case asBCTYPE_rW_rW_ARG:
+		case asBCTYPE_W_rW_ARG:
 			fprintf(file, "   %-8s v%d, v%d\n", asBCInfo[instr->op].name, instr->wArg[0], instr->wArg[1]);
 			break;
 
@@ -2270,19 +2307,6 @@ void asCByteCode::DebugOutput(const char *name, asCScriptFunction *func)
 
 			case asBC_TYPEID:
 				fprintf(file, "   %-8s 0x%x          '%s'\n", asBCInfo[instr->op].name, (asUINT)*ARG_DW(instr->arg), engine->GetTypeDeclaration((int)*ARG_DW(instr->arg)));
-				break;
-
-			case asBC_CALL:
-			case asBC_CALLSYS:
-			case asBC_CALLBND:
-			case asBC_CALLINTF:
-			case asBC_Thiscall1:
-				{
-					int funcID = *(int*)ARG_DW(instr->arg);
-					asCString decl = engine->GetFunctionDeclaration(funcID);
-
-					fprintf(file, "   %-8s %d           (%s)\n", asBCInfo[instr->op].name, *((int*) ARG_DW(instr->arg)), decl.AddressOf());
-				}
 				break;
 
 			case asBC_REFCPY:
@@ -2389,10 +2413,11 @@ void asCByteCode::DebugOutput(const char *name, asCScriptFunction *func)
 			break;
 
 		case asBCTYPE_DW_DW_ARG:
+		case asBCTYPE_W_DW_DW_ARG:
 			if( instr->op == asBC_ALLOC )
 			{
 				asCObjectType *ot = *(asCObjectType**)ARG_DW(instr->arg);
-				asCScriptFunction *f = engine->scriptFunctions[instr->wArg[0]];
+				asCScriptFunction *f = engine->scriptFunctions[(asWORD)instr->wArg[0]];
 				fprintf(file, "   %-8s 0x%x, %d             (type:%s, %s)\n", asBCInfo[instr->op].name, *(int*)ARG_DW(instr->arg), *(int*)(ARG_DW(instr->arg)+1), ot->GetName(), f ? f->GetDeclaration() : "{no func}");
 			}
 			else
@@ -2404,10 +2429,11 @@ void asCByteCode::DebugOutput(const char *name, asCScriptFunction *func)
 			break;
 
 		case asBCTYPE_QW_DW_ARG:
+		case asBCTYPE_W_QW_DW_ARG:
 			if( instr->op == asBC_ALLOC )
 			{
 				asCObjectType *ot = *(asCObjectType**)ARG_QW(instr->arg);
-				asCScriptFunction *f = engine->scriptFunctions[instr->wArg[0]];
+				asCScriptFunction *f = engine->scriptFunctions[(asWORD)instr->wArg[0]];
 #if defined(__GNUC__) && !defined(_MSC_VER)
 #ifdef AS_64BIT_PTR
 				fprintf(file, "   %-8s 0x%lx, %d             (type:%s, %s)\n", asBCInfo[instr->op].name, *(asINT64*)ARG_QW(instr->arg), *(int*)(ARG_DW(instr->arg)+2), ot->GetName(), f ? f->GetDeclaration() : "{no func}");
@@ -2450,6 +2476,17 @@ void asCByteCode::DebugOutput(const char *name, asCScriptFunction *func)
 				fprintf(file, "   %-8s v%d, 0x%x          (i:%d, f:%g)\n", asBCInfo[instr->op].name, instr->wArg[0], (asUINT)*ARG_DW(instr->arg), *((int*) ARG_DW(instr->arg)), *((float*) ARG_DW(instr->arg)));
 			else if( instr->op == asBC_CMPIf )
 				fprintf(file, "   %-8s v%d, %f\n", asBCInfo[instr->op].name, instr->wArg[0], *(float*)ARG_DW(instr->arg));
+			else if( instr->op == asBC_CALL ||
+					instr->op == asBC_CALLSYS ||
+					instr->op == asBC_CALLBND ||
+					instr->op == asBC_CALLINTF ||
+					instr->op == asBC_Thiscall1 )
+			{
+				int funcID = *(int*)ARG_DW(instr->arg);
+				asCString decl = engine->GetFunctionDeclaration(funcID);
+
+				fprintf(file, "   %-8s %d, %d           (%s)\n", asBCInfo[instr->op].name, instr->wArg[0], *((int*) ARG_DW(instr->arg)), decl.AddressOf());
+			}
 			else
 				fprintf(file, "   %-8s v%d, %d\n", asBCInfo[instr->op].name, instr->wArg[0], (asUINT)*ARG_DW(instr->arg));
 			break;
@@ -2922,7 +2959,8 @@ asCByteInstruction::asCByteInstruction()
 
 	op            = asBC_LABEL;
 
-	arg           = 0;
+	arg[0]        = 0;
+	arg[1]        = 0;
 	wArg[0]       = 0;
 	wArg[1]       = 0;
 	wArg[2]       = 0;

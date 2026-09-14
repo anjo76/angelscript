@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied 
    warranty. In no event will the authors be held liable for any 
@@ -46,6 +46,8 @@
 #define TXT_ACCESSING_PRIVATE_PROP_s                "Accessing private property '%s' of parent class"
 #define TXT_ALL_CODE_PATHS_MUST_INIT_MEMBER         "Initialization after return. All code paths must initialize the members"
 #define TXT_ARG_NOT_LVALUE                          "Output argument expression is not assignable"
+#define TXT_ARGUMENT_TYPE_ERROR_i                   "Rejected due to type mismatch at positional parameter %i"
+#define TXT_ARGUMENT_TYPE_ERROR_s                   "Rejected due to type mismatch on parameter '%s'"
 #define TXT_ATTR_s_INFORMED_MULTIPLE_TIMES          "Attribute '%s' informed multiple times"
 #define TXT_AUTO_NOT_ALLOWED                        "Auto is not allowed here"
 
@@ -99,7 +101,7 @@
 #define TXT_DESTRUCTOR_s_s_NAME_ERROR               "The name of the destructor '%s::~%s' must be the same as the class"
 #define TXT_DISALLOW_ASSIGN_ON_REF_TYPE             "Value assignment on reference types is not allowed. Did you mean to do a handle assignment?"
 #define TXT_DISALLOW_COMPOUND_ASSIGN_ON_REF_TYPE    "Compound assignment on reference types is not allowed"
-#define TXT_DUPLICATE_NAMED_ARG                     "Duplicate named argument"
+#define TXT_DUPLICATE_NAMED_ARGUMENT_s              "Duplicate named argument '%s'"
 #define TXT_DUPLICATE_SWITCH_CASE                   "Duplicate switch case"
 
 #define TXT_ELSE_WITH_EMPTY_STATEMENT         "Else with empty statement"
@@ -147,11 +149,12 @@
 // TODO: Should be TXT_ILLEGAL_OPERATION_ON_s
 #define TXT_ILLEGAL_OPERATION                      "Illegal operation on this datatype"
 #define TXT_ILLEGAL_OPERATION_ON_s                 "Illegal operation on '%s'"
+#define TXT_ILLEGAL_RETURN_BY_VALUE_FOR_s          "Illegal return by value for '%s' in type cast"
 #define TXT_ILLEGAL_TARGET_TYPE_FOR_REF_CAST       "Illegal target type for reference cast"
 #define TXT_ILLEGAL_VARIABLE_NAME_s                "Illegal variable name '%s'."
 #define TXT_INHERITED_PRIVATE_PROP_ACCESS_s        "Illegal access to inherited private property '%s'"
 #define TXT_INIT_LIST_CANNOT_BE_USED_WITH_s        "Initialization lists cannot be used with '%s'"
-#define TXT_INSTANCING_INVLD_TMPL_TYPE_s_s         "Attempting to instantiate invalid template type '%s<%s>'"
+#define TXT_INSTANCING_INVLD_TMPL_TYPE_s_s         "Attempting to instantiate invalid template '%s<%s>'"
 #define TXT_INSTEAD_FOUND_s                        "Instead found '%s'"
 #define TXT_INSTEAD_FOUND_IDENTIFIER_s             "Instead found identifier '%s'"
 #define TXT_INSTEAD_FOUND_KEYWORD_s                "Instead found reserved keyword '%s'"
@@ -179,6 +182,7 @@
 #define TXT_METHOD_s_DOES_NOT_OVERRIDE              "Method '%s' marked as override but does not replace any base class or interface method"
 #define TXT_METHOD_s_s_HAS_NO_RETURN_TYPE           "Method '%s::%s' is missing the return type, nor is it the same name as object to be a constructor"
 #define TXT_METHOD_s_NOT_PART_OF_OBJECT_s           "Method '%s' is not part of object '%s'"
+#define TXT_MISSING_ARGUMENT_s                      "Rejected due to named parameter '%s' missing"
 #define TXT_MISSING_IMPLEMENTATION_OF_s             "Missing implementation of '%s'"
 #define TXT_MISSING_DEFINITION_OF_s                 "Missing definition of '%s'"
 #define TXT_MISSING_OR_INVALID_DEFINITON_OF_s       "Missing or invalid definition of '%s'"
@@ -225,6 +229,7 @@
 #define TXT_NONTERMINATED_STRING                   "Non-terminated string literal"
 #define TXT_NOT_A_FUNC_s_IS_TYPE_s                 "Expression doesn't form a function call. '%s' evaluates to the non-function type '%s'"
 #define TXT_NOT_ALL_PATHS_RETURN                   "Not all paths return a value"
+#define TXT_NOT_ENOUGH_ARGUMENTS                   "Rejected due to not enough parameters"
 #define TXT_NOT_ENOUGH_VALUES_FOR_LIST             "Not enough values to match pattern"
 #define TXT_s_NOT_DECLARED                         "'%s' is not declared"
 #define TXT_NOT_EXACT                              "Implicit conversion of value is not exact"
@@ -277,7 +282,7 @@
 #define TXT_SHARED_CANNOT_IMPLEMENT_NON_SHARED_s       "Shared type cannot implement non-shared interface '%s'"
 #define TXT_SHARED_CANNOT_INHERIT_FROM_NON_SHARED_s    "Shared class cannot inherit from non-shared class '%s'"
 #define TXT_SHARED_CANNOT_USE_NON_SHARED_TYPE_s        "Shared code cannot use non-shared type '%s'"
-#define TXT_SHARED_s_DOESNT_MATCH_ORIGINAL             "Shared type '%s' doesn't match the original declaration in other module"
+#define TXT_SHARED_s_DOESNT_MATCH_ORIGINAL_s           "Shared type '%s' doesn't match the declaration in module '%s'"
 #define TXT_SECTION_IS_EMPTY                           "The script section is empty"
 #define TXT_SIGNED_UNSIGNED_MISMATCH                   "Signed/Unsigned mismatch"
 #define TXT_STRINGS_NOT_RECOGNIZED                     "Strings are not recognized by the application"
@@ -285,6 +290,7 @@
 #define TXT_SWITCH_MUST_BE_INTEGRAL                    "Switch expressions must be integral numbers"
 
 #define TXT_TMPL_s_EXPECTS_d_SUBTYPES          "Template '%s' expects %d sub type(s)"
+#define TXT_TOO_MANY_ARGUMENTS                 "Rejected due to too many parameters"
 #define TXT_TOO_MANY_JUMP_LABELS               "The function has too many jump labels to handle. Split the function into smaller ones."
 #define TXT_TOO_MANY_VALUES_FOR_LIST           "Too many values to match pattern"
 #define TXT_TYPE_s_CANNOT_BE_REFERENCE         "Type '%s' cannot be a reference"
@@ -320,7 +326,7 @@
 // Engine message
 
 #define TXT_AUTOHANDLE_CANNOT_BE_USED_FOR_NOCOUNT        "Autohandles cannot be used with types that have been registered with NOCOUNT"
-#define TXT_FIRST_PARAM_MUST_BE_REF_FOR_TEMPLATE_FACTORY "First parameter to template factory must be a reference. This will be used to pass the object type of the template"
+#define TXT_FIRST_PARAM_MUST_BE_REF_FOR_TEMPLATE_FACTORY "First parameter to template factory must be a reference to primitive type. This will be used to pass the object type of the template"
 #define TXT_INVALID_CONFIGURATION                        "Invalid configuration. Verify the registered application interface."
 #define TXT_VALUE_TYPE_MUST_HAVE_SIZE                    "A value type must be registered with a non-zero size"
 #define TXT_TYPE_s_IS_MISSING_BEHAVIOURS                 "Type '%s' is missing behaviours"

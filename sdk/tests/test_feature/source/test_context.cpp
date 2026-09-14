@@ -595,11 +595,59 @@ template< typename T > bool RegisterClassOpAssign(asIScriptEngine* pEngine, cons
 	return true;
 }
 
+double ReturnDouble()
+{
+     return 2.468;
+}
+
 bool Test()
 {
 	bool fail = false;
 	CBufferedOutStream bout;
 	int r;
+
+	// Test native function that was registered after the context was created
+	// Reported by Jordan Verner
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		int func1 = engine->RegisterGlobalFunction("double test1()", asFUNCTION(ReturnDouble), asCALL_CDECL);
+
+		asIScriptContext *ctx = engine->CreateContext();
+
+		ctx->Prepare(engine->GetFunctionById(func1));
+		r = ctx->Execute();
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+
+		double d = ctx->GetReturnDouble();
+		if( d != 2.468 )
+			TEST_FAILED;
+
+		// Function is registered after the context was created
+		int func2 = engine->RegisterGlobalFunction("double test2()", asFUNCTION(ReturnDouble), asCALL_CDECL);
+
+		ctx->Prepare(engine->GetFunctionById(func2));
+		r = ctx->Execute();
+		if( r != asEXECUTION_FINISHED )
+			TEST_FAILED;
+
+		d = ctx->GetReturnDouble();
+		if( d != 2.468 )
+			TEST_FAILED;
+
+		ctx->Release();
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test reuse of context after the stack has grown
 	// Reported by Doi Hiroshi

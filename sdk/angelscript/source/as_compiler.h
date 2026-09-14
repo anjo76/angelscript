@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied 
    warranty. In no event will the authors be held liable for any 
@@ -124,7 +124,7 @@ struct asCExprContext;
 // cleaned up after the result of a function has been evaluated.
 struct asSDeferredParam
 {
-	asSDeferredParam() {argNode = 0; origExpr = 0;}
+	asSDeferredParam() : argNode(0), argInOutFlags(0), origExpr(0) {}
 
 	asCScriptNode  *argNode;
 	asCExprValue    argType;
@@ -185,6 +185,7 @@ struct asSOverloadCandidate
 
 struct asSNamedArgument
 {
+	asSNamedArgument() : ctx(0), match(0) {}
 	asCString name;
 	asCExprContext *ctx;
 	asUINT match;
@@ -223,6 +224,40 @@ enum EVarGlobOrMem
 	asVGM_VARIABLE = 0,
 	asVGM_GLOBAL   = 1,
 	asVGM_MEMBER   = 2
+};
+
+enum asEFailedMatchReason
+{
+	// pre-condition checks
+	asEFM_NOT_ENOUGH_ARGS,
+	asEFM_TOO_MANY_ARGS,
+	
+	// "arg" is set to the argument
+	// that reported the error
+	asEFM_POSITIONAL_MISMATCH, // positional parameter type mismatch
+	asEFM_NAMED_DUPLICATE, // named parameter duplicate
+	asEFM_NAMED_MISMATCH, // named parameter type mismatch
+	
+	// "argName" is set to the named
+	// argument that doesn't exist
+	asEFM_NAMED_MISSING // named parameter missing
+};
+
+struct asSFailedMatch
+{
+	int                  func;
+	asEFailedMatchReason reason;
+	
+	// for asEFM_POSITIONAL_MISMATCH, asEFM_NAMED_DUPLICATE: arg id
+	asUINT               arg;
+	// for asEFM_NAMED_MISSING, asEFM_NAMED_MISMATCH, asEFM_NAMED_DUPLICATE: ptr to argument string
+	const char*          argName;
+	
+	asSFailedMatch() : func(0), reason(asEFM_NOT_ENOUGH_ARGS), arg(0), argName(0) {}
+	asSFailedMatch(int func, asEFailedMatchReason reason, asUINT arg = -1) :
+		func(func), reason(reason), arg(arg), argName(NULL) {}
+	asSFailedMatch(int func, asEFailedMatchReason reason, const char* argName) :
+		func(func), reason(reason), arg(asUINT(-1)), argName(argName) { }
 };
 
 class asCCompiler
@@ -304,7 +339,7 @@ protected:
 	int  ProcessPropertyGetSetAccessor(asCExprContext *ctx, asCExprContext *lctx, asCExprContext *rctx, eTokenType op, asCScriptNode *errNode);
 	int  FindPropertyAccessor(const asCString &name, asCExprContext *ctx, asCScriptNode *node, asSNameSpace *ns, bool isThisAccess = false);
 	int  FindPropertyAccessor(const asCString &name, asCExprContext *ctx, asCExprContext *arg, asCScriptNode *node, asSNameSpace *ns, bool isThisAccess = false);
-	void PrepareTemporaryVariable(asCScriptNode *node, asCExprContext *ctx, bool forceOnHeap = false);
+	void PrepareTemporaryVariable(asCScriptNode *node, asCExprContext *ctx, bool forceOnHeap = false, bool forceValueCopy = false);
 	void PrepareOperand(asCExprContext *ctx, asCScriptNode *node);
 	void PrepareForAssignment(asCDataType *lvalue, asCExprContext *rvalue, asCScriptNode *node, bool toTemporary, asCExprContext *lvalueExpr = 0);
 	int  PerformAssignment(asCExprValue *lvalue, asCExprValue *rvalue, asCByteCode *bc, asCScriptNode *node);
@@ -316,7 +351,7 @@ protected:
 	int  MatchArgument(asCScriptFunction *desc, const asCExprContext *argExpr, int paramNum, bool allowObjectConstruct = true);
 	void PerformFunctionCall(int funcId, asCExprContext *out, bool isConstructor = false, asCArray<asCExprContext*> *args = 0, asCObjectType *objTypeForConstruct = 0, bool useVariable = false, int varOffset = 0, int funcPtrVar = 0);
 	void MoveArgsToStack(int funcId, asCByteCode *bc, asCArray<asCExprContext *> &args, bool addOneToOffset);
-	int  MakeFunctionCall(asCExprContext *ctx, int funcId, asCObjectType *objectType, asCArray<asCExprContext*> &args, asCScriptNode *node, bool useVariable = false, int stackOffset = 0, int funcPtrVar = 0);
+	int  MakeFunctionCall(asCExprContext *ctx, int funcId, asCObjectType *objectType, asCArray<asCExprContext*> &args, asCScriptNode *node, bool useVariable = false, int stackOffset = 0, int funcPtrVar = 0, bool onHeap = false);
 	int  PrepareFunctionCall(int funcId, asCByteCode *bc, asCArray<asCExprContext *> &args);
 	void AfterFunctionCall(int funcId, asCArray<asCExprContext*> &args, asCExprContext *ctx, bool deferAll);
 	void ProcessDeferredParams(asCExprContext *ctx, bool processOnlyOutRef = false);
@@ -337,6 +372,7 @@ protected:
 	asSNameSpace *DetermineNameSpace(const asCString &scope);
 	int  SetupParametersAndReturnVariable(asCArray<asCString> &parameterNames, asCScriptNode *func);
 	int  InstantiateTemplateFunctions(asCArray<int>& funcs, asCScriptNode* node);
+	asCString BuildLambdaSignature(asCScriptNode* node);
 
 	enum SYMBOLTYPE
 	{
@@ -384,7 +420,7 @@ protected:
 	void Error(const asCString &msg, asCScriptNode *node);
 	void Warning(const asCString &msg, asCScriptNode *node);
 	void Information(const asCString &msg, asCScriptNode *node);
-	void PrintMatchingFuncs(asCArray<int> &funcs, asCScriptNode *node, asCObjectType *inType = 0);
+	void PrintMatchingFuncs(asCArray<int> &funcs, asCScriptNode *node, asCObjectType *inType = 0, asCArray<asSFailedMatch>* failedReasons = NULL);
 	void AddVariableScope(bool isBreakScope = false, bool isContinueScope = false);
 	void RemoveVariableScope();
 	void FinalizeFunction();

@@ -17,7 +17,7 @@ bool Test()
 	COutStream out;
 	asIScriptModule *mod;
 	asIScriptEngine *engine;
-	
+
 	// Test auto with default array
 	// Reported by Sam Tupy
 	{
@@ -29,12 +29,15 @@ bool Test()
 
 		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
 		mod->AddScriptSection("test",
-			"auto[] my_array;");
+			"auto[] my_array;\n"
+			"auto@[]@ temp;\n");
 		r = mod->Build();
 		if (r >= 0)
 			TEST_FAILED;
 
-		if (bout.buffer != "test (1, 5) : Error   : Data type can't be '<auto>'\n")
+		if( bout.buffer != 
+			"test (1, 5) : Error   : Data type can't be '<auto>'\n"
+			"test (2, 6) : Error   : Data type can't be '<auto>@'\n" )
 		{
 			PRINTF("%s", bout.buffer.c_str());
 			TEST_FAILED;

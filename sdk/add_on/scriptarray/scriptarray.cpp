@@ -440,7 +440,7 @@ CScriptArray::CScriptArray(asITypeInfo *ti, void *buf)
 
 		// Copy the values of the primitive type into the internal buffer
 		if( length > 0 )
-			memcpy(At(0), (((asUINT*)buf)+1), length * elementSize);
+			memcpy(At(0), (((asUINT*)buf)+1), size_t(length) * elementSize);
 	}
 	else if( ti->GetSubTypeId() & asTYPEID_OBJHANDLE )
 	{
@@ -448,13 +448,13 @@ CScriptArray::CScriptArray(asITypeInfo *ti, void *buf)
 
 		// Copy the handles into the internal buffer
 		if( length > 0 )
-			memcpy(At(0), (((asUINT*)buf)+1), length * elementSize);
+			memcpy(At(0), (((asUINT*)buf)+1), size_t(length) * elementSize);
 
 		// With object handles it is safe to clear the memory in the received buffer
 		// instead of increasing the ref count. It will save time both by avoiding the
 		// call the increase ref, and also relieve the engine from having to release
 		// its references too
-		memset((((asUINT*)buf)+1), 0, length * elementSize);
+		memset((((asUINT*)buf)+1), 0, size_t(length) * elementSize);
 	}
 	else if( ti->GetSubType()->GetFlags() & asOBJ_REF )
 	{
@@ -465,11 +465,11 @@ CScriptArray::CScriptArray(asITypeInfo *ti, void *buf)
 
 		// Copy the handles into the internal buffer
 		if( length > 0 )
-			memcpy(buffer->data, (((asUINT*)buf)+1), length * elementSize);
+			memcpy(buffer->data, (((asUINT*)buf)+1), size_t(length) * elementSize);
 
 		// For ref types we can do the same as for handles, as they are
 		// implicitly stored as handles.
-		memset((((asUINT*)buf)+1), 0, length * elementSize);
+		memset((((asUINT*)buf)+1), 0, size_t(length) * elementSize);
 	}
 	else
 	{
@@ -679,7 +679,7 @@ void CScriptArray::Reserve(asUINT maxElements)
 		return;
 
 	// Allocate memory for the buffer
-	SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + elementSize*maxElements));
+	SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + size_t(elementSize)*maxElements));
 	if( newBuffer )
 	{
 		newBuffer->numElements = buffer->numElements;
@@ -696,7 +696,7 @@ void CScriptArray::Reserve(asUINT maxElements)
 
 	// As objects in arrays of objects are not stored inline, it is safe to use memcpy here
 	// since we're just copying the pointers to objects and not the actual objects.
-	memcpy(newBuffer->data, buffer->data, buffer->numElements*elementSize);
+	memcpy(newBuffer->data, buffer->data, size_t(buffer->numElements)*elementSize);
 
 	// Release the old buffer
 	userFree(buffer);
@@ -736,7 +736,7 @@ void CScriptArray::RemoveRange(asUINT start, asUINT count)
 	// Compact the elements
 	// As objects in arrays of objects are not stored inline, it is safe to use memmove here
 	// since we're just copying the pointers to objects and not the actual objects.
-	memmove(buffer->data + start*elementSize, buffer->data + (start + count)*elementSize, (buffer->numElements - start - count)*elementSize);
+	memmove(buffer->data + size_t(start)*elementSize, buffer->data + size_t(start + count)*elementSize, size_t(buffer->numElements - start - count)*elementSize);
 	buffer->numElements -= count;
 }
 
@@ -765,7 +765,7 @@ void CScriptArray::Resize(int delta, asUINT at)
 	if( buffer->maxElements < buffer->numElements + delta )
 	{
 		// Allocate memory for the buffer
-		SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + elementSize*(buffer->numElements + delta)));
+		SArrayBuffer *newBuffer = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1 + size_t(elementSize)*(buffer->numElements + delta)));
 		if( newBuffer )
 		{
 			newBuffer->numElements = buffer->numElements + delta;
@@ -782,9 +782,9 @@ void CScriptArray::Resize(int delta, asUINT at)
 
 		// As objects in arrays of objects are not stored inline, it is safe to use memcpy here
 		// since we're just copying the pointers to objects and not the actual objects.
-		memcpy(newBuffer->data, buffer->data, at*elementSize);
+		memcpy(newBuffer->data, buffer->data, size_t(at)*elementSize);
 		if( at < buffer->numElements )
-			memcpy(newBuffer->data + (at+delta)*elementSize, buffer->data + at*elementSize, (buffer->numElements-at)*elementSize);
+			memcpy(newBuffer->data + size_t(at+delta)*elementSize, buffer->data + size_t(at)*elementSize, size_t(buffer->numElements-at)*elementSize);
 
 		// Initialize the new elements with default values
 		Construct(newBuffer, at, at+delta);
@@ -799,14 +799,14 @@ void CScriptArray::Resize(int delta, asUINT at)
 		Destruct(buffer, at, at-delta);
 		// As objects in arrays of objects are not stored inline, it is safe to use memmove here
 		// since we're just copying the pointers to objects and not the actual objects.
-		memmove(buffer->data + at*elementSize, buffer->data + (at-delta)*elementSize, (buffer->numElements - (at-delta))*elementSize);
+		memmove(buffer->data + size_t(at)*elementSize, buffer->data + size_t(at-delta)*elementSize, size_t(buffer->numElements - (at-delta))*elementSize);
 		buffer->numElements += delta;
 	}
 	else
 	{
 		// As objects in arrays of objects are not stored inline, it is safe to use memmove here
 		// since we're just copying the pointers to objects and not the actual objects.
-		memmove(buffer->data + (at+delta)*elementSize, buffer->data + at*elementSize, (buffer->numElements - at)*elementSize);
+		memmove(buffer->data + size_t(at+delta)*elementSize, buffer->data + size_t(at)*elementSize, size_t(buffer->numElements - at)*elementSize);
 		Construct(buffer, at, at+delta);
 		buffer->numElements += delta;
 	}
@@ -979,7 +979,7 @@ void *CScriptArray::GetBuffer()
 // internal
 void CScriptArray::CreateBuffer(SArrayBuffer **buf, asUINT numElements)
 {
-	*buf = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1+elementSize*numElements));
+	*buf = reinterpret_cast<SArrayBuffer*>(userAlloc(sizeof(SArrayBuffer)-1+size_t(elementSize)*numElements));
 
 	if( *buf )
 	{
@@ -1036,7 +1036,7 @@ void CScriptArray::Construct(SArrayBuffer *buf, asUINT start, asUINT end)
 	{
 		// Set all elements to zero whether they are handles or primitives
 		void *d = (void*)(buf->data + start * elementSize);
-		memset(d, 0, (end-start)*elementSize);
+		memset(d, 0, size_t(end-start)*elementSize);
 	}
 }
 
@@ -1457,6 +1457,45 @@ void CScriptArray::SortDesc(asUINT startAt, asUINT count)
 	Sort(startAt, count, false);
 }
 
+struct CScriptArray::customLess
+{
+	bool               asc;
+	asIScriptContext* cmpContext;
+	asIScriptFunction* cmpFunc;
+	bool operator()(void* a, void* b) const
+	{
+		if (!asc)
+		{
+			// Swap items
+			void* TEMP = a;
+			a = b;
+			b = TEMP;
+		}
+
+		int r = 0;
+
+		// Allow sort to work even if the array contains null handles
+		if (a == 0) return true;
+		if (b == 0) return false;
+
+		// Execute object opCmp
+		if (cmpFunc)
+		{
+			// TODO: Add proper error handling
+			r = cmpContext->Prepare(cmpFunc); assert(r >= 0);
+			r = cmpContext->SetObject(a); assert(r >= 0);
+			r = cmpContext->SetArgObject(0, b); assert(r >= 0);
+			r = cmpContext->Execute();
+
+			if (r == asEXECUTION_FINISHED)
+			{
+				return (int)cmpContext->GetReturnDWord() < 0;
+			}
+		}
+
+		return false;
+	}
+};
 
 // internal
 void CScriptArray::Sort(asUINT startAt, asUINT count, bool asc)
@@ -1536,44 +1575,7 @@ void CScriptArray::Sort(asUINT startAt, asUINT count, bool asc)
 			cmpContext = objType->GetEngine()->RequestContext();
 
 		// Do the sorting
-		struct {
-			bool               asc;
-			asIScriptContext  *cmpContext;
-			asIScriptFunction *cmpFunc;
-			bool operator()(void *a, void *b) const
-			{
-				if( !asc )
-				{
-					// Swap items
-					void *TEMP = a;
-					a = b;
-					b = TEMP;
-				}
-
-				int r = 0;
-
-				// Allow sort to work even if the array contains null handles
-				if( a == 0 ) return true;
-				if( b == 0 ) return false;
-
-				// Execute object opCmp
-				if( cmpFunc )
-				{
-					// TODO: Add proper error handling
-					r = cmpContext->Prepare(cmpFunc); assert(r >= 0);
-					r = cmpContext->SetObject(a); assert(r >= 0);
-					r = cmpContext->SetArgObject(0, b); assert(r >= 0);
-					r = cmpContext->Execute();
-
-					if( r == asEXECUTION_FINISHED )
-					{
-						return (int)cmpContext->GetReturnDWord() < 0;
-					}
-				}
-
-				return false;
-			}
-		} customLess = {asc, cmpContext, cache ? cache->cmpFunc : 0};
+		CScriptArray::customLess customLess = { asc, cmpContext, cache ? cache->cmpFunc : 0 };
 		std::sort((void**)GetArrayItemPointer(start), (void**)GetArrayItemPointer(end), customLess);
 
 		// Clean up
@@ -1768,7 +1770,7 @@ void CScriptArray::CopyBuffer(SArrayBuffer *dst, SArrayBuffer *src)
 			else
 			{
 				// Primitives are copied byte for byte
-				memcpy(dst->data, src->data, count*elementSize);
+				memcpy(dst->data, src->data, size_t(count)*elementSize);
 			}
 		}
 	}

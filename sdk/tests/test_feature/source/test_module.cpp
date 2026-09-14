@@ -14,6 +14,64 @@ bool Test()
 	COutStream out;
 	asIScriptContext *ctx;
 
+	// Test CompileGlobalVar with error
+	// Reported by gmp3 labs
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+							  "class testclass\n"
+							  "{\n"
+							  "	testclass(int arg1) { }\n"
+							  "};\n");
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+		r = mod->CompileGlobalVar(0,"testclass tc(nonExistantVar);",0);
+		if( r >= 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if( bout.buffer != " (1, 11) : Info    : Compiling testclass tc\n"
+						   " (1, 14) : Error   : No matching symbol 'nonExistantVar'\n" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test CompileGlobalVar with name conflict
+	// https://github.com/anjo76/angelscript/pull/20
+	{
+		asIScriptEngine *engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		r = mod->CompileGlobalVar(0,"string a = 'foo';",0);
+		if( r < 0 )
+			TEST_FAILED;
+		r = mod->CompileGlobalVar(0,"string a = 'bar';",0);
+		if( r >= 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if( bout.buffer != " (1, 8) : Error   : Name conflict. 'a' is a global property.\n" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test CompileGlobalVar with an array
 	// Reported by gmp3
 	{
@@ -280,7 +338,7 @@ bool Test()
 		RegisterScriptArray(engine, false);
 
 		int allocBeforeEverything = GetAllocedMem();
-
+		UNUSED_VAR(allocBeforeEverything); // used for debugging purposes, but not needed for the test
 		int allocAfterFirstIteration = 0;
 		int allocAfterLastIteration = 0;
 

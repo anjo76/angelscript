@@ -53,6 +53,88 @@ static bool TestEnum()
 	int                r;
 	bool               fail = false;
 
+	// Test enum on big-endian platforms
+	// https://github.com/anjo76/angelscript/pull/62
+	{
+		engine = asCreateScriptEngine();
+		r = engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"enum Small8 : int8 \n"
+			"{ \n"
+			"    Value8 = 42 \n"
+			"} \n"
+			"enum Small16 : int16 \n"
+			"{ \n"
+			"    Value16 = 0x1234 \n"
+			"} \n"
+			"int test_enum_int8() \n"
+			"{ \n"
+			"    return Value8; \n"
+			"} \n"
+			"int test_enum_int16() \n"
+			"{ \n"
+			"    return Value16; \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		r = ExecuteString(engine, "assert( test_enum_int8() == 42 ); \n"
+						          "assert( test_enum_int16() == 0x1234 ); \n", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test enum with underlying type
+	{
+		engine = asCreateScriptEngine();
+		r = engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"enum A : int8 { a = 1, b = 256 } \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		CBytecodeStream stream(__FILE__"1");
+		r = mod->SaveByteCode(&stream);
+		if( r < 0 )
+			TEST_FAILED;
+
+		mod = engine->GetModule("2", asGM_ALWAYS_CREATE);
+		r = mod->LoadByteCode(&stream);
+		if( r < 0 )
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "assert( a == 1 ); assert( b == 0 );", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		if (bout.buffer !=
+			"test (1, 24) : Info    : Compiling A b\n"
+			"test (1, 28) : Warning : Value is too large for data type\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+
+		engine->ShutDownAndRelease();
+	}
+
 	// Test invalid enum usage
 	// https://www.gamedev.net/forums/topic/715661-crash-on-invalid-enum-usage/5461971/
 	{

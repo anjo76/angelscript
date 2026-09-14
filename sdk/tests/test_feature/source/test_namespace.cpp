@@ -13,6 +13,239 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test namespace resolution where class name has same name as namespace (must be supported until it is possible to declare types as class members)
+	// https://github.com/anjo76/angelscript/issues/86
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+							  "class Foo {}\n"
+							  "namespace Foo { \n"
+							  "	enum Something { A, B, C }\n"
+							  "}\n"
+							  "namespace Bar {\n"
+							  "	void X(Foo::Something x) {}\n"
+							  "}\n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asIScriptFunction *func = mod->GetFunctionByDecl("void Bar::X(Foo::Something)");
+		if( func == 0 )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test namespace where a nested namespace has the same name as a global namespace
+	// Reported by Anton Brandstoetter
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			R"(
+			namespace intern 
+			{
+				int hide = 1;
+				class MyType
+				{
+				}
+			}
+			namespace NS1 
+			{
+				namespace intern 
+				{
+					// intern:: refers to NS1::intern in this context, not ::intern, so this should fail
+					int local = intern::hide;
+					void func() { intern::MyType@ _MyType; }
+
+					// explicitly refer to the global intern namespace, so this should work
+					int local2 = ::intern::hide;
+					void func2() { ::intern::MyType@ _MyType2; }
+				}
+				int local3 = intern::local2;  // intern:: refers to NS1::intern, so this should work
+			})");
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "test (14, 10) : Info    : Compiling int local\n"
+						   "test (14, 18) : Error   : No matching symbol 'intern::hide'\n"
+						   "test (15, 6) : Info    : Compiling void func()\n"
+						   "test (15, 28) : Error   : Identifier 'MyType' is not a data type in namespace 'NS1::intern' or parent\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test namespace resolution for enums in double namespace
+	// https://github.com/anjo76/angelscript/issues/67
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->SetDefaultNamespace("CometEditor::GUI");
+
+		engine->RegisterEnum("TestEnum");
+		engine->RegisterEnumValue("TestEnum", "Test1", 1);
+		engine->RegisterEnumValue("TestEnum", "Test2", 2);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"using namespace CometEditor;\n"
+			"void func(GUI::TestEnum t) {}\n"
+			"class MyClass\n"
+			"{\n"
+			"  GUI::TestEnum t;\n"
+			"}\n"
+			"void main()\n"
+			"{\n"
+			"  GUI::TestEnum t;\n"
+			"  func(GUI::TestEnum::Test1);\n"
+			"}\n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test default namespace in opCast
+	// https://www.gamedev.net/forums/topic/719264-default-namespaces-in-opcast/5472016/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		r = engine->RegisterObjectType("io_channel", 0, asOBJ_REF);
+		r = engine->SetDefaultNamespace("visa");
+		r = engine->RegisterObjectType("connection", 0, asOBJ_REF);
+		r = engine->RegisterObjectMethod("connection", "connection @opCast(io_channel @)", asFUNCTION(0), asCALL_GENERIC);
+		if( r < 0 )
+			TEST_FAILED;
+
+		asIScriptFunction *func = engine->GetFunctionById(r);
+		if( func == 0 )
+			TEST_FAILED;
+		else if( string(func->GetDeclaration(true, true, false)) != "visa::connection@ visa::connection::opCast(io_channel@)" )
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test GetGlobalFunctionByDecl and namespace
+	// https://www.gamedev.net/forums/topic/718946-getglobalfunctionbydecl-ignores-namespace/5471124/
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->SetDefaultNamespace("Foo");
+		engine->RegisterGlobalFunction("void Bar()", asFUNCTION(0), asCALL_GENERIC);
+		engine->RegisterObjectType("Type", 0, asOBJ_REF);
+
+		engine->SetDefaultNamespace("");
+
+		asIScriptFunction* func = engine->GetGlobalFunctionByDecl("void Foo::Bar()");
+		if (func == 0)
+			TEST_FAILED;
+
+		engine->SetDefaultNamespace("Foo");
+		func = engine->GetGlobalFunctionByDecl("void Bar()");
+		if (func == 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test using namespace with nested namespaces
+	// https://github.com/anjo76/angelscript/issues/1
+	{
+		engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+		
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"int value = 0; \n"
+			"namespace A { \n"
+			"	void fn_a() { \n"
+			"		value = 1; \n"
+			"	} \n"
+			"} \n"
+			" \n"
+			"namespace A { \n"
+			"	namespace B { \n"
+			"		void fn_b() { \n"
+			"			value = 2; \n"
+			"		} \n"
+			"	} \n"
+			"} \n"
+			" \n"
+			"void main() { \n"
+			"	using namespace A; \n"
+			"	fn_a(); // OK \n"
+			"   assert( value == 1 ); \n"
+			" \n"
+			"	B::fn_b(); // OK \n"
+			"   assert( value == 2 ); \n"
+			" \n"
+			"	using namespace A::B; \n"
+			"   value = 0; \n"
+			"	fn_b(); // [error] No matching symbol 'fn_b' \n"
+			"   assert( value == 2 ); \n"
+			"} \n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "main()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test subclasses and using namespaces
 	// Reported by Sam Tupy
 	{

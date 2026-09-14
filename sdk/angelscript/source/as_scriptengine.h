@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -123,8 +123,8 @@ public:
 	virtual int GetDefaultArrayTypeId() const;
 
 	// Enums
-	virtual int          RegisterEnum(const char *type);
-	virtual int          RegisterEnumValue(const char *type, const char *name, int value);
+	virtual int          RegisterEnum(const char* typeName, const char* underlyingType = "int32");
+	virtual int          RegisterEnumValue(const char* type, const char* name, asINT64 value);
 	virtual asUINT       GetEnumCount() const;
 	virtual asITypeInfo *GetEnumByIndex(asUINT index) const;
 
@@ -307,7 +307,7 @@ public:
 	asCScriptFunction *GenerateFactoryStubForTemplateObjectInstance(asCObjectType *templateType, asCObjectType *templateInstanceType, int origFactoryId);
 	bool               GenerateFunctionForTemplateObjectInstance(asCObjectType *templateType, asCObjectType *templateInstanceType, asCScriptFunction *templateFunc, asCScriptFunction **newFunc);
 	asCFuncdefType    *GenerateFuncdefForTemplateObjectInstance(asCObjectType *templateType, asCObjectType *templateInstanceType, asCFuncdefType *templateFuncdef);
-	asCDataType        DetermineTypeForTemplate(const asCDataType &orig, const asCArray<asCDataType>& templateSubTypes, const asCArray<asCDataType>& targetSubTypes, asCModule *mod, asCObjectType* tmpl, asCObjectType* ot);
+	asCDataType        DetermineTypeForTemplate(bool &success, const asCDataType &orig, const asCArray<asCDataType>& templateSubTypes, const asCArray<asCDataType>& targetSubTypes, asCModule *mod, asCObjectType* tmpl, asCObjectType* ot);
 
 	asCModule         *FindNewOwnerForSharedType(asCTypeInfo *type, asCModule *mod);
 	asCModule         *FindNewOwnerForSharedFunc(asCScriptFunction *func, asCModule *mod);

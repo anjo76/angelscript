@@ -132,6 +132,15 @@ unless otherwise specified.
   }
 </pre>
 
+The size and type of the enum can optionally be defined by adding the primitive after a colon in the declaration.
+
+<pre>
+  enum MyByte : uint8
+  {
+    byte01 = 1,
+    byteFF = 0xFF
+  }
+</pre>
 
 
 
@@ -224,6 +233,9 @@ namespace declare the same entity.
     int var = Parent::Child::var;
   }
 </pre>
+
+\todo Namespace can have same name as class for pseudo static members
+
 
 \section doc_global_using_ns Using namespace
 

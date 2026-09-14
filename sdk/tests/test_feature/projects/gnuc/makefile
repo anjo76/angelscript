@@ -15,6 +15,7 @@ SRCNAMES = \
   bstr.cpp \
   main.cpp \
   test_2func.cpp \
+  test_addon_autowrapper.cpp \
   test_addon_contextmgr.cpp \
   test_addon_datetime.cpp \
   test_addon_scriptarray.cpp \
@@ -80,6 +81,7 @@ SRCNAMES = \
   test_import2.cpp \
   test_inheritance.cpp \
   test_interface.cpp \
+  test_literal.cpp \
   test_mixin.cpp \
   test_module.cpp \
   test_multiassign.cpp \

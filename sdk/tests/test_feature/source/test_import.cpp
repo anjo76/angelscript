@@ -58,6 +58,44 @@ bool Test()
 	COutStream out;
 	CBufferedOutStream bout;
 
+	// Test calling imported function with wrong signature
+	// https://github.com/anjo76/angelscript/issues/49
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		asIScriptModule* mod = NULL;
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		r = mod->AddScriptSection("export", "void funcForImport(int a, float b) {}"); assert(r >= 0);
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		// Try calling the imported function with wrong arguments
+		mod = engine->GetModule("test2", asGM_ALWAYS_CREATE);
+		r = mod->AddScriptSection("import", 
+			"import void funcForImport(int, float) from 'test';\n"
+			"void test() { funcForImport(true, false); }\n"); assert(r >= 0);
+		r = mod->Build();
+		if (r >= 0)
+			TEST_FAILED;
+
+		r = mod->BindAllImportedFunctions();
+		if (r < 0)
+			TEST_FAILED;
+
+		r = engine->ShutDownAndRelease(); assert(r >= 0);
+		if (bout.buffer != "import (2, 1) : Info    : Compiling void test()\n"
+						   "import (2, 15) : Error   : No matching signatures to 'funcForImport(const bool, const bool)'\n"
+						   "import (2, 15) : Info    : Candidates are:\n"
+						   "import (2, 15) : Info    : void funcForImport(int, float)\n"
+						   "import (2, 15) : Info    : Rejected due to type mismatch at positional parameter 1\n")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test attempt to bind class method to imported function
 	// Reported by Denis Naumov
 	{

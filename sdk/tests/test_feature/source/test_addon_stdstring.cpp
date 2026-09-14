@@ -26,6 +26,50 @@ namespace Test_Addon_StdString
 		COutStream out;
 		CBufferedOutStream bout;
 
+		// Test StringFormat with uint8
+		// Reported by li zhuang
+		{
+			asIScriptEngine* engine = asCreateScriptEngine();
+			engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+			RegisterStdString(engine);
+			engine->RegisterGlobalFunction("void print(const string &in)", asFUNCTION(print), asCALL_GENERIC);
+
+			bout.buffer = "";
+
+			engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+			g_buf = "";
+			asIScriptContext* ctx = engine->CreateContext();
+			r = ExecuteString(engine,
+				"uint8 test = 65;\n"
+				"string s = format('{}', test);\n"
+				"print(s);\n"
+				"assert(s == '65');\n"
+			);
+			if (r != asEXECUTION_FINISHED)
+			{
+				TEST_FAILED;
+				if (r == asEXECUTION_EXCEPTION)
+				{
+					PRINTF("%s\n", GetExceptionInfo(ctx).c_str());
+				}
+			}
+			if (g_buf != "65\n")
+			{
+				TEST_FAILED;
+				PRINTF("%s\n", g_buf.c_str());
+			}
+			ctx->Release();
+
+			engine->ShutDownAndRelease();
+
+			if (bout.buffer != "")
+			{
+				PRINTF("%s", bout.buffer.c_str());
+				TEST_FAILED;
+			}
+		}
+		
 		// scan
 		{
 			asIScriptEngine* engine = asCreateScriptEngine();
@@ -101,6 +145,7 @@ namespace Test_Addon_StdString
 		}
 
 		// Test regexFind
+#if AS_CAN_USE_CPP11
 		{
 			asIScriptEngine* engine = asCreateScriptEngine();
 			engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
@@ -167,6 +212,7 @@ namespace Test_Addon_StdString
 
 			engine->ShutDownAndRelease();
 		}
+#endif
 
 		// Test const string with int value assignment
 		// https://www.gamedev.net/forums/topic/715649-assertion-failure-const-string-asdf-10/5461912/

@@ -209,7 +209,7 @@ The array object supports \ref while "foreach loops" to easily iterate over all 
 
 \section doc_datatypes_arrays_addon Supporting array object
 
-The array object supports a number of operators and has several class methods to facilitate the manipulation of strings.
+The array object supports a number of operators and has several class methods to facilitate the manipulation of arrays.
 
 The array object is a \ref doc_datatypes_obj "reference type" even if the elements are not, so it's possible
 to use handles to the array object when passing it around to avoid costly copies.

@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2023 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied 
    warranty. In no event will the authors be held liable for any 
@@ -433,7 +433,8 @@ asCScriptObject::~asCScriptObject()
 	}
 
 	// The engine pointer should be available from the objectType
-	asCScriptEngine *engine = objType->engine;
+	asCScriptEngine* engine = objType->engine;
+	asASSERT(engine);
 
 	// Destroy all properties
 	// In most cases the members are initialized in the order they have been declared, 
@@ -441,42 +442,45 @@ asCScriptObject::~asCScriptObject()
 	// depending on the use of inheritance and or initialization in the declaration.
 	// TODO: Should the order of initialization be stored by the compiler so that the 
 	//       reverse order can be guaranteed during the destruction?
-	for( int n = (int)objType->properties.GetLength()-1; n >= 0; n-- )
+	if (engine)
 	{
-		asCObjectProperty *prop = objType->properties[n];
-		if( prop->type.IsObject() )
+		for( int n = (int)objType->properties.GetLength()-1; n >= 0; n-- )
 		{
-			// Destroy the object
-			asCObjectType *propType = CastToObjectType(prop->type.GetTypeInfo());
-			if( prop->type.IsReference() || propType->flags & asOBJ_REF )
+			asCObjectProperty *prop = objType->properties[n];
+			if( prop->type.IsObject() )
 			{
-				void **ptr = (void**)(((char*)this) + prop->byteOffset);
-				if( *ptr )
+				// Destroy the object
+				asCObjectType *propType = CastToObjectType(prop->type.GetTypeInfo());
+				if( prop->type.IsReference() || propType->flags & asOBJ_REF )
 				{
-					FreeObject(*ptr, propType, engine);
-					*(asDWORD*)ptr = 0;
+					void **ptr = (void**)(((char*)this) + prop->byteOffset);
+					if( *ptr )
+					{
+						FreeObject(*ptr, propType, engine);
+						*(asDWORD*)ptr = 0;
+					}
+				}
+				else
+				{
+					// The object is allocated inline. As only POD objects may be allocated inline
+					// it is not a problem to call the destructor even if the object may never have
+					// been initialized, e.g. if an exception interrupted the constructor.
+					asASSERT( propType->flags & asOBJ_POD );
+	
+					void *ptr = (void**)(((char*)this) + prop->byteOffset);
+					if( propType->beh.destruct )
+						engine->CallObjectMethod(ptr, propType->beh.destruct);
 				}
 			}
-			else
+			else if( prop->type.IsFuncdef() )
 			{
-				// The object is allocated inline. As only POD objects may be allocated inline
-				// it is not a problem to call the destructor even if the object may never have
-				// been initialized, e.g. if an exception interrupted the constructor.
-				asASSERT( propType->flags & asOBJ_POD );
-
-				void *ptr = (void**)(((char*)this) + prop->byteOffset);
-				if( propType->beh.destruct )
-					engine->CallObjectMethod(ptr, propType->beh.destruct);
-			}
-		}
-		else if( prop->type.IsFuncdef() )
-		{
-			// Release the function descriptor
-			asCScriptFunction **ptr = (asCScriptFunction**)(((char*)this) + prop->byteOffset);
-			if (*ptr)
-			{
-				(*ptr)->Release();
-				*ptr = 0;
+				// Release the function descriptor
+				asCScriptFunction **ptr = (asCScriptFunction**)(((char*)this) + prop->byteOffset);
+				if (*ptr)
+				{
+					(*ptr)->Release();
+					*ptr = 0;
+				}
 			}
 		}
 	}
@@ -493,8 +497,10 @@ asILockableSharedBool *asCScriptObject::GetWeakRefFlag() const
 	// If the object's refCount has already reached zero then the object is already
 	// about to be destroyed so it's ok to return null if the weakRefFlag doesn't already
 	// exist
-	if( (extra && extra->weakRefFlag) || hasRefCountReachedZero )
+	if( extra && extra->weakRefFlag )
 		return extra->weakRefFlag;
+	if( hasRefCountReachedZero )
+		return 0;
 
 	// Lock globally so no other thread can attempt
 	// to create a shared bool at the same time.
@@ -924,7 +930,7 @@ int asCScriptObject::CopyFromAs(const asCScriptObject *other, asCObjectType *in_
 				if( prop->type.IsObject() )
 				{
 					void **dst = (void**)(((char*)this) + prop->byteOffset);
-					void **src = (void**)(((char*)other) + prop->byteOffset);
+					void **src = (void**)(const_cast<char*>((const char*)other) + prop->byteOffset);
 					if( !prop->type.IsObjectHandle() )
 					{
 						if( prop->type.IsReference() || (prop->type.GetTypeInfo()->flags & asOBJ_REF) )
@@ -938,17 +944,17 @@ int asCScriptObject::CopyFromAs(const asCScriptObject *other, asCObjectType *in_
 				else if (prop->type.IsFuncdef())
 				{
 					asCScriptFunction **dst = (asCScriptFunction**)(((char*)this) + prop->byteOffset);
-					asCScriptFunction **src = (asCScriptFunction**)(((char*)other) + prop->byteOffset);
+					asCScriptFunction **src = (asCScriptFunction**)(const_cast<char*>((const char*)other) + prop->byteOffset);
 					if (*dst)
 						(*dst)->Release();
-					*dst = *src;
+					*dst = *const_cast<asCScriptFunction**>(src);
 					if (*dst)
 						(*dst)->AddRef();
 				}
 				else
 				{
 					void *dst = ((char*)this) + prop->byteOffset;
-					void *src = ((char*)other) + prop->byteOffset;
+					const void *src = ((const char*)other) + prop->byteOffset;
 					memcpy(dst, src, prop->type.GetSizeInMemoryBytes());
 				}
 			}
@@ -1046,7 +1052,7 @@ int asCScriptObject::CopyFrom(const asIScriptObject *other)
 	if( GetTypeId() != other->GetTypeId() )
 		return asINVALID_TYPE;
 
-	*this = *(asCScriptObject*)other;
+	*this = *(const asCScriptObject*)other;
 
 	return asSUCCESS;
 }
