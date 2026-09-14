@@ -3196,7 +3196,8 @@ int asCScriptEngine::GetTemplateFunctionInstance(asCScriptFunction* baseFunc, co
 		if (func->name == baseFunc->name &&
 			func->nameSpace == baseFunc->nameSpace &&
 			func->objectType == baseFunc->objectType &&
-			func->templateSubTypes == types)
+			func->templateSubTypes == types &&
+			func->IsReadOnly() == baseFunc->IsReadOnly())
 			return func->id;
 	}
 

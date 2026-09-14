@@ -12710,6 +12710,9 @@ int asCCompiler::InstantiateTemplateFunctions(asCArray<int>& funcs, asCScriptNod
 		if (numTypes == 0) continue;
 		asCArray<asCDataType> dataTypes;
 		// TODO: If there is more than one template function with the same name, then use only the one that matches
+
+		types = startNode;
+
 		for (asUINT j = 0; j < numTypes; j++)
 		{
 			// If the number of types doesn't match the template then give an error 
