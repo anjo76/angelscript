@@ -6133,6 +6133,9 @@ void asCCompiler::CompileReturnStatement(asCScriptNode *rnode, asCByteCode *bc)
 		int r = CompileAssignment(rnode->firstChild, &expr);
 		if( r < 0 ) return;
 
+		if( ProcessPropertyGetAccessor(&expr, rnode) < 0 )
+			return;
+
 		if( v->type.IsReference() )
 		{
 			// The expression that gives the reference must not use any of the
@@ -6246,9 +6249,6 @@ void asCCompiler::CompileReturnStatement(asCScriptNode *rnode, asCByteCode *bc)
 		}
 		else // if( !v->type.IsReference() )
 		{
-			if( ProcessPropertyGetAccessor(&expr, rnode) < 0 )
-				return;
-
 			// Prepare the value for assignment
 			IsVariableInitialized(&expr.type, rnode->firstChild);
 

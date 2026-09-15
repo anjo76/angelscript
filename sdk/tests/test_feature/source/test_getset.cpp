@@ -109,6 +109,58 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptEngine *engine;
 
+	// Test calling get accessor in return statement returning a reference
+	// https://github.com/anjo76/angelscript/issues/82
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+	//	engine->SetEngineProperty(asEP_OPTIMIZE_BYTECODE, false);
+
+		RegisterStdString(engine);
+
+		mod = engine->GetModule("test", asGM_ALWAYS_CREATE); assert(mod != NULL);
+		mod->AddScriptSection("test", R"(
+			class A
+			{
+				const string& get_SomeString() property
+				{
+					return "get_SomeString";
+				}
+			}
+
+			class B : A
+			{
+				B()
+				{
+					//assert( this.SomeOtherString == "get_SomeString" );
+				}
+
+				const string& get_SomeOtherString() property
+				{
+					return this.SomeString;
+				}
+			}
+
+			B@ b = B(); )");
+		r = mod->Build(); // TODO: Optimize: PshRPtr, PopRPtr can be optimized away
+		if (r < 0)
+			TEST_FAILED;
+
+		r = ExecuteString(engine, "B test(); assert( test.SomeOtherString == 'get_SomeString' ); ", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test get with const string&
 	// https://www.gamedev.net/forums/topic/684375-angelscript-problem-returning-a-const-reference-from-a-class-property/
 	{
