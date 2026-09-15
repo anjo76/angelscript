@@ -149,27 +149,27 @@ bool asCTokenizer::IsDigitInRadix(char ch, int radix) const
 	return false;
 }
 
-eTokenType asCTokenizer::GetToken(const char *source, size_t sourceLength, size_t *tokenLength, asETokenClass *tc) const
+eTokenType asCTokenizer::GetToken(asStringView source, size_t *tokenLength, asETokenClass *tc) const
 {
-	asASSERT(source != 0);
+	asASSERT(source.string != 0);
 	asASSERT(tokenLength != 0);
 
 	eTokenType tokenType;
 	size_t     tlen;
-	asETokenClass t = ParseToken(source, sourceLength, tlen, tokenType);
+	asETokenClass t = ParseToken(source, tlen, tokenType);
 	if( tc          ) *tc          = t;
 	if( tokenLength ) *tokenLength = tlen;
 
 	return tokenType;
 }
 
-asETokenClass asCTokenizer::ParseToken(const char *source, size_t sourceLength, size_t &tokenLength, eTokenType &tokenType) const
+asETokenClass asCTokenizer::ParseToken(asStringView source, size_t &tokenLength, eTokenType &tokenType) const
 {
-	if( IsWhiteSpace(source, sourceLength, tokenLength, tokenType) ) return asTC_WHITESPACE;
-	if( IsComment(source, sourceLength, tokenLength, tokenType)    ) return asTC_COMMENT;
-	if( IsConstant(source, sourceLength, tokenLength, tokenType)   ) return asTC_VALUE;
-	if( IsIdentifier(source, sourceLength, tokenLength, tokenType) ) return asTC_IDENTIFIER;
-	if( IsKeyWord(source, sourceLength, tokenLength, tokenType)    ) return asTC_KEYWORD;
+	if( IsWhiteSpace(source, tokenLength, tokenType) ) return asTC_WHITESPACE;
+	if( IsComment(source, tokenLength, tokenType)    ) return asTC_COMMENT;
+	if( IsConstant(source, tokenLength, tokenType)   ) return asTC_VALUE;
+	if( IsIdentifier(source, tokenLength, tokenType) ) return asTC_IDENTIFIER;
+	if( IsKeyWord(source, tokenLength, tokenType)    ) return asTC_KEYWORD;
 
 	// If none of the above this is an unrecognized token
 	// We can find the length of the token by advancing
@@ -180,10 +180,10 @@ asETokenClass asCTokenizer::ParseToken(const char *source, size_t sourceLength, 
 	return asTC_UNKNOWN;
 }
 
-bool asCTokenizer::IsWhiteSpace(const char *source, size_t sourceLength, size_t &tokenLength, eTokenType &tokenType) const
+bool asCTokenizer::IsWhiteSpace(asStringView source, size_t &tokenLength, eTokenType &tokenType) const
 {
 	// Treat UTF8 byte-order-mark (EF BB BF) as whitespace
-	if( sourceLength >= 3 && 
+	if( source.len >= 3 && 
 		asBYTE(source[0]) == 0xEFu &&
 		asBYTE(source[1]) == 0xBBu &&
 		asBYTE(source[2]) == 0xBFu )
@@ -196,7 +196,7 @@ bool asCTokenizer::IsWhiteSpace(const char *source, size_t sourceLength, size_t 
 	// Group all other white space characters into one
 	size_t n;
 	int numWsChars = (int)strlen(whiteSpace);
-	for( n = 0; n < sourceLength; n++ )
+	for( n = 0; n < source.len; n++ )
 	{
 		bool isWhiteSpace = false;
 		for( int w = 0; w < numWsChars; w++ )
@@ -220,9 +220,9 @@ bool asCTokenizer::IsWhiteSpace(const char *source, size_t sourceLength, size_t 
 	return false;
 }
 
-bool asCTokenizer::IsComment(const char *source, size_t sourceLength, size_t &tokenLength, eTokenType &tokenType) const
+bool asCTokenizer::IsComment(asStringView source, size_t &tokenLength, eTokenType &tokenType) const
 {
-	if( sourceLength < 2 )
+	if( source.len < 2 )
 		return false;
 
 	if( source[0] != '/' )
@@ -234,14 +234,14 @@ bool asCTokenizer::IsComment(const char *source, size_t sourceLength, size_t &to
 
 		// Find the length
 		size_t n;
-		for( n = 2; n < sourceLength; n++ )
+		for( n = 2; n < source.len; n++ )
 		{
 			if( source[n] == '\n' )
 				break;
 		}
 
 		tokenType   = ttOnelineComment;
-		tokenLength = n < sourceLength ? n+1 : n;
+		tokenLength = n < source.len ? n + 1 : n;
 
 		return true;
 	}
@@ -252,7 +252,7 @@ bool asCTokenizer::IsComment(const char *source, size_t sourceLength, size_t &to
 
 		// Find the length
 		size_t n;
-		for( n = 2; n < sourceLength-1; )
+		for( n = 2; n < source.len-1; )
 		{
 			if( source[n++] == '*' && source[n] == '/' )
 				break;
@@ -267,11 +267,11 @@ bool asCTokenizer::IsComment(const char *source, size_t sourceLength, size_t &to
 	return false;
 }
 
-bool asCTokenizer::IsValidSeparatorDigitInRadix(const char* source, size_t sourceLength, size_t n, int radix) const
+bool asCTokenizer::IsValidSeparatorDigitInRadix(asStringView source, size_t n, int radix) const
 {
 	if (source[n] != '\'')
 		return false;
-	if ((n + 1) >= sourceLength || n == 0)
+	if ((n + 1) >= source.len || n == 0)
 		return false;
 	else if (!IsDigitInRadix(source[n + 1], radix) || !IsDigitInRadix(source[n - 1], radix))
 		return false;
@@ -279,13 +279,13 @@ bool asCTokenizer::IsValidSeparatorDigitInRadix(const char* source, size_t sourc
 	return true;
 }
 
-bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &tokenLength, eTokenType &tokenType) const
+bool asCTokenizer::IsConstant(asStringView source, size_t &tokenLength, eTokenType &tokenType) const
 {
 	// Starting with number
-	if( (source[0] >= '0' && source[0] <= '9') || (source[0] == '.' && sourceLength > 1 && source[1] >= '0' && source[1] <= '9') )
+	if( (source[0] >= '0' && source[0] <= '9') || (source[0] == '.' && source.len > 1 && source[1] >= '0' && source[1] <= '9') )
 	{
 		// Is it a based number?
-		if( source[0] == '0' && sourceLength > 1 )
+		if( source[0] == '0' && source.len > 1 )
 		{
 			// Determine the radix for the constant
 			int radix = 0;
@@ -300,8 +300,8 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 			if( radix )
 			{
 				size_t n;
-				for( n = 2; n < sourceLength; n++ )
-					if( !IsDigitInRadix(source[n], radix) && !IsValidSeparatorDigitInRadix(source, sourceLength, n, radix) )
+				for( n = 2; n < source.len; n++ )
+					if( !IsDigitInRadix(source[n], radix) && !IsValidSeparatorDigitInRadix(source, n, radix) )
 						break;
 
 				tokenType   = ttBitsConstant;
@@ -311,38 +311,38 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 		}
 
 		size_t n;
-		for( n = 0; n < sourceLength; n++ )
+		for( n = 0; n < source.len; n++ )
 		{
-			if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, sourceLength, n, 10) )
+			if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, n, 10) )
 				break;
 		}
 
-		if( n < sourceLength && (source[n] == '.' || source[n] == 'e' || source[n] == 'E') )
+		if( n < source.len && (source[n] == '.' || source[n] == 'e' || source[n] == 'E') )
 		{
 			if( source[n] == '.' )
 			{
 				n++;
-				for( ; n < sourceLength; n++ )
+				for( ; n < source.len; n++ )
 				{
-					if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, sourceLength, n, 10) )
+					if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, n, 10) )
 						break;
 				}
 			}
 
-			if( n < sourceLength && (source[n] == 'e' || source[n] == 'E') )
+			if( n < source.len && (source[n] == 'e' || source[n] == 'E') )
 			{
 				n++;
-				if( n < sourceLength && (source[n] == '-' || source[n] == '+') )
+				if( n < source.len && (source[n] == '-' || source[n] == '+') )
 					n++;
 
-				for( ; n < sourceLength; n++ )
+				for( ; n < source.len; n++ )
 				{
-					if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, sourceLength, n, 10) )
+					if( (source[n] < '0' || source[n] > '9') && !IsValidSeparatorDigitInRadix(source, n, 10) )
 						break;
 				}
 			}
 
-			if( n < sourceLength && (source[n] == 'f' || source[n] == 'F') )
+			if( n < source.len && (source[n] == 'f' || source[n] == 'F') )
 			{
 				tokenType   = ttFloatConstant;
 				tokenLength = n + 1;
@@ -368,13 +368,13 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 	if( source[0] == '"' || source[0] == '\'' )
 	{
 		// Is it a normal string constant or a heredoc string constant?
-		if( sourceLength >= 6 && source[0] == '"' && source[1] == '"' && source[2] == '"' )
+		if( source.len >= 6 && source[0] == '"' && source[1] == '"' && source[2] == '"' )
 		{
 			// Heredoc string constant (spans multiple lines, no escape sequences)
 
 			// Find the length
 			size_t n;
-			for( n = 3; n < sourceLength-2; n++ )
+			for( n = 3; n < source.len-2; n++ )
 			{
 				if (source[n] == '"' && source[n + 1] == '"' && source[n + 2] == '"')
 				{
@@ -394,7 +394,7 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 			char quote = source[0];
 			bool evenSlashes = true;
 			size_t n;
-			for( n = 1; n < sourceLength; n++ )
+			for( n = 1; n < source.len; n++ )
 			{
 #ifdef AS_DOUBLEBYTE_CHARSET
 				// Double-byte characters are only allowed for ASCII
@@ -427,7 +427,7 @@ bool asCTokenizer::IsConstant(const char *source, size_t sourceLength, size_t &t
 	return false;
 }
 
-bool asCTokenizer::IsIdentifier(const char *source, size_t sourceLength, size_t &tokenLength, eTokenType &tokenType) const
+bool asCTokenizer::IsIdentifier(asStringView source, size_t &tokenLength, eTokenType &tokenType) const
 {
 	// char is unsigned by default on some architectures, e.g. ppc and arm
 	// Make sure the value is always treated as signed in the below comparisons
@@ -442,7 +442,7 @@ bool asCTokenizer::IsIdentifier(const char *source, size_t sourceLength, size_t 
 		tokenType   = ttIdentifier;
 		tokenLength = 1;
 
-		for( size_t n = 1; n < sourceLength; n++ )
+		for( size_t n = 1; n < source.len; n++ )
 		{
 			c = source[n];
 			if( (c >= 'a' && c <= 'z') ||
@@ -456,7 +456,7 @@ bool asCTokenizer::IsIdentifier(const char *source, size_t sourceLength, size_t 
 		}
 
 		// Make sure the identifier isn't a reserved keyword
-		if( IsKeyWord(source, tokenLength, tokenLength, tokenType) )
+		if( IsKeyWord(source.SubString(0,tokenLength), tokenLength,tokenType) )
 			return false;
 
 		return true;
@@ -465,7 +465,7 @@ bool asCTokenizer::IsIdentifier(const char *source, size_t sourceLength, size_t 
 	return false;
 }
 
-bool asCTokenizer::IsKeyWord(const char *source, size_t sourceLength, size_t &tokenLength, eTokenType &tokenType) const
+bool asCTokenizer::IsKeyWord(asStringView source, size_t &tokenLength, eTokenType &tokenType) const
 {
 	unsigned char start = source[0];
 	const sTokenWord **ptr = keywordTable[start];
@@ -476,13 +476,13 @@ bool asCTokenizer::IsKeyWord(const char *source, size_t sourceLength, size_t &to
 	for( ; *ptr; ++ptr )
 	{
 		size_t wlen = (*ptr)->wordLength;
-		if( sourceLength >= wlen && strncmp(source, (*ptr)->word, wlen) == 0 )
+		if( source.len >= wlen && source == asStringView((*ptr)->word, wlen))
 		{
 			// Tokens that end with a character that can be part of an 
 			// identifier require an extra verification to guarantee that 
 			// we don't split an identifier token, e.g. the "!is" token 
 			// and the tokens "!" and "isTrue" in the "!isTrue" expression.
-			if( wlen < sourceLength &&
+			if( wlen < source.len &&
 				((source[wlen-1] >= 'a' && source[wlen-1] <= 'z') ||
 				 (source[wlen-1] >= 'A' && source[wlen-1] <= 'Z') ||
 				 (source[wlen-1] >= '0' && source[wlen-1] <= '9')) &&
