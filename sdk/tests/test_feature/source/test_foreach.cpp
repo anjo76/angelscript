@@ -88,6 +88,31 @@ int ScriptQueryOpForValue(const Query& q, const ScriptQueryIterator& it)
 	return it.it; // Just returning the iterator index as a dummy value
 }
 
+struct ValueContainer
+{
+	ValueContainer(asUINT* values, asUINT length) : values(values), length(length) {}
+
+	asUINT length;
+	asUINT* values;
+};
+
+asUINT ValueContainerOpForBegin(ValueContainer&)
+{
+	return 0;
+}
+bool ValueContainerOpForEnd(ValueContainer& c, asUINT it)
+{
+	return it >= c.length;
+}
+asUINT ValueContainerOpForNext(ValueContainer&, asUINT it)
+{
+	return it + 1;
+}
+asUINT ValueContainerOpForValue(ValueContainer& c, asUINT it)
+{
+	return c.values[it];
+}
+
 bool Test()
 {
 	bool fail = false;
@@ -877,6 +902,67 @@ bool Test()
 		r = ExecuteString(engine, "Test()", mod);
 		if (r != asEXECUTION_FINISHED)
 			TEST_FAILED;
+
+		if (bout.buffer != "")
+		{
+			TEST_FAILED;
+			PRINTF("%s", bout.buffer.c_str());
+		}
+
+		engine->ShutDownAndRelease();
+	}
+
+	// Foreach where the container is a value type
+	// https://github.com/anjo76/angelscript/issues/92
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		RegisterStdString(engine);
+
+		engine->RegisterGlobalFunction("void print(const string &in)", asFUNCTION(Print_Generic), asCALL_GENERIC);
+		g_printBuffer = "";
+
+		engine->RegisterObjectType("ValueContainer", sizeof(ValueContainer), asOBJ_VALUE | asOBJ_POD | asGetTypeTraits<ValueContainer>());
+		engine->RegisterObjectMethod("ValueContainer", "uint opForBegin()", asFUNCTIONPR(ValueContainerOpForBegin, (ValueContainer&), asUINT), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("ValueContainer", "bool opForEnd(uint it)", asFUNCTIONPR(ValueContainerOpForEnd, (ValueContainer&, asUINT), bool), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("ValueContainer", "uint opForNext(uint it)", asFUNCTIONPR(ValueContainerOpForNext, (ValueContainer&, asUINT), asUINT), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("ValueContainer", "uint opForValue(uint it)", asFUNCTIONPR(ValueContainerOpForValue, (ValueContainer&, asUINT), asUINT), asCALL_CDECL_OBJFIRST);
+
+		asIScriptModule* mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script",
+			"void main(ValueContainer c) {"
+			"	foreach(auto a : c) {\n"
+			"		print(format(\"{}\", a));\n"
+			"	}\n"
+			"}\n");
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+
+		asUINT values[] = { 4,3,2,1,0 };
+		ValueContainer itr(values, (asUINT)(sizeof(values) / sizeof(values[0])));
+
+		asIScriptFunction* func = mod->GetFunctionByName("main");
+		asIScriptContext* ctx = engine->RequestContext();
+		r = ctx->Prepare(func);
+		if(r != asSUCCESS)
+			TEST_FAILED;
+
+		r = ctx->SetArgObject(0, &itr);
+		if(r)
+			TEST_FAILED;
+
+		r = ctx->Execute();
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		if (g_printBuffer != "43210")
+		{
+			TEST_FAILED;
+			PRINTF("%s\n", g_printBuffer.c_str());
+		}
 
 		if (bout.buffer != "")
 		{
