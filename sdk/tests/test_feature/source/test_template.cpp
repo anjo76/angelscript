@@ -1755,6 +1755,42 @@ bool Test()
 		engine->Release();
 	}
 
+	// Must be able to register const and non const template method overloads
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		r = engine->RegisterObjectType("myObj", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+		r = engine->RegisterObjectMethod("myObj", "T@ get<T>()", asFUNCTION(0), asCALL_GENERIC);
+		r = engine->RegisterObjectMethod("myObj", "const T@ get<T>() const", asFUNCTION(0), asCALL_GENERIC);
+
+		r = engine->RegisterObjectType("myTestTemplateParam", 0, asOBJ_REF | asOBJ_NOCOUNT); assert(r >= 0);
+
+		if( r < 0 )
+			TEST_FAILED;
+
+		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test",
+			"void test(myObj@ x) \n"
+			"{ \n"
+			"     auto result = x.get<myTestTemplateParam>(); \n"
+			"     const myObj@ constX = x;\n"
+			"     const auto constResult = constX.get<myTestTemplateParam>(); \n"
+			"} \n");
+		bout.buffer = "";
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		engine->Release();
+	}
+
  	return fail;
 }
 
