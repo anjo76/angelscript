@@ -1756,6 +1756,7 @@ bool Test()
 	}
 
 	// Must be able to register const and non const template method overloads
+	// https://github.com/anjo76/angelscript/pull/97
 	{
 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);

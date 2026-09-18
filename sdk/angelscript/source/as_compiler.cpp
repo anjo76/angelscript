@@ -13137,11 +13137,10 @@ int asCCompiler::InstantiateTemplateFunctions(asCArray<int>& funcs, asCScriptNod
 		asUINT numTypes = func->templateSubTypes.GetLength();
 		// TODO: If types for template instance has been given in the node, and no matching template function exists then an error must be given
 		if (numTypes == 0) continue;
-		asCArray<asCDataType> dataTypes;
+		
 		// TODO: If there is more than one template function with the same name, then use only the one that matches
-
 		types = startNode;
-
+		asCArray<asCDataType> dataTypes;
 		for (asUINT j = 0; j < numTypes; j++)
 		{
 			// If the number of types doesn't match the template then give an error 
@@ -13155,6 +13154,7 @@ int asCCompiler::InstantiateTemplateFunctions(asCArray<int>& funcs, asCScriptNod
 			dataTypes.PushLast(builder->CreateDataTypeFromNode(types, script, func->nameSpace, func->objectType, 0, true, 0, 0, &m_namespaceVisibility));
 			types = types->next;
 		}
+		
 		// Check that there isn't additional types
 		if (types == 0 || types->nodeType != snArgList)
 		{
