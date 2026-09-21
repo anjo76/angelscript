@@ -964,13 +964,15 @@ bool Test()
 			PRINTF("%s\n", g_printBuffer.c_str());
 		}
 
+		ctx->Release();
+
+		engine->ShutDownAndRelease();
+
 		if (bout.buffer != "")
 		{
 			TEST_FAILED;
 			PRINTF("%s", bout.buffer.c_str());
 		}
-
-		engine->ShutDownAndRelease();
 	}
 
 	// Success

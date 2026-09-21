@@ -5345,8 +5345,7 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 	if (DeclareVariable("", rangeDt, rangeOffset, &rangeExpr.bc, node) < 0)
 		return;
 
-	// The instruction used for loading the container "this" from rangeOffset.
-	// Object handles already contain a pointer while value types don't.
+	// If the range object is stored as a handle then it is necessary to dereference the pointer, otherwise use the variable pointer directly
 	asEBCInstr rangeLoadInstruction = rangeDt.IsObjectHandle() ? asBC_PshVPtr : asBC_PSF;
 
 	CompileInitializationWithAssignment(&rangeExpr.bc, rangeDt, rangeNode, rangeOffset, 0, asVGM_VARIABLE, rangeNode, &rangeExpr);
