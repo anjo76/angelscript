@@ -344,6 +344,18 @@ public:
 	// TODO: memory savings: Since there can be only one property with the same name a simpler symbol table should be used for global props
 	asCSymbolTable<asCGlobalProperty> registeredGlobalProps;   // increases ref count
 	asCSymbolTable<asCScriptFunction> registeredGlobalFuncs;
+	// User-defined literals and callback for compile-time check
+	struct 
+	{
+		struct
+		{
+			asCMap<asCString, int> uint64Literals;
+			asCMap<asCString, int> doubleLiterals;
+			asCMap<asCString, int> stringLiterals;
+			asCMap<asCString, int> userLiterals;
+		} prefix, suffix;
+	} literals, literalsCallback;
+	
 	// The template global function instances will be stored in this array
 	asCArray<asCScriptFunction*>      generatedTemplateFunctionInstances;  // increases ref count
 	// This array contains a list of registered template global functions
