@@ -603,7 +603,7 @@ END_AS_NAMESPACE
 #include <type_traits>
 BEGIN_AS_NAMESPACE
 
-template<typename T>
+template<typename T> constexpr
 asUINT asGetTypeTraits()
 {
 #if defined(_MSC_VER) || defined(_LIBCPP_TYPE_TRAITS) || (__GNUC__ >= 5) || (defined(__clang__) && !defined(CLANG_PRE_STANDARD))
