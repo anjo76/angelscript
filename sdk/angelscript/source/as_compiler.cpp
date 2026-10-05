@@ -5677,6 +5677,10 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 	bool hasReturn;
 	asCByteCode foreachBC(engine);
 
+	// Add a variable scope for the internal variables so they are deallocated on break statements
+	foreachBC.Block(true);
+	AddVariableScope();
+
 	asCArray<int> itemOffsets;
 	for (asUINT i = 0; i < itemCount; ++i)
 	{
@@ -5738,10 +5742,11 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 		int itemOffset = itemOffsets[i - 1];
 		asCDataType& itemDt = itemDataTypes[i - 1];
 		CallDestructor(itemDt, itemOffset, IsVariableOnHeap(itemOffset), &foreachBC);
-
-		// No need to deallocate here,
-		// we'll deallocate them after the loop is done
+		DeallocateVariable(itemOffset);
 	}
+
+	RemoveVariableScope();
+	foreachBC.Block(false);
 
 	//-------------------------------
 	// Join the code pieces
@@ -5777,8 +5782,7 @@ void asCCompiler::CompileForEachStatement(asCScriptNode* node, asCByteCode* bc)
 
 		// Call variable destructors here, for variables not yet destroyed
 		// The items (values) were already destroyed as part of the loop statement, so don't destroy them again outside the loop
-		if( !itemOffsets.Exists(v->stackOffset) )
-			CallDestructor(v->type, v->stackOffset, v->onHeap, bc);
+		CallDestructor(v->type, v->stackOffset, v->onHeap, bc);
 		DeallocateVariable(v->stackOffset);
 	}
 
