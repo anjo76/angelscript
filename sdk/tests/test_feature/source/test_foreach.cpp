@@ -68,20 +68,20 @@ ScriptQueryIterator ScriptQueryOpForBegin(const Query& /*q*/)
 	return it;
 }
 
-bool ScriptQueryOpForEnd(const Query& q, const ScriptQueryIterator& it)
+bool ScriptQueryOpForEnd(const Query& /*q*/, const ScriptQueryIterator &it)
 {
 	// For simplicity, let's assume the query has 10 items
 	return it.it >= 10;
 }
 
-ScriptQueryIterator ScriptQueryOpForNext(const Query& q, const ScriptQueryIterator& it)
+ScriptQueryIterator ScriptQueryOpForNext(const Query& /*q*/, const ScriptQueryIterator &it)
 {
 	ScriptQueryIterator next = it;
 	next.it++;
 	return next;
 }
 
-int ScriptQueryOpForValue(const Query& q, const ScriptQueryIterator& it)
+int ScriptQueryOpForValue(const Query& /*q*/, const ScriptQueryIterator &it)
 {
 	// For simplicity, let's return a dummy value
 	// In a real implementation, this would return the actual value from the query
@@ -113,11 +113,135 @@ asUINT ValueContainerOpForValue(ValueContainer& c, asUINT it)
 	return c.values[it];
 }
 
+struct TestBreakIterator
+{
+	TestBreakIterator() {}
+	TestBreakIterator(const TestBreakIterator&) {}
+	TestBreakIterator& operator=(const TestBreakIterator&) { return *this; }
+	int i = 0;
+};
+
+struct TestBreakValue
+{
+	TestBreakValue() {}
+	TestBreakValue(const TestBreakValue&) {}
+	TestBreakValue& operator=(const TestBreakValue&) { return *this; }
+	int v = 0;
+
+	static int refcount;
+};
+
+int TestBreakValue::refcount = 0;
+
+static void ConstructTestBreakIterator(TestBreakIterator* self)
+{
+	new(self) TestBreakIterator();
+}
+
+static void DestroyTestBreakIterator(TestBreakIterator* self)
+{
+	self->~TestBreakIterator();
+}
+
+TestBreakIterator TestBreakIteratorOpForBegin(const Query& /*q*/)
+{
+	TestBreakIterator it;
+	return it;
+}
+
+bool TestBreakIteratorOpForEnd(const Query& /*q*/, const TestBreakIterator& /*it*/)
+{
+	return false;
+}
+
+TestBreakIterator TestBreakIteratorOpForNext(const Query& /*q*/, TestBreakIterator& it)
+{
+	TestBreakIterator next = it;
+	return next;
+}
+
+TestBreakValue* TestBreakIteratorOpForValue(const Query& /*q*/, const ScriptQueryIterator& /*it*/)
+{
+	// For the sake of the test opForValue just constructs a new value, registered as @+ so the refcount is incremented.
+	return new TestBreakValue;
+}
+
+static void TestBreakValueAddRef(TestBreakValue* /*self*/)
+{
+	++TestBreakValue::refcount;
+}
+
+static void TestBreakValueRelease(TestBreakValue* self)
+{
+	--TestBreakValue::refcount;
+	if( TestBreakValue::refcount == 0 )
+		delete self;
+}
+
 bool Test()
 {
 	bool fail = false;
 	int r;
 	CBufferedOutStream bout;
+
+	// Test breaking eary in foreach statement
+	// https://github.com/anjo76/angelscript/issues/98
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->RegisterObjectType("TestBreakIterator", sizeof(TestBreakIterator), asOBJ_VALUE | asGetTypeTraits<TestBreakIterator>());
+		engine->RegisterObjectBehaviour("TestBreakIterator", asBEHAVE_CONSTRUCT, "void f()", asFUNCTION(ConstructTestBreakIterator), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectBehaviour("TestBreakIterator", asBEHAVE_DESTRUCT, "void f()", asFUNCTION(DestroyTestBreakIterator), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("TestBreakIterator", "TestBreakIterator& opAssign(const TestBreakIterator&in)", asMETHOD(TestBreakIterator, operator=), asCALL_THISCALL);
+
+		engine->RegisterObjectType("TestBreakValue", 0, asOBJ_REF);
+		engine->RegisterObjectBehaviour("TestBreakValue", asBEHAVE_ADDREF, "void f()", asFUNCTION(TestBreakValueAddRef), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectBehaviour("TestBreakValue", asBEHAVE_RELEASE, "void f()", asFUNCTION(TestBreakValueRelease), asCALL_CDECL_OBJFIRST);
+
+		engine->RegisterObjectType("Query", 0, asOBJ_REF | asOBJ_NOCOUNT);
+		engine->RegisterObjectMethod("Query", "TestBreakIterator opForBegin() const", asFUNCTION(TestBreakIteratorOpForBegin), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("Query", "bool opForEnd(TestBreakIterator it) const", asFUNCTION(TestBreakIteratorOpForEnd), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("Query", "TestBreakIterator opForNext(TestBreakIterator it) const", asFUNCTION(TestBreakIteratorOpForNext), asCALL_CDECL_OBJFIRST);
+		engine->RegisterObjectMethod("Query", "TestBreakValue@+ opForValue(TestBreakIterator it) const", asFUNCTION(TestBreakIteratorOpForValue), asCALL_CDECL_OBJFIRST);
+
+		Query q;
+		engine->RegisterGlobalProperty("Query q", &q);
+
+		// Refcount starts at zero
+		TestBreakValue::refcount = 0;
+
+		const char* script =
+			"void main() \n"
+			"{ \n"
+			"  foreach( TestBreakValue@ v : q ) \n"
+			"  {\n"
+			"    break; \n"
+			"  }\n"
+			"} \n";
+
+		asIScriptModule* mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("script", script);
+		r = mod->Build();
+		if (r < 0)
+			TEST_FAILED;
+		r = ExecuteString(engine, "main()", mod);
+		if (r != asEXECUTION_FINISHED)
+			TEST_FAILED;
+
+		// Refcount should be back to zero as we have released the handle
+		if (TestBreakValue::refcount != 0)
+			TEST_FAILED;
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			TEST_FAILED;
+			PRINTF("%s", bout.buffer.c_str());
+		}
+	}
 
 	// Test foreach in switch statement
 	// https://github.com/anjo76/angelscript/issues/39
