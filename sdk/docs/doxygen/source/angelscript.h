@@ -299,6 +299,8 @@ enum asEEngineProp
 	asEP_BOOL_CONVERSION_MODE               = 39,
 	//! Enable foreach support. Default: true
 	asEP_FOREACH_SUPPORT                    = 40,
+	//! Allow compound assignment operators (e.g. +=) to be used with property accessors on value types and scoped reference types. Default: false
+	asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS = 41,
 
 	asEP_LAST_PROPERTY
 };
