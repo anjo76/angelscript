@@ -242,7 +242,7 @@ int asCModule::AddScriptSection(const char *in_name, const char *in_code, size_t
 			return asOUT_OF_MEMORY;
 	}
 
-	return m_builder->AddCode(in_name, in_code, (int)in_codeLength, in_lineOffset, (int)m_engine->GetScriptSectionNameIndex(in_name ? in_name : ""), m_engine->ep.copyScriptSections);
+	return m_builder->AddCode(in_name, asStringView(in_code, in_codeLength), in_lineOffset, (int)m_engine->GetScriptSectionNameIndex(in_name ? in_name : ""), m_engine->ep.copyScriptSections);
 #endif
 }
 

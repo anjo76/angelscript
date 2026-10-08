@@ -66,7 +66,7 @@ int asCConfigGroup::Release()
 	return refCount;
 }
 
-asCTypeInfo *asCConfigGroup::FindType(const char *obj)
+asCTypeInfo *asCConfigGroup::FindType(asStringView obj)
 {
 	for( asUINT n = 0; n < types.GetLength(); n++ )
 		if( types[n]->name == obj )
