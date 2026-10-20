@@ -48,7 +48,7 @@
     EXPORT  CallARM64Float
     EXPORT  CallARM64
 
-    AREA    |.text|, CODE, ALIGN=2
+    AREA    |.text|, CODE, ARM64, ALIGN=2
 
     ALIGN   4
 GetHFAReturnDouble PROC
@@ -91,7 +91,7 @@ GetHFAReturnFloat PROC
 CallARM64Double PROC
     stp     fp, lr, [sp,#-0x10]!
     bl      CallARM64
-    ldp     fp, lr, [sp,#-0x10]!
+    ldp     fp, lr, [sp],#0x10
     ret
     ENDP ; CallARM64Double
 
@@ -99,7 +99,7 @@ CallARM64Double PROC
 CallARM64Float PROC
     stp     fp, lr, [sp,#-0x10]!
     bl      CallARM64
-    ldp     fp, lr, [sp,#-0x10]!
+    ldp     fp, lr, [sp],#0x10
     ret
     ENDP ; CallARM64Float
 
