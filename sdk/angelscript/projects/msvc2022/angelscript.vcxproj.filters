@@ -262,6 +262,12 @@
     <CustomBuild Include="..\..\source\as_callfunc_arm_msvc.asm">
       <Filter>Source Files</Filter>
     </CustomBuild>
+    <CustomBuild Include="..\..\source\as_callfunc_arm64_msvc.asm">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="ARM64\as_callfunc_arm64_msvc.asm">
+      <Filter>Source Files</Filter>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\source\as_callfunc_arm_gcc.S">
@@ -288,10 +294,5 @@
     <None Include="..\..\source\as_callfunc_x64_msvc_clang.S">
       <Filter>Source Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <MARMASM Include="..\..\source\as_callfunc_arm64_msvc.asm">
-      <Filter>Source Files</Filter>
-    </MARMASM>
   </ItemGroup>
 </Project>

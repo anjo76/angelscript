@@ -259,7 +259,6 @@
     <Lib>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
     </Lib>
-    <MARMASM />
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='clang_debug|ARM'">
     <ClCompile>
@@ -528,10 +527,15 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <MARMASM Include="..\..\source\as_callfunc_arm64_msvc.asm">
-      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</GenerateDebugInformation>
-      <GenerateDebugInformation Condition="'$(Configuration)|$(Platform)'=='clang_debug|ARM64'">true</GenerateDebugInformation>
-    </MARMASM>
+    <CustomBuild Include="..\..\source\as_callfunc_arm64_msvc.asm">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">cl.exe /c /P /Fi"ARM64\as_callfunc_arm64_msvc.asm" /TC ..\..\source\as_callfunc_arm64_msvc.asm</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='clang_debug|ARM64'">cl.exe /c /P /Fi"ARM64\as_callfunc_arm64_msvc.asm" /TC ..\..\source\as_callfunc_arm64_msvc.asm</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">cl.exe /c /P /Fi"ARM64\as_callfunc_arm64_msvc.asm" /TC ..\..\source\as_callfunc_arm64_msvc.asm</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">ARM64\as_callfunc_arm64_msvc.asm</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='clang_debug|ARM64'">ARM64\as_callfunc_arm64_msvc.asm</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">ARM64\as_callfunc_arm64_msvc.asm</Outputs>
+    </CustomBuild>
     <None Include="..\..\source\as_callfunc_arm64_gcc.S" />
     <None Include="..\..\source\as_callfunc_arm64_xcode.S" />
     <None Include="..\..\source\as_callfunc_arm_gcc.S" />
@@ -549,11 +553,16 @@
     <None Include="..\..\source\as_callfunc_e2k.S" />
     <None Include="..\..\source\as_callfunc_riscv64_gcc.S" />
     <None Include="..\..\source\as_callfunc_x64_msvc_clang.S" />
+    <CustomBuild Include="ARM64\as_callfunc_arm64_msvc.asm">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">armasm64.exe -g -o "$(Platform)\$(Configuration)\as_callfunc_arm64_msvc.obj" "%(RootDir)%(Directory)\%(Filename)%(Extension)"</Command>
+	  <Command Condition="'$(Configuration)|$(Platform)'=='clang_debug|ARM64'">armasm64.exe -g -o "$(Platform)\$(Configuration)\as_callfunc_arm64_msvc.obj" "%(RootDir)%(Directory)\%(Filename)%(Extension)"</Command>
+	  <Command Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">armasm64.exe -o "$(Platform)\$(Configuration)\as_callfunc_arm64_msvc.obj" "%(RootDir)%(Directory)\%(Filename)%(Extension)"</Command>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(Platform)\$(Configuration)\as_callfunc_arm64_msvc.obj;%(Outputs)</Outputs>
+	  <Outputs Condition="'$(Configuration)|$(Platform)'=='clang_debug|ARM64'">$(Platform)\$(Configuration)\as_callfunc_arm64_msvc.obj;%(Outputs)</Outputs>
+	  <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(Platform)\$(Configuration)\as_callfunc_arm64_msvc.obj;%(Outputs)</Outputs>
+    </CustomBuild>
   </ItemGroup>
-  <ImportGroup>
-    <Import Condition="'$(Platform)'=='ARM64'" Project="$(VCTargetsPath)\BuildCustomizations\marmasm.props" />
-    <Import Condition="'$(Platform)'=='ARM64'" Project="$(VCTargetsPath)\BuildCustomizations\marmasm.targets" />
-  </ImportGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
