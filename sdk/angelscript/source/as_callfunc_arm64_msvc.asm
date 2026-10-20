@@ -108,6 +108,8 @@ CallARM64 PROC
     stp     fp, lr, [sp,#-0x20]!
     str     x20, [sp,#0x10]
 
+    mov     fp, sp
+
     mov     x20, #0;
 
     cbz     x5, |stackArgsLoopEnd|
