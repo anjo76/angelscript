@@ -203,6 +203,14 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 		func = vftable[FuncPtrToUInt(func)/sizeof(void*)];
 	}
 
+#if defined(AS_ARM64_MSVC)
+	if( sysFunc->hostReturnInMemory )
+	{
+		// FIXME: For now we assume all host returns not in memory are non-aggregate on Windows
+		gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
+	}
+#endif
+
 	asUINT argsPos = 0;
 	for( asUINT n = 0; n < descr->parameterTypes.GetLength(); n++ )
 	{
@@ -419,10 +427,21 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			*(double*)&retQW = CallARM64Double(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
 	}
 	else if( sysFunc->hostReturnInMemory )
+	{
+#if !defined(AS_ARM64_MSVC)
 		retQW = CallARM64RetInMemory(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, retPointer, func);
+#else
+		CallARM64(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
+		retQW = (asQWORD)retPointer;
+#endif
+	}
 	else
 	{
+//#if !defined(AS_ARM64_MSVC)
 		if( retType.GetSizeInMemoryBytes() > sizeof(asQWORD) )
+//#else
+//		if( retType.GetSizeInMemoryBytes() > sizeof(asQWORD) && !sysFunc->hostReturnInMemory )
+//#endif
 			retQW = CallARM64Ret128(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, &retQW2, func);
 		else
 			retQW = CallARM64(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
