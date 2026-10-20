@@ -28,6 +28,7 @@
 ;  andreas@angelcode.com
 ;
 
+#include "ksarm64.h"
 
 ; Assembly routines for the ARM64/AArch64 call convention used for Windows 10 on ARM
 ; Written by Max Waine in July 2020, based on as_callfunc_arm_msvc.asm
@@ -36,22 +37,19 @@
 ; and if they're treating it like x64 /won't/ ever support inline assembly,
 ; so this separate file is needed.
 
-; Compile with Microsoft ARM64 assembler (armasm64)
+; Compile with Microsoft ARM64 assembler (armasm64), pre-process with cl
 ; http://msdn.microsoft.com/en-us/library/hh873190.aspx
 
-    AREA    |.rdata|, DATA, READONLY
-    EXPORT  GetHFAReturnDouble
-    EXPORT  GetHFAReturnFloat
-    EXPORT  CallARM64Ret128
-    EXPORT  CallARM64RetInMemory
-    EXPORT  CallARM64Double
-    EXPORT  CallARM64Float
-    EXPORT  CallARM64
+    MACRO
+    OVERLAPPING_FUNCTION $FuncName
+$FuncName
+    EXPORT $FuncName
+    MEND
 
-    AREA    |.text|, CODE, ARM64
+    TEXTAREA
 
-    ALIGN   4
-GetHFAReturnDouble PROC
+    CFG_ALIGN
+    LEAF_ENTRY GetHFAReturnDouble
     adr     x9, |populateDoubles|
     sub     x9, x9, x2, lsr 1 ; x9 -= returnSize >> 1; (/2 because double is 2x instruction size)
     br      x9
@@ -63,10 +61,10 @@ GetHFAReturnDouble PROC
 |populateDoubles|
 
     ret
-    ENDP ; GetHFAReturnDouble
+    LEAF_END GetHFAReturnDouble
 
-    ALIGN   4
-GetHFAReturnFloat PROC
+    CFG_ALIGN
+    LEAF_ENTRY GetHFAReturnFloat
     adr     x9, |populateFloats|
     sub     x9, x9, x2 ; x9 -= returnSize; (already 4 bytes per return)
     br      x9
@@ -78,7 +76,7 @@ GetHFAReturnFloat PROC
 |populateFloats|
 
     ret
-    ENDP ; GetHFAReturnFloat
+    LEAF_END GetHFAReturnFloat
 
 
 ;[returnType] CallARM64[type](
@@ -87,26 +85,13 @@ GetHFAReturnFloat PROC
 ;    const asQWORD *stackArgs,    asQWORD numStackArgs,
 ;    asFUNCTION_t func
 ;)
-    ALIGN   4
-CallARM64Double PROC
-    stp     fp, lr, [sp,#-0x10]!
-    bl      CallARM64
-    ldp     fp, lr, [sp],#0x10
-    ret
-    ENDP ; CallARM64Double
+    CFG_ALIGN
+    LEAF_ENTRY CallARM64
+    OVERLAPPING_FUNCTION CallARM64Float
+    OVERLAPPING_FUNCTION CallARM64Double
 
-    ALIGN   4
-CallARM64Float PROC
-    stp     fp, lr, [sp,#-0x10]!
-    bl      CallARM64
-    ldp     fp, lr, [sp],#0x10
-    ret
-    ENDP ; CallARM64Float
-
-    ALIGN   4
-CallARM64 PROC
-    stp     fp, lr, [sp,#-0x20]!
-    str     x20, [sp,#0x10]
+    PROLOG_SAVE_REG_PAIR    fp, lr, #-0x20!
+    PROLOG_SAVE_REG         x20, #0x10
 
     mov     fp, sp
 
@@ -164,16 +149,16 @@ CallARM64 PROC
     blr     x15
     add     sp, sp, x20
 
-    ldr     x20, [sp,#0x10]
-    ldp     fp, lr, [sp],#0x20
+    EPILOG_RESTORE_REG      x20, #0x10
+    EPILOG_RESTORE_REG_PAIR fp, lr, #0x20!
 
     ret
-    ENDP ; CallARM64
+    LEAF_END CallARM64
 
-    ALIGN   4
-CallARM64Ret128 PROC
-    stp     fp, lr, [sp,#-0x20]!
-    str     x20, [sp,#0x10]
+    CFG_ALIGN
+    LEAF_ENTRY CallARM64Ret128
+    PROLOG_SAVE_REG_PAIR    fp, lr, #-0x20!
+    PROLOG_SAVE_REG         x20, #0x10
     mov     fp, sp
 
     mov     x20, x6
@@ -183,15 +168,15 @@ CallARM64Ret128 PROC
 
     str     x1, [x20]
 
-    ldr     x20, [sp,#0x10]
-    ldp     fp, lr, [sp],#0x20
+    EPILOG_RESTORE_REG      x20, #0x10
+    EPILOG_RESTORE_REG_PAIR fp, lr, #0x20!
 
     ret
-    ENDP ; CallARM64Ret128
+    LEAF_END CallARM64Ret128
 
-    ALIGN   4
-CallARM64RetInMemory PROC
-    stp     fp, lr, [sp,#-0x10]!
+    CFG_ALIGN
+    LEAF_ENTRY CallARM64RetInMemory
+    PROLOG_SAVE_REG_PAIR    fp, lr, #-0x10!
     mov     fp, sp
 
     mov     x8, x6
@@ -201,9 +186,9 @@ CallARM64RetInMemory PROC
 
     mov     x0, x8
 
-    ldp     fp, lr, [sp],#0x10
+    EPILOG_RESTORE_REG_PAIR fp, lr, #0x10!
 
     ret
-    ENDP ; CallARM64RetInMemory
+    LEAF_END CallARM64RetInMemory
 
     END
