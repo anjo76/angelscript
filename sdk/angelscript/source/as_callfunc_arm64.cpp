@@ -164,9 +164,9 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	int callConv = sysFunc->callConv;
 	asQWORD       retQW     = 0;
 
-	asQWORD       gpRegArgs[GP_ARG_REGISTERS];
-	asQWORD       floatRegArgs[FLOAT_ARG_REGISTERS];
-	asQWORD       stackArgs[64]; // It's how many x64 users can have
+	asQWORD       gpRegArgs[GP_ARG_REGISTERS]       = { 0 };
+	asQWORD       floatRegArgs[FLOAT_ARG_REGISTERS] = { 0 };
+	asQWORD       stackArgs[64]                     = { 0 }; // It's how many x64 users can have
 	asQWORD       numGPRegArgs    = 0;
 	asQWORD       numFloatRegArgs = 0;
 	asQWORD       numStackArgs    = 0;
