@@ -386,6 +386,10 @@ The following flags are covered by asGetTypeTraits:
 
 Don't include the flags for constructor, destructor, assignment, and/or copy constructor if they have been declared as '= default' in the C++ class.
 
+\note Unfortunately the native calling convention sometimes distinguish between user-defined constructors and compiler generated implicit constructors, but asGetTypeTraits 
+cannot distinguish between them. A class like \code struct Type { int a = 0; int b = 0; } \endcode where the members have initializations but no explicit 
+constructor is defined will give that the class has a constructor, but in the ABI it is treated as it doesn't, so in this case asGetTypeTraits cannot be used.
+
 On some platforms the native calling convention may require further knowledge about the class and its members that \ref asGetTypeTraits
 cannot determine in order to work properly. Whether or not the flags are needed depends on the compiler and target platform, but if the flags
 are not needed AngelScript will simply ignore them so there is no harm in informing them.
@@ -407,7 +411,7 @@ are defaulted.
 <tr><td>\ref asOBJ_APP_CLASS_UNION             &nbsp; </td><td>The C++ class contains unions as members.</td></tr>
 </table>
 
-Here's some examples to better illustrate the use of the flags:
+Here are some examples to better illustrate the use of the flags:
 
 \code
 // The presence of the constructor with parameters indicates that the flag asOBJ_APP_CLASS_MORE_CONSTRUCTORS should be used
