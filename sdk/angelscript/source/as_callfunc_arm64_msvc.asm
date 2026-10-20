@@ -48,7 +48,7 @@
     EXPORT  CallARM64Float
     EXPORT  CallARM64
 
-    AREA    |.text|, CODE, ARM64, ALIGN=2
+    AREA    |.text|, CODE, ARM64
 
     ALIGN   4
 GetHFAReturnDouble PROC
@@ -115,12 +115,12 @@ CallARM64 PROC
     cbz     x5, |stackArgsLoopEnd|
 
     ; Align count to 2, then multiply by 8, resulting in a size aligned to 16
-    add x20, x5,  #1
-    lsl x20, x20, #3
-    and x20, x20, #-0x10
+    add     x20, x5,  #1
+    lsl     x20, x20, #3
+    and     x20, x20, #-0x10
     ; Multiply count by 8
-    lsl x10, x5, #3
-    sub sp, sp, x20
+    lsl     x10, x5, #3
+    sub     sp, sp, x20
 |stackArgsLoopStart|
     ldp     x9,x11, [x4],#16
     stp     x9,x11, [sp],#16
