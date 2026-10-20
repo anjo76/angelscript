@@ -163,6 +163,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	asFUNCTION_t func = sysFunc->func;
 	int callConv = sysFunc->callConv;
 	asQWORD       retQW     = 0;
+	bool returnRegisterSet = false;
 
 	asQWORD       gpRegArgs[GP_ARG_REGISTERS]       = { 0 };
 	asQWORD       floatRegArgs[FLOAT_ARG_REGISTERS] = { 0 };
@@ -181,6 +182,17 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	{
 		// Add the object pointer as the first parameter
 		gpRegArgs[numGPRegArgs++] = (asQWORD)obj;
+
+#if defined(AS_ARM64_MSVC)
+		// https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions?view=msvc-170#return-values
+		// "The address of the memory block shall be passed as an additional argument to the function in x0, or x1 if $this is passed in x0."
+		if(!returnRegisterSet && sysFunc->hostReturnInMemory)
+		{
+			// FIXME: For now we assume all host returns not in memory are non-aggregate on Windows
+			gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
+			returnRegisterSet = true;
+		}
+#endif
 	}
 
 	if( callConv == ICC_CDECL_OBJFIRST || callConv == ICC_CDECL_OBJFIRST_RETURNINMEM )
@@ -191,7 +203,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	else if( callConv == ICC_THISCALL_OBJFIRST || callConv == ICC_THISCALL_OBJFIRST_RETURNINMEM ||
 		callConv == ICC_VIRTUAL_THISCALL_OBJFIRST || callConv == ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM )
 	{
-		// Add the object pointer as the first parameter
+		// Add the second object pointer as the first parameter
 		gpRegArgs[numGPRegArgs++] = (asQWORD)secondObject;
 	}
 
@@ -204,10 +216,11 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	}
 
 #if defined(AS_ARM64_MSVC)
-	if( sysFunc->hostReturnInMemory )
+	if( !returnRegisterSet && sysFunc->hostReturnInMemory )
 	{
 		// FIXME: For now we assume all host returns not in memory are non-aggregate on Windows
 		gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
+		returnRegisterSet = true;
 	}
 #endif
 
