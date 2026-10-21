@@ -117,6 +117,11 @@ static inline bool IsRegisterHFA(const asCDataType &type)
 		type.IsObjectHandle() || type.IsReference() )
 		return false;
 
+#if defined(AS_ARM64_MSVC)
+	// FIXME: Investigate if necessary on other ARM64 platforms.
+	if( typeInfo->flags & asOBJ_APP_CLASS_UNION )
+		return false;
+#endif
 	const bool doubles = (typeInfo->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
 	const int maxAllowedSize = doubles ? sizeof(double) * HFA_RET_REGISTERS : sizeof(float) * HFA_RET_REGISTERS;
 
