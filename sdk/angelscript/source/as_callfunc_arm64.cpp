@@ -118,7 +118,6 @@ static inline bool IsRegisterHFA(const asCDataType &type)
 		return false;
 
 #if defined(AS_ARM64_MSVC)
-	// FIXME: Investigate if necessary on other ARM64 platforms.
 	if( typeInfo->flags & asOBJ_APP_CLASS_UNION )
 		return false;
 #endif
@@ -137,6 +136,12 @@ static inline bool IsRegisterHFAParameter(const asCDataType &type, const asQWORD
 	if( !IsRegisterHFA(type) )
 		return false;
 
+#if defined(AS_ARM64_MSVC)
+	const asCTypeInfo *const typeInfo = type.GetTypeInfo();
+
+	if(typeInfo->flags & (asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_CLASS_DESTRUCTOR))
+		return false;
+#endif
 	const bool doubles = (type.GetTypeInfo()->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
 	const int registersUsed = type.GetSizeInMemoryDWords() / (doubles ? sizeof(double) : sizeof(float));
 
@@ -194,7 +199,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	// "The address of the memory block shall be passed as an additional argument to the function in x0, or x1 if $this is passed in x0."
 	if(!returnRegisterSet && sysFunc->hostReturnInMemory)
 	{
-		// FIXME: For now we assume all host returns not in memory are non-aggregate on Windows
+		// Assume all host returns not in memory are non-aggregate on Windows (for now)
 		gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
 		returnRegisterSet = true;
 	}
@@ -446,11 +451,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	}
 	else
 	{
-//#if !defined(AS_ARM64_MSVC)
 		if( retType.GetSizeInMemoryBytes() > sizeof(asQWORD) )
-//#else
-//		if( retType.GetSizeInMemoryBytes() > sizeof(asQWORD) && !sysFunc->hostReturnInMemory )
-//#endif
 			retQW = CallARM64Ret128(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, &retQW2, func);
 		else
 			retQW = CallARM64(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
