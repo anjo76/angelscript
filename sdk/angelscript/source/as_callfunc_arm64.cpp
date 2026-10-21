@@ -187,18 +187,18 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	{
 		// Add the object pointer as the first parameter
 		gpRegArgs[numGPRegArgs++] = (asQWORD)obj;
+	}
 
 #if defined(AS_ARM64_MSVC)
-		// https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions?view=msvc-170#return-values
-		// "The address of the memory block shall be passed as an additional argument to the function in x0, or x1 if $this is passed in x0."
-		if(!returnRegisterSet && sysFunc->hostReturnInMemory)
-		{
-			// FIXME: For now we assume all host returns not in memory are non-aggregate on Windows
-			gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
-			returnRegisterSet = true;
-		}
-#endif
+	// https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions?view=msvc-170#return-values
+	// "The address of the memory block shall be passed as an additional argument to the function in x0, or x1 if $this is passed in x0."
+	if(!returnRegisterSet && sysFunc->hostReturnInMemory)
+	{
+		// FIXME: For now we assume all host returns not in memory are non-aggregate on Windows
+		gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
+		returnRegisterSet = true;
 	}
+#endif
 
 	if( callConv == ICC_CDECL_OBJFIRST || callConv == ICC_CDECL_OBJFIRST_RETURNINMEM )
 	{
@@ -219,15 +219,6 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 		vftable = *(asFUNCTION_t**)obj;
 		func = vftable[FuncPtrToUInt(func)/sizeof(void*)];
 	}
-
-#if defined(AS_ARM64_MSVC)
-	if( !returnRegisterSet && sysFunc->hostReturnInMemory )
-	{
-		// FIXME: For now we assume all host returns not in memory are non-aggregate on Windows
-		gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
-		returnRegisterSet = true;
-	}
-#endif
 
 	asUINT argsPos = 0;
 	for( asUINT n = 0; n < descr->parameterTypes.GetLength(); n++ )
