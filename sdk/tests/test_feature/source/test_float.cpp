@@ -73,6 +73,10 @@ bool Test()
 	if( r != asEXECUTION_FINISHED )
 		TEST_FAILED;
 
+	r = ExecuteString(engine, "double a = 3; double b = 7; assert( a / 10 == 0.3 ); assert( b / 10 == 0.7 ); \n");
+	if( r != asEXECUTION_FINISHED )
+		TEST_FAILED;
+
 
 	asIScriptModule *mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
 	mod->AddScriptSection("script", script, strlen(script));
