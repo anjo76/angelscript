@@ -68,20 +68,20 @@ ScriptQueryIterator ScriptQueryOpForBegin(const Query& /*q*/)
 	return it;
 }
 
-bool ScriptQueryOpForEnd(const Query& /*q*/, const ScriptQueryIterator &it)
+bool ScriptQueryOpForEnd(const Query& /*q*/, ScriptQueryIterator it)
 {
 	// For simplicity, let's assume the query has 10 items
 	return it.it >= 10;
 }
 
-ScriptQueryIterator ScriptQueryOpForNext(const Query& /*q*/, const ScriptQueryIterator &it)
+ScriptQueryIterator ScriptQueryOpForNext(const Query& /*q*/, ScriptQueryIterator it)
 {
 	ScriptQueryIterator next = it;
 	next.it++;
 	return next;
 }
 
-int ScriptQueryOpForValue(const Query& /*q*/, const ScriptQueryIterator &it)
+int ScriptQueryOpForValue(const Query& /*q*/, ScriptQueryIterator it)
 {
 	// For simplicity, let's return a dummy value
 	// In a real implementation, this would return the actual value from the query
