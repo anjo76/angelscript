@@ -2788,6 +2788,7 @@ void asCBuilder::CompileGlobalVariables()
 
 			if( gvar->isEnumValue )
 			{
+				asCEnumType *enumType = CastToEnumType(gvar->datatype.GetTypeInfo());
 				int r;
 				if( gvar->initializationNode )
 				{
@@ -2797,8 +2798,6 @@ void asCBuilder::CompileGlobalVariables()
 					// Set the namespace that should be used during the compilation
 					func.nameSpace = gvar->datatype.GetTypeInfo()->nameSpace;
 
-					// Temporarily switch the type of the variable to the enums' underlying type so it can be compiled properly
-					asCEnumType *enumType = CastToEnumType(gvar->datatype.GetTypeInfo());
 					asCDataType saveType;
 					saveType = gvar->datatype;
 					gvar->datatype = enumType->enumType;
@@ -2811,7 +2810,6 @@ void asCBuilder::CompileGlobalVariables()
 				else
 				{
 					r = 0;
-
 					// When there is no assignment the value is the last + 1
 					asINT64 enumVal = 0;
 					asCSymbolTable<sGlobalVariableDescription>::iterator prev_it = it;
@@ -2821,7 +2819,28 @@ void asCBuilder::CompileGlobalVariables()
 						sGlobalVariableDescription *gvar2 = *prev_it;
 						if(gvar2->datatype == gvar->datatype )
 						{
-							enumVal = asINT64(gvar2->constantValue) + 1;
+							const asINT64 prevVal = gvar2->constantValue;
+
+							if( enumType->isFlags)
+							{
+								if ( prevVal <= 0 ) 
+									enumVal = 1;
+								else
+								{
+									enumVal = prevVal;
+									enumVal |= enumVal >> 1;
+									enumVal |= enumVal >> 2;
+									enumVal |= enumVal >> 4;
+									enumVal |= enumVal >> 8;
+									enumVal |= enumVal >> 16;
+									enumVal |= enumVal >> 32; 
+									enumVal++;
+								}
+							} 
+							else 
+							{
+								enumVal = prevVal + 1;
+							}
 
 							if( !gvar2->isCompiled )
 							{
@@ -4704,6 +4723,7 @@ int asCBuilder::RegisterEnum(asCScriptNode *node, asCScriptCode *file, asSNameSp
 	// Is it a shared enum?
 	bool isShared = false;
 	bool isExternal = false;
+	bool isFlags = false;
 	asCEnumType *existingSharedType = 0;
 	asCScriptNode *tmp = node->firstChild;
 	while( tmp->nodeType == snIdentifier )
@@ -4712,6 +4732,8 @@ int asCBuilder::RegisterEnum(asCScriptNode *node, asCScriptCode *file, asSNameSp
 			isShared = true;
 		else if (file->TokenEquals(tmp->tokenPos, tmp->tokenLength, EXTERNAL_TOKEN))
 			isExternal = true;
+		else if (file->TokenEquals(tmp->tokenPos, tmp->tokenLength, FLAG_TOKEN))
+			isFlags = true;
 		else
 			break;
 		tmp = tmp->next;
@@ -4778,7 +4800,7 @@ int asCBuilder::RegisterEnum(asCScriptNode *node, asCScriptCode *file, asSNameSp
 		}
 		else
 		{
-			st = asNEW(asCEnumType)(engine);
+			st = asNEW(asCEnumType)(engine,isFlags);
 			if( st == 0 )
 				return asOUT_OF_MEMORY;
 
