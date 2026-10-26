@@ -175,10 +175,10 @@ These are the non-alphabetical tokens that are also used in the language syntax.
 Other than the above tokens there are also numerical, string, identifier, and comment tokens.
 
 <pre>
-123456789
-123.123e123
-123.123e123f
-0x1234FEDC
+123'456'789
+1'234.123e123
+1'234.123e123f
+0x12'34'FE'DC
 0d123987
 0o1276
 0b1010
@@ -194,6 +194,7 @@ _Abc123
 The characters space (32), tab (9), carriage return (13), line feed (10), and the 
 UTF8 byte-order-mark (U+FEFF) are all recognized as whitespace.
 
-\todo number literals now support separators
+The character ' can optionally be used to separate groups of digits in literal 
+constants to make them easier to read.
 
 */
