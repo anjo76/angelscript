@@ -134,6 +134,11 @@ asIScriptModule *asCTypeInfo::GetModule() const
 	return module;
 }
 
+bool asCTypeInfo::IsFlagEnum() const
+{
+	return false;
+}
+
 void *asCTypeInfo::SetUserData(void *data, asPWORD type)
 {
 	// As a thread might add a new new user data at the same time as another
@@ -374,6 +379,11 @@ const char *asCEnumType::GetEnumValueByIndex(asUINT index, asINT64 *outValue) co
 		*outValue = enumValues[index]->value;
 
 	return enumValues[index]->name.AddressOf();
+}
+
+bool asCEnumType::IsFlagEnum() const
+{
+	return isFlags;
 }
 
 // interface

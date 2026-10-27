@@ -741,15 +741,17 @@ asSTypeBehaviour *asCDataType::GetBehaviour() const
 	return ot ? &ot->beh : 0; 
 }
 
-bool asCDataType::IsEnumType() const
+unsigned int asCDataType::IsEnumType() const
 {
 	// Do a sanity check on the objectType, to verify that we aren't trying to access memory after it has been released
 	asASSERT(typeInfo == 0 || typeInfo->name.GetLength() < 100);
 
 	if (typeInfo && (typeInfo->flags & asOBJ_ENUM))
-		return true;
+	{
+		return CastToEnumType(typeInfo)->isFlags ? 2 : 1;
+	}
 
-	return false;
+	return 0;
 }
 
 END_AS_NAMESPACE
