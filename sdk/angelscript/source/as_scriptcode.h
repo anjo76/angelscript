@@ -51,8 +51,7 @@ public:
 	asCScriptCode();
 	~asCScriptCode();
 
-	int SetCode(const char *name, const char *code, bool makeCopy);
-	int SetCode(const char *name, const char *code, size_t length, bool makeCopy);
+	int SetCode(const char *name, asStringView code, bool makeCopy);
 
 	void ConvertPosToRowCol(size_t pos, int *row, int *col);
 

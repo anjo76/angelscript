@@ -41,6 +41,16 @@
 #include "as_string.h"
 #include "as_string_util.h"
 
+asStringView::asStringView(const asCString &cstr) : string(cstr.AddressOf()), len(cstr.GetLength()) {}
+asStringView::asStringView(asCString &cstr) : string(cstr.AddressOf()), len(cstr.GetLength()) {}
+bool operator==(asStringView a, asStringView b) {
+	return asCompareStrings(a.string, a.len, b.string, b.len) == 0;
+}
+bool operator!=(asStringView a, asStringView b) {
+	return asCompareStrings(a.string, a.len, b.string, b.len) != 0;
+}
+
+
 asCString::asCString()
 {
 	length = 0;
@@ -250,18 +260,9 @@ void asCString::Concatenate(const char *str, size_t len)
 	AddressOf()[length] = 0;
 }
 
-asCString &asCString::operator +=(const char *str)
+asCString &asCString::operator +=(asStringView str)
 {
-	size_t len = strlen(str);
-	Concatenate(str, len);
-
-	return *this;
-}
-
-asCString &asCString::operator +=(const asCString &str)
-{
-	Concatenate(str.AddressOf(), str.length);
-
+	Concatenate(str.string,str.len);
 	return *this;
 }
 
@@ -341,19 +342,9 @@ asCString asCString::SubString(size_t in_start, size_t in_length) const
 	return tmp;
 }
 
-int asCString::Compare(const char *str) const
+int asCString::Compare(asStringView str) const
 {
-	return asCompareStrings(AddressOf(), length, str, strlen(str));
-}
-
-int asCString::Compare(const asCString &str) const
-{
-	return asCompareStrings(AddressOf(), length, str.AddressOf(), str.GetLength());
-}
-
-int asCString::Compare(const char *str, size_t len) const
-{
-	return asCompareStrings(AddressOf(), length, str, len);
+	return asCompareStrings(AddressOf(), length, str.string, str.len);
 }
 
 size_t asCString::RecalculateLength()
