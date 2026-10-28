@@ -152,6 +152,7 @@ void CScriptBuilder::ClearAll()
 	currentNamespace = "";
 
 	foundDeclarations.clear();
+	unattachedMetadata.clear();
 
 	typeMetadataMap.clear();
 	funcMetadataMap.clear();
@@ -462,6 +463,11 @@ int CScriptBuilder::ProcessScriptSection(const char *script, unsigned int length
 		// Is this the start of metadata?
 		if( token == "[" )
 		{
+			int row = 1 + lineOffset;
+			for( unsigned int c = 0; c < pos && c < modifiedScript.size(); c++ )
+				if( modifiedScript[c] == '\n' )
+					row++;
+
 			// Get the metadata string
 			pos = ExtractMetadata(pos, metadata);
 
@@ -472,8 +478,13 @@ int CScriptBuilder::ProcessScriptSection(const char *script, unsigned int length
 			// Store away the declaration in a map for lookup after the build has completed
 			if( type > 0 )
 			{
-				SMetadataDecl decl(metadata, name, declaration, type, currentClass, currentNamespace);
+				SMetadataDecl decl(metadata, name, declaration, type, currentClass, currentNamespace, sectionname ? sectionname : "", row);
 				foundDeclarations.push_back(decl);
+			}
+			else
+			{
+				SMetadataDecl decl(metadata, name, declaration, type, currentClass, currentNamespace, sectionname ? sectionname : "", row);
+				AddUnattachedMetadata(decl);
 			}
 		}
 		else
@@ -625,11 +636,17 @@ int CScriptBuilder::Build()
 	{
 		SMetadataDecl *decl = &foundDeclarations[n];
 		module->SetDefaultNamespace(decl->nameSpace.c_str());
+		if( decl->parentClass != "" && module->GetTypeIdByDecl(decl->parentClass.c_str()) <= 0 )
+		{
+			AddUnattachedMetadata(*decl);
+			continue;
+		}
 		if( decl->type == MDT_TYPE )
 		{
 			// Find the type id
 			int typeId = module->GetTypeIdByDecl(decl->declaration.c_str());
-			assert( typeId >= 0 );
+			if( typeId < 0 )
+				AddUnattachedMetadata(*decl);
 			if( typeId >= 0 )
 				typeMetadataMap.insert(map<int, vector<string> >::value_type(typeId, decl->metadata));
 		}
@@ -639,7 +656,8 @@ int CScriptBuilder::Build()
 			{
 				// Find the function id
 				asIScriptFunction *func = module->GetFunctionByDecl(decl->declaration.c_str());
-				assert( func );
+				if( !func )
+					AddUnattachedMetadata(*decl);
 				if( func )
 					funcMetadataMap.insert(map<int, vector<string> >::value_type(func->GetId(), decl->metadata));
 			}
@@ -647,7 +665,6 @@ int CScriptBuilder::Build()
 			{
 				// Find the method id
 				int typeId = module->GetTypeIdByDecl(decl->parentClass.c_str());
-				assert( typeId > 0 );
 				map<int, SClassMetadata>::iterator it = classMetadataMap.find(typeId);
 				if( it == classMetadataMap.end() )
 				{
@@ -657,7 +674,8 @@ int CScriptBuilder::Build()
 
 				asITypeInfo *type = engine->GetTypeInfoById(typeId);
 				asIScriptFunction *func = type->GetMethodByDecl(decl->declaration.c_str());
-				assert( func );
+				if( !func )
+					AddUnattachedMetadata(*decl);
 				if( func )
 					it->second.funcMetadataMap.insert(map<int, vector<string> >::value_type(func->GetId(), decl->metadata));
 			}
@@ -668,17 +686,19 @@ int CScriptBuilder::Build()
 			{
 				// Find the global virtual property accessors
 				asIScriptFunction *func = module->GetFunctionByName(("get_" + decl->declaration).c_str());
+				bool found = func != 0;
 				if( func )
 					funcMetadataMap.insert(map<int, vector<string> >::value_type(func->GetId(), decl->metadata));
 				func = module->GetFunctionByName(("set_" + decl->declaration).c_str());
 				if( func )
 					funcMetadataMap.insert(map<int, vector<string> >::value_type(func->GetId(), decl->metadata));
+				if( !found && !func )
+					AddUnattachedMetadata(*decl);
 			}
 			else
 			{
 				// Find the method virtual property accessors
 				int typeId = module->GetTypeIdByDecl(decl->parentClass.c_str());
-				assert( typeId > 0 );
 				map<int, SClassMetadata>::iterator it = classMetadataMap.find(typeId);
 				if( it == classMetadataMap.end() )
 				{
@@ -701,14 +721,14 @@ int CScriptBuilder::Build()
 			{
 				// Find the global variable index
 				int varIdx = module->GetGlobalVarIndexByName(decl->declaration.c_str());
-				assert( varIdx >= 0 );
+				if( varIdx < 0 )
+					AddUnattachedMetadata(*decl);
 				if( varIdx >= 0 )
 					varMetadataMap.insert(map<int, vector<string> >::value_type(varIdx, decl->metadata));
 			}
 			else
 			{
 				int typeId = module->GetTypeIdByDecl(decl->parentClass.c_str());
-				assert( typeId > 0 );
 
 				// Add the classes if needed
 				map<int, SClassMetadata>::iterator it = classMetadataMap.find(typeId);
@@ -735,7 +755,8 @@ int CScriptBuilder::Build()
 				}
 
 				// If found, add it
-				assert( idx >= 0 );
+				if( idx < 0 )
+					AddUnattachedMetadata(*decl);
 				if( idx >= 0 ) it->second.varMetadataMap.insert(map<int, vector<string> >::value_type(idx, decl->metadata));
 			}
 		}
@@ -750,7 +771,8 @@ int CScriptBuilder::Build()
 				else
 				{
 					asIScriptFunction *func = module->GetFunctionByDecl(decl->declaration.c_str());
-					assert(func);
+					if (!func)
+						AddUnattachedMetadata(*decl);
 					if (func)
 						funcMetadataMap.insert(map<int, vector<string> >::value_type(func->GetId(), decl->metadata));
 				}
@@ -758,7 +780,6 @@ int CScriptBuilder::Build()
 			else
 			{
 				int typeId = module->GetTypeIdByDecl(decl->parentClass.c_str());
-				assert(typeId > 0);
 
 				// Add the classes if needed
 				map<int, SClassMetadata>::iterator it = classMetadataMap.find(typeId);
@@ -792,6 +813,8 @@ int CScriptBuilder::Build()
 					// Look for the matching method instead
 					asITypeInfo *type = engine->GetTypeInfoById(typeId);
 					asIScriptFunction *func = type->GetMethodByDecl(decl->declaration.c_str());
+					if (!func)
+						AddUnattachedMetadata(*decl);
 					if (func)
 						it->second.funcMetadataMap.insert(map<int, vector<string> >::value_type(func->GetId(), decl->metadata));
 				}
@@ -803,6 +826,23 @@ int CScriptBuilder::Build()
 
 	return 0;
 }
+
+#if AS_PROCESS_METADATA == 1
+void CScriptBuilder::AddUnattachedMetadata(const SMetadataDecl &decl)
+{
+	SUnattachedMetadata u;
+	u.section     = decl.section;
+	u.row         = decl.row;
+	u.declaration = decl.declaration.empty() ? decl.name : decl.declaration;
+	u.metadata    = decl.metadata;
+	unattachedMetadata.push_back(u);
+}
+
+const std::vector<CScriptBuilder::SUnattachedMetadata> &CScriptBuilder::GetUnattachedMetadata() const
+{
+	return unattachedMetadata;
+}
+#endif
 
 int CScriptBuilder::SkipStatement(int pos)
 {

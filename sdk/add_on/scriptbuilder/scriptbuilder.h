@@ -116,6 +116,21 @@ public:
 
 	// Get metadata declared for class methods
 	std::vector<std::string> GetMetadataForTypeMethod(int typeId, asIScriptFunction *method);
+
+	// metadata that could not be attached to a declaration
+	// (typedefs, funcdefs, import statements, ...) is collected instead of
+	// asserting, so the application can report it.
+	struct SUnattachedMetadata
+	{
+		std::string              section;
+		int                      row;
+		std::string              declaration;
+		std::vector<std::string> metadata;
+	};
+
+	// Metadata of the last build that matched no declaration
+	const std::vector<SUnattachedMetadata> &GetUnattachedMetadata() const;
+	// FRICE PATCH END
 #endif
 
 protected:
@@ -156,15 +171,21 @@ protected:
 	// Temporary structure for storing metadata and declaration
 	struct SMetadataDecl
 	{
-		SMetadataDecl(std::vector<std::string> m, std::string n, std::string d, int t, std::string c, std::string ns) : metadata(m), name(n), declaration(d), type(t), parentClass(c), nameSpace(ns) {}
+		SMetadataDecl(std::vector<std::string> m, std::string n, std::string d, int t, std::string c, std::string ns, std::string s = std::string(), int r = 0) : metadata(m), name(n), declaration(d), type(t), parentClass(c), nameSpace(ns), section(s), row(r) {}
 		std::vector<std::string> metadata;
 		std::string              name;
 		std::string              declaration;
 		int                      type;
 		std::string              parentClass;
 		std::string              nameSpace;
+		std::string              section;
+		int                      row;
 	};
 	std::vector<SMetadataDecl> foundDeclarations;
+
+	std::vector<SUnattachedMetadata> unattachedMetadata;
+	void AddUnattachedMetadata(const SMetadataDecl &decl);
+    
 	std::string                currentClass;
 	std::string                currentNamespace;
 	std::vector<int>           currentNamespaceStack;
