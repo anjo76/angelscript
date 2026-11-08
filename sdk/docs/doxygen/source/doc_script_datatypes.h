@@ -68,9 +68,9 @@ As the scripting engine has been optimized for 32 bit datatypes, using the small
 Rounding errors may occur if more digits than the maximum number of digits are used.
 
 <b>Curiousity</b>: Real numbers may also have the additional values of positive and negative 0 or 
-infinite, and NaN (Not-a-Number). For <code>float</code> NaN is represented by the 32 bit data word 0x7fc00000.
+infinite, and NaN (Not-a-Number). 
 
-\todo Reference the standard library functions do how to determine inf, nan
+
 
 
 

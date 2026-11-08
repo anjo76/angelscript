@@ -23,7 +23,9 @@ bool Test()
 		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
 		asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
 		mod->AddScriptSection("test",
-							  "class Foo {}\n"
+							  "class Foo { \n"
+							  "  Foo::Something val = Foo::A; \n"
+							  "}\n"
 							  "namespace Foo { \n"
 							  "	enum Something { A, B, C }\n"
 							  "}\n"

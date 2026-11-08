@@ -166,10 +166,15 @@ The list buffer passed to the factory function will be populated using the follo
 
 The compiler will prepare the buffer with temporary values that can be moved into the
 storage space of the object. Reference types will be stored as pointers, while value types will be 
-stored inline. For reference types the ownership is handed over to the application object, so the 
-application must not increase the reference counter for the objects in the buffer.
+stored inline.
 
-\todo What of value types in the buffer? Must they be destroyed by the application?
+For reference types and handles ideally the pointer is directly moved to the destination, without 
+increasing the reference counter. The source buffer must then be cleared so that AngelScript will not attempt 
+to release the pointer afterwards.
+
+For value types either the objects are copied or moved to the destination depending on the 
+implementation of the type. AngelScript will call the registered destructor on each of the objects in 
+the source buffer.
 
 \see \ref doc_addon_array and \ref doc_addon_dict for example implementations of list factories.
   
