@@ -186,6 +186,7 @@ bool Test()
 
 	// Test breaking eary in foreach statement
 	// https://github.com/anjo76/angelscript/issues/98
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
@@ -295,6 +296,7 @@ bool Test()
 
 	// Test foreach with non-pod value type
 	// https://github.com/anjo76/angelscript/issues/5
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
@@ -1038,6 +1040,7 @@ bool Test()
 
 	// Foreach where the container is a value type
 	// https://github.com/anjo76/angelscript/issues/92
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);

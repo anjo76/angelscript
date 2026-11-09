@@ -144,6 +144,7 @@ bool Test()
 
 	// Test registered class that raises a script exception in the constructor
 	// Reported by gmp3 labs
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine *engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
@@ -194,6 +195,7 @@ bool Test()
 
 	// Test script exception thrown in a nested script call
 	// Reported by Patrick Jeeves
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine *engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
