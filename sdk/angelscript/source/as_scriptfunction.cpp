@@ -307,7 +307,7 @@ int asCScriptFunction::ParseListPattern(asSListPatternNode *&target, const char 
 			asCDataType dt;
 			asCBuilder builder(engine, 0);
 			asCScriptCode code;
-			code.SetCode("", decl, 0, false);
+			code.SetCode("", decl, false);
 
 			// For list factory we get the object type from the return type, for list constructor we get it from the object type directly
 			dt = builder.CreateDataTypeFromNode(listNodes, &code, engine->defaultNamespace, false, objectType ? objectType : CastToObjectType(returnType.GetTypeInfo()));
