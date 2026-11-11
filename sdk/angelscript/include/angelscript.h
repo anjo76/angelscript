@@ -191,6 +191,7 @@ enum asEEngineProp
 	asEP_MEMBER_INIT_MODE                   = 38,
 	asEP_BOOL_CONVERSION_MODE               = 39,
 	asEP_FOREACH_SUPPORT                    = 40,
+	asEP_ENABLE_VALUE_TYPED_COMPOUND_PROPERTY_ACCESSORS = 41,
 
 	asEP_LAST_PROPERTY
 };
