@@ -551,6 +551,9 @@
     <ClCompile Include="..\..\source\test_addon_autowrapper.cpp">
       <Filter>tests</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\source\test_native_abi.cpp">
+      <Filter>tests</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\angelscript\include\angelscript.h" />

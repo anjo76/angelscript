@@ -159,6 +159,7 @@ namespace TestComposition                 { bool Test(); }
 namespace Test_Native_DefaultFunc         { bool Test(); }
 namespace TestFuncOverload                { bool Test(); }
 namespace TestConstructor                 { bool Test(); }
+namespace TestArmNativeAbi                { bool Test(); }
 
 namespace Test_Addon_Autowrapper   { bool Test(); }
 namespace Test_Addon_ScriptArray   { bool Test(); }
@@ -418,6 +419,8 @@ int allTests()
 
 			// Default functions
 			if( Test_Native_DefaultFunc::Test() ) goto failed; else PRINTF("-- Test_Native_DefaultFunc passed\n");
+
+			if( TestArmNativeAbi::Test() ) goto failed; else PRINTF("-- Test_Native_ABI passed\n");
 		}
 	}
 
