@@ -121,7 +121,7 @@ public:
 	// Enums
 	asUINT      GetEnumValueCount() const { return 0; }
 	const char *GetEnumValueByIndex(asUINT index, asINT64 *outValue) const { UNUSED_VAR(index); if (outValue) *outValue = 0; return 0; }
-
+	bool        IsFlagEnum() const;
 #ifdef AS_DEPRECATED
 	// deprecated since 2025-09-13, 2.39.0
 	// Typedef
@@ -198,14 +198,16 @@ struct asSEnumValue
 class asCEnumType : public asCTypeInfo
 {
 public:
-	asCEnumType(asCScriptEngine *engine) : asCTypeInfo(engine) {}
+	asCEnumType(asCScriptEngine *engine,bool isFlags) : asCTypeInfo(engine),isFlags(isFlags) {}
 	~asCEnumType();
 
 	asCArray<asSEnumValue*> enumValues;
 	asCDataType enumType;
+	bool isFlags;
 
 	asUINT      GetEnumValueCount() const;
 	const char *GetEnumValueByIndex(asUINT index, asINT64 *outValue) const;
+	bool        IsFlagEnum() const;
 
 	int GetUnderlyingTypeId() const;
 
