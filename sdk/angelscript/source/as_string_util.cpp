@@ -74,6 +74,14 @@ int asCompareStrings(const char *str1, size_t len1, const char *str2, size_t len
 	return result;
 }
 
+static bool asAddExactDigit(asQWORD &mantissa, int digit)
+{
+	if( mantissa > ((asQWORD(1) << 53) - 1 - digit) / 10 )
+		return false;
+	mantissa = mantissa * 10 + digit;
+	return true;
+}
+
 double asStringScanDouble(const char *string, size_t *numScanned)
 {
 	// I decided to do my own implementation of strtod() because this function
@@ -90,6 +98,10 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 	int exponent = 0;
 	bool negativeExponent = false;
 	int c = 0;
+	asQWORD mantissa = 0;
+	int mantissaExponent = 0;
+	int zeros = 0;
+	bool exact = true;
 
 	// The tokenizer separates the sign from the number in   
 	// two tokens so we'll never have a sign to parse here
@@ -98,7 +110,10 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 	for( ;; )
 	{
 		if (string[c] >= '0' && string[c] <= '9')
+		{
 			value = value * 10 + double(string[c] - '0');
+			exact = exact && asAddExactDigit(mantissa, string[c] - '0');
+		}
 		else if (string[c] == '\'' && string[c + 1] && string[c + 1] >= '0' && string[c + 1] <= '9')
 			; // skip separators
 		else 
@@ -115,7 +130,18 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 		for( ;; )
 		{
 			if( string[c] >= '0' && string[c] <= '9' )
+			{
 				value += fraction * double(string[c] - '0');
+				if( string[c] == '0' )
+					zeros++;
+				else
+				{
+					mantissaExponent -= zeros + 1;
+					for( ; zeros > 0; zeros-- )
+						exact = exact && asAddExactDigit(mantissa, 0);
+					exact = exact && asAddExactDigit(mantissa, string[c] - '0');
+				}
+			}
 			else if (string[c] == '\'' && string[c + 1] && string[c + 1] >= '0' && string[c + 1] <= '9')
 			{
 				// skip separators
@@ -154,6 +180,18 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 				break;
 
 			c++;
+		}
+	}
+
+	// Powers of ten up to 1e22 are exact, so this gives a correctly rounded result
+	if( exact && exponent <= 22 )
+	{
+		static const double powersOfTen[] = {1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22};
+		int e = mantissaExponent + (negativeExponent ? -exponent : exponent);
+		if( e >= -22 && e <= 22 )
+		{
+			value = e < 0 ? double(mantissa) / powersOfTen[-e] : double(mantissa) * powersOfTen[e];
+			exponent = 0;
 		}
 	}
 
