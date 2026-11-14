@@ -220,6 +220,7 @@ bool Test()
 
 	// Test double cast with void opCast(?&out)
 	// https://github.com/anjo76/angelscript/issues/24
+	SKIP_ON_MAX_PORT
 	{
 		engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(COutStream, Callback), &out, asCALL_THISCALL);

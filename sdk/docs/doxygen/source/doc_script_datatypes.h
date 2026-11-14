@@ -39,20 +39,19 @@ possible values: <code>true</code> or
 <table border=0 cellspacing=0 cellpadding=0>
 <tr><td width=100><b>type</b></td><td width=200><b>min value</b></td><td><b>max value</b></td></tr>
 <tr><td><code>int8  </code></td><td>                      -128</td><td>                       127</td></tr>
-<tr><td><code>int16 </code></td><td>                   -32,768</td><td>                    32,767</td></tr>
-<tr><td><code>int   </code></td><td>            -2,147,483,648</td><td>             2,147,483,647</td></tr>
-<tr><td><code>int64 </code></td><td>-9,223,372,036,854,775,808</td><td> 9,223,372,036,854,775,807</td></tr>
+<tr><td><code>int16 </code></td><td>                   -32'768</td><td>                    32'767</td></tr>
+<tr><td><code>int   </code></td><td>            -2'147'483'648</td><td>             2'147'483'647</td></tr>
+<tr><td><code>int64 </code></td><td>-9'223'372'036'854'775'808</td><td> 9'223'372'036'854'775'807</td></tr>
 <tr><td><code>uint8 </code></td><td>                         0</td><td>                       255</td></tr>
-<tr><td><code>uint16</code></td><td>                         0</td><td>                    65,535</td></tr>
-<tr><td><code>uint  </code></td><td>                         0</td><td>             4,294,967,295</td></tr>
-<tr><td><code>uint64</code></td><td>                         0</td><td>18,446,744,073,709,551,615</td></tr>
+<tr><td><code>uint16</code></td><td>                         0</td><td>                    65'535</td></tr>
+<tr><td><code>uint  </code></td><td>                         0</td><td>             4'294'967'295</td></tr>
+<tr><td><code>uint64</code></td><td>                         0</td><td>18'446'744'073'709'551'615</td></tr>
 </table>
 
 As the scripting engine has been optimized for 32 bit datatypes, using the smaller variants is only recommended for accessing application specified variables. For local variables it is better to use the 32 bit variant.
 
 <code>int32</code> is an alias for <code>int</code>, and <code>uint32</code> is an alias for <code>uint</code>.
 
-\todo Use the ' as number separator as the code now supports it
 
 
 
@@ -69,9 +68,9 @@ As the scripting engine has been optimized for 32 bit datatypes, using the small
 Rounding errors may occur if more digits than the maximum number of digits are used.
 
 <b>Curiousity</b>: Real numbers may also have the additional values of positive and negative 0 or 
-infinite, and NaN (Not-a-Number). For <code>float</code> NaN is represented by the 32 bit data word 0x7fc00000.
+infinite, and NaN (Not-a-Number). 
 
-\todo Reference the standard library functions do how to determine inf, nan
+
 
 
 

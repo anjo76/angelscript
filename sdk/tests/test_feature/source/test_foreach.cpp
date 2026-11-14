@@ -68,20 +68,20 @@ ScriptQueryIterator ScriptQueryOpForBegin(const Query& /*q*/)
 	return it;
 }
 
-bool ScriptQueryOpForEnd(const Query& /*q*/, const ScriptQueryIterator &it)
+bool ScriptQueryOpForEnd(const Query& /*q*/, ScriptQueryIterator it)
 {
 	// For simplicity, let's assume the query has 10 items
 	return it.it >= 10;
 }
 
-ScriptQueryIterator ScriptQueryOpForNext(const Query& /*q*/, const ScriptQueryIterator &it)
+ScriptQueryIterator ScriptQueryOpForNext(const Query& /*q*/, ScriptQueryIterator it)
 {
 	ScriptQueryIterator next = it;
 	next.it++;
 	return next;
 }
 
-int ScriptQueryOpForValue(const Query& /*q*/, const ScriptQueryIterator &it)
+int ScriptQueryOpForValue(const Query& /*q*/, ScriptQueryIterator it)
 {
 	// For simplicity, let's return a dummy value
 	// In a real implementation, this would return the actual value from the query
@@ -186,6 +186,7 @@ bool Test()
 
 	// Test breaking eary in foreach statement
 	// https://github.com/anjo76/angelscript/issues/98
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
@@ -295,6 +296,7 @@ bool Test()
 
 	// Test foreach with non-pod value type
 	// https://github.com/anjo76/angelscript/issues/5
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
@@ -1038,6 +1040,7 @@ bool Test()
 
 	// Foreach where the container is a value type
 	// https://github.com/anjo76/angelscript/issues/92
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine* engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);

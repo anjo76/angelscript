@@ -21,6 +21,18 @@ public:
 	asDWORD b;
 };
 
+// the class has an implicitly generated constructor
+class Class2_implicit
+{
+public:
+	// The explicit declaration that the constructor should be default doesn't affect the result in asGetTypeTraits in this case
+	// Class2_implicit() = default;
+
+	// Since the members have initializations the class will be identified as having a constructor in asGetTypeTraits even though it is not user-defined
+	asDWORD a = 0;
+	asDWORD b = 0;
+};
+
 class Class2_2
 {
 public:
@@ -63,6 +75,7 @@ static Class3 class3()
 
 static Class1 c1;
 static Class2 c2;
+static Class2_implicit c2_traits;
 static Class2_2 c2_2;
 static Class3 c3;
 
@@ -126,16 +139,28 @@ bool TestCDecl_Class()
 		// On 64bit Linux these types would be returned in RAX:RDX, and must be informed with asOBJ_APP_CLASS_ALLINTS
 		engine->RegisterObjectType("class1", sizeof(Class1), asOBJ_VALUE | asOBJ_POD | asOBJ_APP_CLASS | asOBJ_APP_CLASS_ALLINTS);
 		engine->RegisterObjectType("class2", sizeof(Class2), asOBJ_VALUE | asOBJ_POD | asOBJ_APP_CLASS | asOBJ_APP_CLASS_ALLINTS);
+
+		// https://gamedev.net/forums/topic/720560-msvc-x64-native-function-returning-an-aggregate-with-default-member-initialisers-loses-its-return-value/
+		asUINT traits_implicit = asGetTypeTraits<Class2_implicit>();
+		if( traits_implicit != (asOBJ_APP_CLASS | asOBJ_APP_CLASS_CONSTRUCTOR) )
+		{
+			PRINTF("%s: asGetTypeTraits<Class2_implicit>() returned %d, expected %d\n", TESTNAME, traits_implicit, (asOBJ_APP_CLASS | asOBJ_APP_CLASS_CONSTRUCTOR));
+			TEST_FAILED;
+		}
+		// asGetTypeTraits<Class2_implicit> will not work, because it returns that the class has a constructor, but since it was implicitly generated the ABI treats the type as without a constructor
+		engine->RegisterObjectType("class2_traits", sizeof(Class2_implicit), asOBJ_VALUE | asOBJ_POD | asOBJ_APP_CLASS | asOBJ_APP_CLASS_ALLINTS);
 		engine->RegisterObjectType("class2_2", sizeof(Class2_2), asOBJ_VALUE | asOBJ_POD | asOBJ_APP_CLASS | asOBJ_APP_CLASS_ALLINTS | asOBJ_APP_CLASS_ALIGN8);
 		engine->RegisterObjectType("class3", sizeof(Class3), asOBJ_VALUE | asOBJ_POD | asOBJ_APP_CLASS | asOBJ_APP_CLASS_ALLINTS);
 
 		engine->RegisterGlobalProperty("class1 c1", &c1);
 		engine->RegisterGlobalProperty("class2 c2", &c2);
+		engine->RegisterGlobalProperty("class2_traits c2_traits", &c2_traits);
 		engine->RegisterGlobalProperty("class2_2 c2_2", &c2_2);
 		engine->RegisterGlobalProperty("class3 c3", &c3);
 
 		engine->RegisterGlobalFunction("class1 _class1()", asFUNCTION(class1), asCALL_CDECL);
 		engine->RegisterGlobalFunction("class2 _class2()", asFUNCTION(class2), asCALL_CDECL);
+		engine->RegisterGlobalFunction("class2_traits _class2_traits()", asFUNCTION(class2), asCALL_CDECL);
 		engine->RegisterGlobalFunction("class2_2 _class2_2()", asFUNCTION(class2_2), asCALL_CDECL);
 		engine->RegisterGlobalFunction("class3 _class3()", asFUNCTION(class3), asCALL_CDECL);
 
@@ -168,7 +193,7 @@ bool TestCDecl_Class()
 			PRINTF("%s: ExecuteString() failed %d\n", TESTNAME, r);
 			TEST_FAILED;
 		}
-
+		
 		if (c2.a != 0xDEADC0DE)
 		{
 			PRINTF("%s: Failed to assign object returned from function. c2.a = %X\n", TESTNAME, (unsigned int)c2.a);
@@ -178,6 +203,29 @@ bool TestCDecl_Class()
 		if (c2.b != 0x01234567)
 		{
 			PRINTF("%s: Failed to assign object returned from function. c2.b = %X\n", TESTNAME, (unsigned int)c2.b);
+			TEST_FAILED;
+		}
+
+		// Test with asGetTypeTraits as well
+		c2_traits.a = 0;
+		c2_traits.b = 0;
+
+		r = ExecuteString(engine, "c2_traits = _class2_traits();");
+		if (r < 0)
+		{
+			PRINTF("%s: ExecuteString() failed %d\n", TESTNAME, r);
+			TEST_FAILED;
+		}
+
+		if (c2_traits.a != 0xDEADC0DE)
+		{
+			PRINTF("%s: Failed to assign object returned from function. c2_traits.a = %X\n", TESTNAME, (unsigned int)c2_traits.a);
+			TEST_FAILED;
+		}
+
+		if (c2_traits.b != 0x01234567)
+		{
+			PRINTF("%s: Failed to assign object returned from function. c2_traits.b = %X\n", TESTNAME, (unsigned int)c2_traits.b);
 			TEST_FAILED;
 		}
 

@@ -234,7 +234,21 @@ namespace declare the same entity.
   }
 </pre>
 
-\todo Namespace can have same name as class for pseudo static members
+A namespace can have same name as a class. This is useful to indicate that the global entities declared in the namespace are related to the class.
+
+<pre>
+  class Foo
+  {
+    Foo::Values value = Foo::MY_VALUE;
+  }
+  namespace Foo
+  {
+    enum Values
+    {
+      MY_VALUE
+    }
+  }
+</pre>
 
 
 \section doc_global_using_ns Using namespace

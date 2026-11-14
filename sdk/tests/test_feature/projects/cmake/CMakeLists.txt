@@ -80,12 +80,13 @@ add_executable(
         ../../source/test_inheritance.cpp
         ../../source/test_int8.cpp
         ../../source/test_interface.cpp
-		../../source/test_literal.cpp
+        ../../source/test_literal.cpp
         ../../source/test_mixin.cpp
         ../../source/test_module.cpp
         ../../source/test_multiassign.cpp
         ../../source/test_namedargs.cpp
         ../../source/test_namespace.cpp
+        ../../source/test_native_abi.cpp
         ../../source/test_native_defaultfunc.cpp
         ../../source/test_nested.cpp
         ../../source/test_nevervisited.cpp

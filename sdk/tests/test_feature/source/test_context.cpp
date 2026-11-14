@@ -608,6 +608,7 @@ bool Test()
 
 	// Test native function that was registered after the context was created
 	// Reported by Jordan Verner
+	SKIP_ON_MAX_PORT
 	{
 		asIScriptEngine *engine = asCreateScriptEngine();
 		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);

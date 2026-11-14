@@ -1,6 +1,6 @@
 /*
    AngelCode Scripting Library
-   Copyright (c) 2003-2025 Andreas Jonsson
+   Copyright (c) 2003-2026 Andreas Jonsson
 
    This software is provided 'as-is', without any express or implied
    warranty. In no event will the authors be held liable for any
@@ -348,37 +348,22 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 
 	bool isThisCallMethod = callConv >= ICC_THISCALL_OBJLAST;
 
+	// Count registers reserved by the actual native ABI.
+	int nHiddenRegisters = (callConv & 1) ? 1 : 0;
+	int nBaseConvention = callConv & ~1;
+
+	if( isThisCallMethod || nBaseConvention == ICC_THISCALL ||
+		nBaseConvention == ICC_VIRTUAL_THISCALL || nBaseConvention == ICC_CDECL_OBJFIRST )
+		++nHiddenRegisters;
+
+	int nRegisterLimit = 4 - nHiddenRegisters;
+
 	// Linux needs to align 64bit types on even registers, but this isn't done on iOS or Windows Phone
 	// TODO: optimize runtime: There should be a check for this in PrepareSystemFunction() so this 
 	//                         doesn't have to be done for functions that don't have any 64bit types
 	{
-		// mask is used as a toggler to skip uneven registers.
-		int mask = 1;
-
-		if( isThisCallMethod )
-		{
-			mask = 0;
-		}
-		else
-		{
-			// Check for object pointer as first argument
-			switch( callConv )
-			{
-				case ICC_THISCALL:
-				case ICC_CDECL_OBJFIRST:
-				case ICC_VIRTUAL_THISCALL:
-				case ICC_THISCALL_RETURNINMEM:
-				case ICC_CDECL_OBJFIRST_RETURNINMEM:
-				case ICC_VIRTUAL_THISCALL_RETURNINMEM:
-					mask = 0;
-					break;
-				default:
-					break;
-			}
-		}
-		// Check for hidden address in case of return by value
-		if( sysFunc->hostReturnInMemory )
-			mask = !mask;
+		// Core alignment includes hidden registers; stack alignment is independent.
+		int mask = (nHiddenRegisters & 1) ? 0 : 1;
 
 		paramSize = 0;
 		int spos = 0;
@@ -416,7 +401,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 							paramSize++;
 						}
 
-						if ( (stackPos & 1) == mask )
+						if ( (stackPos & 1) == 1 )
 						{
 							// 64 bit value align
 							stackPos++;
@@ -500,7 +485,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 				// If not, then store the double arg in the stack area
 				else
 				{
-					if ( (stackPos & 1) == mask )
+					if ( (stackPos & 1) == 1 )
 					{
 						// 64 bit value align
 						stackPos++;
@@ -520,7 +505,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 				// Copy the value directly to "r" registers or the stack, checking for alignment
 				
 				// First the reference...
-				if (paramSize < 4)
+				if (paramSize < nRegisterLimit)
 				{
 					paramBuffer[dpos++] = args[spos++];
 					paramSize += 1;
@@ -532,7 +517,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 				}
 
 				// ...then the type id
-				if (paramSize < 4)
+				if (paramSize < nRegisterLimit)
 				{
 					paramBuffer[dpos++] = args[spos++];
 					paramSize += 1;
@@ -545,60 +530,54 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			}
 			else
 			{
-				// Copy the value directly to "r" registers or the stack, checking for alignment
-				if (paramSize < 4)
-				{
-					// Should an alignment be performed?
-					if( (dpos & 1) == mask && descr->parameterTypes[n].GetSizeOnStackDWords() == 2 && 
-						!descr->parameterTypes[n].IsObjectHandle() && !descr->parameterTypes[n].IsReference() &&
-						!descr->parameterTypes[n].IsAnyType() )
-					{
-						// 64 bit value align
-						dpos++;
-						paramSize++;
-					}
+				int nWords = descr->parameterTypes[n].GetSizeOnStackDWords();
+				bool bAlign8 = nWords == 2 && !descr->parameterTypes[n].IsObjectHandle() &&
+					!descr->parameterTypes[n].IsReference() && !descr->parameterTypes[n].IsAnyType();
 
-					paramBuffer[dpos++] = args[spos++];
-					paramSize += descr->parameterTypes[n].GetSizeOnStackDWords();
+				if( paramSize < nRegisterLimit && bAlign8 && (dpos & 1) == mask )
+				{
+					++dpos;
+					++paramSize;
+				}
+				// Recheck capacity after alignment. A fundamental uint64 must not split.
+				if( paramSize + nWords <= nRegisterLimit )
+				{
+					for( int nWord = 0; nWord < nWords; ++nWord )
+						paramBuffer[dpos++] = args[spos++];
+					paramSize += nWords;
 				}
 				else
 				{
-					// Should an alignment be performed?
-					if( (stackPos & 1) == mask && descr->parameterTypes[n].GetSizeOnStackDWords() == 2 &&
-						!descr->parameterTypes[n].IsObjectHandle() && !descr->parameterTypes[n].IsReference() &&
-						!descr->parameterTypes[n].IsAnyType() )
+					if( bAlign8 && (stackPos & 1) )
 					{
-						// 64 bit value align
-						stackPos++;
-						stackSize++;
+						++stackPos;
+						++stackSize;
 					}
-
-					paramBuffer[stackPos++] = args[spos++];
-					stackSize += descr->parameterTypes[n].GetSizeOnStackDWords();
-				}
-
-				if( descr->parameterTypes[n].GetSizeOnStackDWords() > 1 )
-				{
-					if (paramSize < 5)
-						paramBuffer[dpos++] = args[spos++];
-					else
+					for( int nWord = 0; nWord < nWords; ++nWord )
 						paramBuffer[stackPos++] = args[spos++];
+					stackSize += nWords;
 				}
+
 			}// else...
 		}// Loop
 
-		if( isThisCallMethod && (callConv >= ICC_THISCALL_OBJLAST &&
-			callConv <= ICC_VIRTUAL_THISCALL_OBJLAST_RETURNINMEM) )
+		bool bFunctorLast = isThisCallMethod && callConv >= ICC_THISCALL_OBJLAST &&
+			callConv <= ICC_VIRTUAL_THISCALL_OBJLAST_RETURNINMEM;
+		bool bCdeclLast = nBaseConvention == ICC_CDECL_OBJLAST;
+
+		if( bFunctorLast || bCdeclLast )
 		{
-			if (paramSize < 4)
+			asDWORD dwLastObject = (asDWORD)(bCdeclLast ? obj : secondObject);
+
+			if( paramSize < nRegisterLimit )
 			{
-				paramBuffer[dpos++] = (asDWORD)secondObject;
-				paramSize++;
+				paramBuffer[dpos++] = dwLastObject;
+				++paramSize;
 			}
 			else
 			{
-				paramBuffer[stackPos++] = (asDWORD)secondObject;
-				stackSize++;
+				paramBuffer[stackPos++] = dwLastObject;
+				++stackSize;
 			}
 		}
 
@@ -646,13 +625,13 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 		// Get virtual function table from the object pointer
 		vftable = *(asFUNCTION_t**)obj;
 		// On GNUC the address where the return value will be placed should be put in R0
-		retQW = armFuncR0R1(args, (paramSize+1)<<2, vftable[FuncPtrToUInt(func)>>2], (asDWORD)retPointer, (asDWORD)obj);
+		retQW = armFuncR0R1(args, paramSize<<2, vftable[FuncPtrToUInt(func)>>2], (asDWORD)retPointer, (asDWORD)obj);
 		break;
 	case ICC_CDECL_OBJLAST:
-		retQW = armFuncObjLast(args, paramSize<<2, func, (asDWORD)obj);
+		retQW = armFunc(args, paramSize<<2, func);
 		break;
 	case ICC_CDECL_OBJLAST_RETURNINMEM:
-		retQW = armFuncR0ObjLast(args, paramSize<<2, func, (asDWORD)retPointer, (asDWORD)obj);
+		retQW = armFuncR0(args, paramSize<<2, func, (asDWORD)retPointer);
 		break;
 	default:
 		context->SetInternalException(TXT_INVALID_CALLING_CONVENTION);

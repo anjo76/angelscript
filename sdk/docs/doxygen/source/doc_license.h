@@ -3,7 +3,7 @@
 \page doc_license License
 
 \section doc_lic_1 AngelCode Scripting Library
-Copyright &copy; 2003-2025 Andreas J&ouml;nsson
+Copyright &copy; 2003-2026 Andreas J&ouml;nsson
 
 This software is provided 'as-is', without any express or implied
 warranty. In no event will the authors be held liable for any

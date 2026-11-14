@@ -14,7 +14,7 @@ SCRIPT        ::= (IMPORT | ENUM | TYPEDEF | CLASS | MIXIN | INTERFACE | FUNCDEF
 IMPORT        ::= 'import' TYPE '&'? IDENTIFIER PARAMLIST FUNCATTR 'from' STRING ';'
 USING         ::= 'using' 'namespace' IDENTIFIER ('::' IDENTIFIER)* ';'
 NAMESPACE     ::= 'namespace' IDENTIFIER ('::' IDENTIFIER)* '{' SCRIPT '}'
-ENUM          ::= ('shared' | 'external')* 'enum' IDENTIFIER (';' | ('{' IDENTIFIER ('=' EXPR)? (',' IDENTIFIER ('=' EXPR)?)* '}'))
+ENUM          ::= ('shared' | 'external')* 'enum' IDENTIFIER (':' ('int' | 'int8' | 'int16' | 'int32' | 'int64' | 'uint' | 'uint8' | 'uint16' | 'uint32' | 'uint64'))? (';' | ('{' IDENTIFIER ('=' EXPR)? (',' IDENTIFIER ('=' EXPR)?)* '}'))
 FUNCDEF       ::= ('external' | 'shared')* 'funcdef' TYPE '&'? IDENTIFIER PARAMLIST ';'
 FUNC          ::= ('shared' | 'external')* ('private' | 'protected')? (((TYPE '&'?) | '~'))? IDENTIFIER PARAMLIST 'const'? FUNCATTR (';' | STATBLOCK)
 VIRTPROP      ::= ('private' | 'protected')? TYPE '&'? IDENTIFIER '{' (('get' | 'set') 'const'? FUNCATTR (STATBLOCK | ';'))* '}'
@@ -67,17 +67,15 @@ COMPOP        ::= '==' | '!=' | '<' | '<=' | '>' | '>=' | 'is' | '!is'
 LOGICOP       ::= '&&' | '||' | '^^' | 'and' | 'or' | 'xor'
 BITOP         ::= '&' | '|' | '^' | '<<' | '>>' | '>>>'
 ASSIGNOP      ::= '=' | '+=' | '-=' | '\*=' | '/=' | '|=' | '&=' | '^=' | '%=' | '\**=' | '<<=' | '>>=' | '>>>='
-IDENTIFIER    ::= [A-Za-z_][A-Za-z0-9_]*            // single token:  starts with letter or _, can include any letter and digit, same as in C++
-NUMBER        ::= [0-9]+("."[0-9]+)?                // single token:  includes integers and real numbers, same as C++ 
-STRING        ::= '"' ("\". | [^"\#x0D\#x0A\\])* '"'   // single token:  single quoted ', double quoted ", or heredoc multi-line string """
-BITS          ::= '0'[bBoOdDxX][0-9A-Fa-f]+         // single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
-COMMENT       ::= ('//'[^\#x0A]*) | ('/*'[^*]*'*/')  // single token:  starts with // and ends with new line or starts with /* and ends with */
-WHITESPACE    ::= [ \#x09\#x0A\#x0D]+                  // single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
+IDENTIFIER    ::= [A-Za-z_][A-Za-z0-9_]*                              // single token:  starts with letter or _, can include any letter and digit, same as in C++
+NUMBER        ::= DIGITS('.'DIGITS)? ([eE] DIGITS)?                   // single token:  includes integers and real numbers, same as C++
+DIGITS        ::= [0-9](("'")? [0-9])*                               // single token:  like C++14, a digit can contain a ' if a digit comes after it
+STRING        ::= '"' ('\'. | [^"\#x0D\#x0A\\])* '"'                  // single token:  single quoted ', double quoted ", or heredoc multi-line string """
+BITS          ::= '0'[bBoOdDxX][0-9A-Fa-f](("'")? [0-9A-Fa-f])*      // single token:  binary 0b or 0B, octal 0o or 0O, decimal 0d or 0D, hexadecimal 0x or 0X
+COMMENT       ::= ('//'[^\#x0A]*) | ('/*'[^*]*'*/')                    // single token:  starts with // and ends with new line or starts with /* and ends with */
+WHITESPACE    ::= [ \#x09\#x0A\#x0D]+                                    // single token:  spaces, tab, carriage return, line feed, and UTF8 byte-order-mark
 </pre>
 
-\todo update NUMBER and BITS with number separators
-\todo update NUMBER with exponent
-\todo update ENUM with underlying type
 
 
 */

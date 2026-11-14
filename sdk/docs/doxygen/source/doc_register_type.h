@@ -166,10 +166,15 @@ The list buffer passed to the factory function will be populated using the follo
 
 The compiler will prepare the buffer with temporary values that can be moved into the
 storage space of the object. Reference types will be stored as pointers, while value types will be 
-stored inline. For reference types the ownership is handed over to the application object, so the 
-application must not increase the reference counter for the objects in the buffer.
+stored inline.
 
-\todo What of value types in the buffer? Must they be destroyed by the application?
+For reference types and handles ideally the pointer is directly moved to the destination, without 
+increasing the reference counter. The source buffer must then be cleared so that AngelScript will not attempt 
+to release the pointer afterwards.
+
+For value types either the objects are copied or moved to the destination depending on the 
+implementation of the type. AngelScript will call the registered destructor on each of the objects in 
+the source buffer.
 
 \see \ref doc_addon_array and \ref doc_addon_dict for example implementations of list factories.
   
@@ -386,6 +391,10 @@ The following flags are covered by asGetTypeTraits:
 
 Don't include the flags for constructor, destructor, assignment, and/or copy constructor if they have been declared as '= default' in the C++ class.
 
+\note Unfortunately the native calling convention sometimes distinguish between user-defined constructors and compiler generated implicit constructors, but asGetTypeTraits 
+cannot distinguish between them. A class like \code struct Type { int a = 0; int b = 0; } \endcode where the members have initializations but no explicit 
+constructor is defined will give that the class has a constructor, but in the ABI it is treated as it doesn't, so in this case asGetTypeTraits cannot be used.
+
 On some platforms the native calling convention may require further knowledge about the class and its members that \ref asGetTypeTraits
 cannot determine in order to work properly. Whether or not the flags are needed depends on the compiler and target platform, but if the flags
 are not needed AngelScript will simply ignore them so there is no harm in informing them.
@@ -407,7 +416,7 @@ are defaulted.
 <tr><td>\ref asOBJ_APP_CLASS_UNION             &nbsp; </td><td>The C++ class contains unions as members.</td></tr>
 </table>
 
-Here's some examples to better illustrate the use of the flags:
+Here are some examples to better illustrate the use of the flags:
 
 \code
 // The presence of the constructor with parameters indicates that the flag asOBJ_APP_CLASS_MORE_CONSTRUCTORS should be used
