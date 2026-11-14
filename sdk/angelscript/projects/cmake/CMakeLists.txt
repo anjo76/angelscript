@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.13)
 
 project(angelscript)
 
@@ -105,7 +105,15 @@ set(ANGELSCRIPT_SOURCE
     ../../source/as_variablescope.cpp
 )
 
-if(MSVC AND CMAKE_CL_64)
+if(MSVC) # AND ${CMAKE_GENERATOR} MATCHES "^Visual Sutdio"
+	if(NOT CMAKE_GENERATOR_PLATFORM)
+		string(TOLOWER "${CMAKE_VS_PLATFORM_NAME_DEFAULT}" ANGELSCRIPT_MSVC_TARGET_PLATFORM)
+	else()
+		string(TOLOWER "${CMAKE_GENERATOR_PLATFORM}" ANGELSCRIPT_MSVC_TARGET_PLATFORM)
+	endif()
+endif()
+
+if(MSVC AND ${ANGELSCRIPT_MSVC_TARGET_PLATFORM} MATCHES "^x64$")
     enable_language(ASM_MASM)
     if(CMAKE_ASM_MASM_COMPILER_WORKS)
         set(ANGELSCRIPT_SOURCE ${ANGELSCRIPT_SOURCE} ../../source/as_callfunc_x64_msvc_asm.asm)
@@ -134,7 +142,7 @@ if(${ARCHFLAGS} MATCHES "^arm")
     endif()
 endif()
 
-if(${ARCHFLAGS} MATCHES "^aarch64")
+if(${ARCHFLAGS} MATCHES "^aarch64" AND NOT MSVC)
     enable_language(ASM)
     if(CMAKE_ASM_COMPILER_WORKS)
         if(NOT APPLE)
@@ -144,6 +152,15 @@ if(${ARCHFLAGS} MATCHES "^aarch64")
         endif()
     else()
         message(FATAL ERROR "ARM target requires a working assembler")
+    endif()
+endif()
+
+if(MSVC AND ${ANGELSCRIPT_MSVC_TARGET_PLATFORM} MATCHES "^arm64$")
+	enable_language(ASM_MARMASM)
+	if(CMAKE_ASM_MARMASM_COMPILER_WORKS)
+		set(ANGELSCRIPT_SOURCE ${ANGELSCRIPT_SOURCE} ../../source/as_callfunc_arm64.cpp ../../source/as_callfunc_arm64_msvc.asm)
+    else()
+        message(FATAL_ERROR "MSVC ARM64 target requires a working assembler")
     endif()
 endif()
 

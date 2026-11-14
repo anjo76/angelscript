@@ -224,6 +224,9 @@
 // AS_ARM64
 // Use assembler code for the ARM64/AArch64 CPU family
 
+// AS_ARM64_MSVC
+// Use MSVC assembler code for ARM64/AArch64 CPU family
+
 // AS_RISCV64
 // Use assembler code for the RISC-V 64bit CPU family
 
@@ -442,7 +445,7 @@
 		#pragma warning( disable : 4786 )
 	#endif
 
-	#ifdef _M_X64
+	#if defined(_M_X64) || defined(_M_ARM64)
 		#define MULTI_BASE_OFFSET(x) (*((const asDWORD*)(&x)+2))
 		#define VIRTUAL_BASE_OFFSET(x) (*((const asDWORD*)(&x)+4))
 	#else
@@ -545,8 +548,32 @@
 
 	#if defined(_M_ARM64)
 		#define AS_ARM64
+		#define AS_ARM64_MSVC
+
+		#undef STDCALL
+		#define STDCALL
+
+		#undef AS_NO_THISCALL_FUNCTOR_METHOD
+
+		#define HAS_128_BIT_PRIMITIVES
 
 		// TODO: MORE HERE
+		//#define CDECL_RETURN_SIMPLE_IN_MEMORY
+		//#define STDCALL_RETURN_SIMPLE_IN_MEMORY
+		//#define THISCALL_RETURN_SIMPLE_IN_MEMORY
+		//
+		//#undef THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+		//#undef CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+		//#undef STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE
+		//
+		//#define THISCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE 5
+		//#define CDECL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE    5
+		//#define STDCALL_RETURN_SIMPLE_IN_MEMORY_MIN_SIZE  5
+
+		#undef COMPLEX_MASK
+		#define COMPLEX_MASK (asOBJ_APP_CLASS_COPY_CONSTRUCTOR | asOBJ_APP_ARRAY)
+		#undef COMPLEX_RETURN_MASK
+		#define COMPLEX_RETURN_MASK (asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_ARRAY | asOBJ_APP_CLASS_MORE_CONSTRUCTORS)
 	#endif
 
 	#ifndef COMPLEX_MASK
