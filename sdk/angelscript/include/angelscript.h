@@ -293,6 +293,10 @@ enum asEBehaviours
 	 asBEHAVE_RELEASEREFS,
 	asBEHAVE_LAST_GC = asBEHAVE_RELEASEREFS,
 
+	// User-defined literal support
+	asBEHAVE_LITERAL_CONSTRUCT,
+	asBEHAVE_LITERAL_CALLBACK,
+
 	asBEHAVE_MAX
 };
 

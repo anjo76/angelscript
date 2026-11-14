@@ -2,9 +2,7 @@ name: Automated test
 permissions:
   contents: read
   
-on:
-  push:
-    branches: [ "master" ]
+on: [push, pull_request]
 
 jobs:
   Linux_x86-64_GCC:
