@@ -117,6 +117,10 @@ static inline bool IsRegisterHFA(const asCDataType &type)
 		type.IsObjectHandle() || type.IsReference() )
 		return false;
 
+#if defined(AS_ARM64_MSVC)
+	if( typeInfo->flags & asOBJ_APP_CLASS_UNION )
+		return false;
+#endif
 	const bool doubles = (typeInfo->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
 	const int maxAllowedSize = doubles ? sizeof(double) * HFA_RET_REGISTERS : sizeof(float) * HFA_RET_REGISTERS;
 
@@ -132,6 +136,12 @@ static inline bool IsRegisterHFAParameter(const asCDataType &type, const asQWORD
 	if( !IsRegisterHFA(type) )
 		return false;
 
+#if defined(AS_ARM64_MSVC)
+	const asCTypeInfo *const typeInfo = type.GetTypeInfo();
+
+	if(typeInfo->flags & (asOBJ_APP_CLASS_CONSTRUCTOR | asOBJ_APP_CLASS_DESTRUCTOR | asOBJ_APP_CLASS_ASSIGNMENT | asOBJ_APP_CLASS_DESTRUCTOR))
+		return false;
+#endif
 	const bool doubles = (type.GetTypeInfo()->flags & asOBJ_APP_CLASS_ALIGN8) != 0;
 	const int registersUsed = type.GetSizeInMemoryDWords() / (doubles ? sizeof(double) : sizeof(float));
 
@@ -163,10 +173,11 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	asFUNCTION_t func = sysFunc->func;
 	int callConv = sysFunc->callConv;
 	asQWORD       retQW     = 0;
+	bool returnRegisterSet = false;
 
-	asQWORD       gpRegArgs[GP_ARG_REGISTERS];
-	asQWORD       floatRegArgs[FLOAT_ARG_REGISTERS];
-	asQWORD       stackArgs[64]; // It's how many x64 users can have
+	asQWORD       gpRegArgs[GP_ARG_REGISTERS]       = { 0 };
+	asQWORD       floatRegArgs[FLOAT_ARG_REGISTERS] = { 0 };
+	asQWORD       stackArgs[64]                     = { 0 }; // It's how many x64 users can have
 	asQWORD       numGPRegArgs    = 0;
 	asQWORD       numFloatRegArgs = 0;
 	asQWORD       numStackArgs    = 0;
@@ -183,6 +194,17 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 		gpRegArgs[numGPRegArgs++] = (asQWORD)obj;
 	}
 
+#if defined(AS_ARM64_MSVC)
+	// https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions?view=msvc-170#return-values
+	// "The address of the memory block shall be passed as an additional argument to the function in x0, or x1 if $this is passed in x0."
+	if(!returnRegisterSet && sysFunc->hostReturnInMemory)
+	{
+		// Assume all host returns not in memory are non-aggregate on Windows (for now)
+		gpRegArgs[numGPRegArgs++] = (asQWORD)retPointer;
+		returnRegisterSet = true;
+	}
+#endif
+
 	if( callConv == ICC_CDECL_OBJFIRST || callConv == ICC_CDECL_OBJFIRST_RETURNINMEM )
 	{
 		// Add the object pointer as the first parameter
@@ -191,7 +213,7 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 	else if( callConv == ICC_THISCALL_OBJFIRST || callConv == ICC_THISCALL_OBJFIRST_RETURNINMEM ||
 		callConv == ICC_VIRTUAL_THISCALL_OBJFIRST || callConv == ICC_VIRTUAL_THISCALL_OBJFIRST_RETURNINMEM )
 	{
-		// Add the object pointer as the first parameter
+		// Add the second object pointer as the first parameter
 		gpRegArgs[numGPRegArgs++] = (asQWORD)secondObject;
 	}
 
@@ -419,7 +441,14 @@ asQWORD CallSystemFunctionNative(asCContext *context, asCScriptFunction *descr, 
 			*(double*)&retQW = CallARM64Double(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
 	}
 	else if( sysFunc->hostReturnInMemory )
+	{
+#if !defined(AS_ARM64_MSVC)
 		retQW = CallARM64RetInMemory(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, retPointer, func);
+#else
+		CallARM64(gpRegArgs, numGPRegArgs, floatRegArgs, numFloatRegArgs, stackArgs, numStackArgs, func);
+		retQW = (asQWORD)retPointer;
+#endif
+	}
 	else
 	{
 		if( retType.GetSizeInMemoryBytes() > sizeof(asQWORD) )
