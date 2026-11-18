@@ -71,6 +71,48 @@ void ConstrObj_gen2(asIScriptGeneric *gen)
 }
 
 
+// Pop word of the single asBC_RET on the one-argument constructor
+static int CopyCtorRetPop(asITypeInfo *type)
+{
+	asIScriptFunction *func = 0;
+	if( type )
+	{
+		for( asUINT n = 0; n < type->GetBehaviourCount(); n++ )
+		{
+			asEBehaviours beh;
+			asIScriptFunction *f = type->GetBehaviourByIndex(n, &beh);
+			if( f && beh == asBEHAVE_CONSTRUCT && f->GetParamCount() == 1 )
+				func = f;
+		}
+	}
+	if( func == 0 )
+		return -1;
+
+	asUINT len = 0;
+	asDWORD *bc = func->GetByteCode(&len);
+	if( bc == 0 )
+		return -1;
+
+	int pop = -1;
+	int count = 0;
+	for( asUINT n = 0; n < len; )
+	{
+		asBYTE op = *(asBYTE*)(&bc[n]);
+		int sz = asBCTypeSize[asBCInfo[op].type];
+		if( sz <= 0 )
+			return -1;
+		if( op == asBC_RET )
+		{
+			count++;
+			pop = asBC_WORDARG0(&bc[n]);
+		}
+		n += asUINT(sz);
+	}
+	if( count != 1 )
+		return -1;
+	return pop;
+}
+
 bool Test()
 {
 	bool fail = false;
@@ -807,6 +849,52 @@ bool Test()
 		ctx->Release();
 
 		engine->Release();
+	}
+
+	// Generated copy constructor pops the object pointer and the source reference
+	{
+		engine = asCreateScriptEngine();
+		bout.buffer = "";
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		mod = engine->GetModule(0, asGM_ALWAYS_CREATE);
+		mod->AddScriptSection("test", "class Pair { int a; int b; }\n");
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+		if( bout.buffer != "" )
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+
+		int freshPop = CopyCtorRetPop(mod->GetTypeInfoByName("Pair"));
+		if( freshPop != 2 * AS_PTR_SIZE )
+		{
+			PRINTF("RET pop is %d, expected %d\n", freshPop, 2 * AS_PTR_SIZE);
+			TEST_FAILED;
+		}
+
+		CBytecodeStream stream("copyctor");
+		r = mod->SaveByteCode(&stream);
+		if( r < 0 )
+			TEST_FAILED;
+
+		asIScriptEngine *engine2 = asCreateScriptEngine();
+		asIScriptModule *mod2 = engine2->GetModule(0, asGM_ALWAYS_CREATE);
+		r = mod2->LoadByteCode(&stream);
+		if( r < 0 )
+			TEST_FAILED;
+
+		int loadedPop = CopyCtorRetPop(mod2->GetTypeInfoByName("Pair"));
+		if( loadedPop != freshPop )
+		{
+			PRINTF("Loaded RET pop is %d, fresh is %d\n", loadedPop, freshPop);
+			TEST_FAILED;
+		}
+
+		engine2->ShutDownAndRelease();
+		engine->ShutDownAndRelease();
 	}
 
 	// Success
