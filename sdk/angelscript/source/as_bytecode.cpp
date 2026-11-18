@@ -1180,6 +1180,17 @@ void asCByteCode::Optimize()
 					DeleteInstruction(instr);
 					instr = GoBack(DeleteInstruction(curr));
 				}
+				// LINE, JitEntry, VarDecl|Block, LINE -> VarDecl|Block, LINE
+				// Without JIT instructions the two rules below remove this LINE.
+				// Do the same with them, so both builds have line cues in the same places.
+				else if( instrOp == asBC_JitEntry && instr->next &&
+				        (instr->next->op == asBC_VarDecl || instr->next->op == asBC_Block) &&
+				        instr->next->next && instr->next->next->op == asBC_LINE )
+				{
+					// Delete the two first instructions
+					DeleteInstruction(instr);
+					instr = GoBack(DeleteInstruction(curr));
+				}
 				// LINE, VarDecl, LINE -> VarDecl, LINE
 				else if (instrOp == asBC_VarDecl && instr->next && instr->next->op == asBC_LINE )
 				{
@@ -1500,9 +1511,12 @@ void asCByteCode::ExtractLineNumbers()
 			lineNumbers.PushLast(*(int*)ARG_DW(curr->arg));
 			sectionIdxs.PushLast(*((int*)ARG_DW(curr->arg)+1));
 
-			// Check if this is the first instruction in the function
+			// Check if this is the first instruction in the function.
+			// VarDecl and ObjInfo are markers. A JitEntry kept by the optimizer is too.
+			// Without optimization that JitEntry stays, and the first line is kept.
 			asCByteInstruction* c = curr->prev;
-			while (c && (c->op == asBC_VarDecl || c->op == asBC_ObjInfo))
+			while (c && (c->op == asBC_VarDecl || c->op == asBC_ObjInfo ||
+				(engine->ep.optimizeByteCode && c->op == asBC_JitEntry)))
 				c = c->prev;
 
 			if (c == 0)
