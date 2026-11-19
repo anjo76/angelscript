@@ -39,25 +39,8 @@ CallX64 PROC FRAME
 
 	; We must save preserved registers that are used
 	; TODO: No need to save unused registers
-
 	push rbp
 .pushreg rbp
-	push rsi
-.pushreg rsi
-	push r11
-.pushreg r11
-	push rdi
-.pushreg rdi
-	push r12
-.pushreg r12
-	push r13
-.pushreg r13
-	push r14
-.pushreg r14
-	push r15
-.pushreg r15
-	push rbx
-.pushreg rbx
 	sub rsp, 050h
 .allocstack 050h
 	mov rbp, rsp
@@ -65,89 +48,58 @@ CallX64 PROC FRAME
 .endprolog
 
 	; Move function param to non-scratch register
-	mov r14, r9		; r14 = function
+	mov r10, r9		; r10 = function
 
 	; Allocate space on the stack for the arguments
 	; Make room for at least 4 arguments even if there are less. When
     ; the compiler does optimizations for speed it may use these for 
 	; temporary storage.
-	mov rdi, r8
-	add rdi, 32
-
-	; Make sure the stack pointer is 16byte aligned so the
+	; Make sure the stack pointer is 16 byte aligned so the
 	; whole program optimizations will work properly
-	; TODO: optimize: Can this be optimized with fewer instructions?
-	mov rsi, rsp
-	sub rsi, rdi
-	and rsi, 8h
-	add rdi, rsi	
-	sub rsp, rdi
+	sub rsp, r8  ; r8 = paramSize
+	sub rsp, 32
+	and rsp, -16 ; -16 is ~15
 		
-	; Jump straight to calling the function if no parameters
-	cmp r8d, 0		; Compare paramSize with 0
-	je	callfunc	; Jump to call funtion if (paramSize == 0)
+	; Negate the 4 params from the size to be copied
+	sub r8d, 32
+	jle  callfunc ; Jump if less than or equal result
 
+	; Now copy all remaining params onto stack allowing space for first four
+	; params to be flushed back to the stack if required by the callee.
+	; Put the stack pointer into r9 while leaving space for first 4 args on stack 
 	; Move params to non-scratch registers
-	mov rsi, rcx	; rsi = pArgs
-	mov r11, rdx	; r11 = pFloatArgs (can be NULL)
-	mov r12d, r8d	; r12 = paramSize
+	lea rax, [rcx+32]	; rax = pArgs+4 
+	lea r9,  [rsp+32]	
+
+copyoverflow:
+	mov r11, qword ptr [rax]	; Read param from source stack into r11
+	mov qword ptr [r9], r11	    ; Copy param to real stack
+	add r9, 8					; Move virtual stack pointer
+	add rax, 8					; Move source stack pointer
+	sub r8d, 8					; Decrement remaining count
+	jnz copyoverflow			; Continue if more params
 	
+callfunc:
+	; Copy float arguments
+
+	movlpd xmm0, qword ptr [rdx]     ; rdx = floatArgs
+	movlpd xmm1, qword ptr [rdx + 8]
+	movlpd xmm2, qword ptr [rdx + 16]
+	movlpd xmm3, qword ptr [rdx + 24]
+
 	; Copy arguments from script stack to application stack
 	; Order is (first to last):
 	; rcx, rdx, r8, r9 & everything else goes on stack
-	mov rcx, qword ptr [rsi]
-	mov rdx, qword ptr [rsi + 8]
-	mov r8,  qword ptr [rsi + 16]
-	mov r9,  qword ptr [rsi + 24]
-	
-	; Negate the 4 params from the size to be copied
-	sub r12d, 32
-	js  copyfloat	; Jump if negative result
-	jz	copyfloat	; Jump if zero result
-	
-	; Now copy all remaining params onto stack allowing space for first four
-	; params to be flushed back to the stack if required by the callee.
-	
-	add rsi, 32		; Position input pointer 4 args ahead
-	mov r13, rsp	; Put the stack pointer into r13
-	add r13, 32	 	; Leave space for first 4 args on stack
-
-copyoverflow:
-	mov r15, qword ptr [rsi]	; Read param from source stack into r15
-	mov qword ptr [r13], r15	; Copy param to real stack
-	add r13, 8					; Move virtual stack pointer
-	add rsi, 8					; Move source stack pointer
-	sub r12d, 8					; Decrement remaining count
-	jnz copyoverflow			; Continue if more params
-
-copyfloat:
-	; Any floating point params?
-	cmp r11, 0
-	je  callfunc
-	
-	movlpd xmm0, qword ptr [r11]
-	movlpd xmm1, qword ptr [r11 + 8]
-	movlpd xmm2, qword ptr [r11 + 16]
-	movlpd xmm3, qword ptr [r11 + 24]
-	
-callfunc:
+	mov r9,  qword ptr [rcx + 24] ; rcx = args
+	mov r8,  qword ptr [rcx + 16]
+	mov rdx, qword ptr [rcx + 8]
+	mov rcx, qword ptr [rcx]
 	
 	; Call function
-	call r14
+	call r10
 	
-	; Restore the stack
-	mov rsp, rbp
-		
 	; EPILOG: Restore stack & preserved registers
-	add rsp, 050h
-	pop rbx
-	pop r15
-	pop r14
-	pop r13
-	pop r12
-	pop rdi
-	pop r11
-	pop rsi
+	lea rsp, [rbp + 050h]
 	pop rbp
 
 	; return value in RAX
