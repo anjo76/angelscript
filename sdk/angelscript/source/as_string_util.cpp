@@ -91,6 +91,20 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 	bool negativeExponent = false;
 	int c = 0;
 
+	// Accumulating the fraction as value += fraction * digit, with fraction *= 0.1,
+	// rounds at every step, so the result can be off from the correctly rounded
+	// value, e.g. 0.001, 0.05 and 1.75 all come out 1 ulp too large. To avoid
+	// that the digits are also accumulated as an exact integer mantissa. When the
+	// mantissa fits in 53 bits and the effective power of ten is at most 22 in
+	// magnitude, both operands below are exactly representable as doubles, so a
+	// single multiplication or division gives the correctly rounded result
+	// (Clinger's fast path). This covers practically all literals written in
+	// scripts. Otherwise the previous approximation is used, unchanged.
+	const asQWORD maxExactMantissa = asQWORD(1) << 53;
+	asQWORD mantissa = 0;
+	bool mantissaIsExact = true;
+	int fractionDigits = 0;
+
 	// The tokenizer separates the sign from the number in   
 	// two tokens so we'll never have a sign to parse here
 
@@ -98,7 +112,15 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 	for( ;; )
 	{
 		if (string[c] >= '0' && string[c] <= '9')
+		{
 			value = value * 10 + double(string[c] - '0');
+
+			asUINT digit = asUINT(string[c] - '0');
+			if( mantissaIsExact && mantissa <= (maxExactMantissa - digit) / 10 )
+				mantissa = mantissa * 10 + digit;
+			else
+				mantissaIsExact = false;
+		}
 		else if (string[c] == '\'' && string[c + 1] && string[c + 1] >= '0' && string[c + 1] <= '9')
 			; // skip separators
 		else 
@@ -115,7 +137,18 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 		for( ;; )
 		{
 			if( string[c] >= '0' && string[c] <= '9' )
+			{
 				value += fraction * double(string[c] - '0');
+
+				asUINT digit = asUINT(string[c] - '0');
+				if( mantissaIsExact && mantissa <= (maxExactMantissa - digit) / 10 )
+				{
+					mantissa = mantissa * 10 + digit;
+					fractionDigits++;
+				}
+				else
+					mantissaIsExact = false;
+			}
 			else if (string[c] == '\'' && string[c + 1] && string[c + 1] >= '0' && string[c + 1] <= '9')
 			{
 				// skip separators
@@ -157,12 +190,26 @@ double asStringScanDouble(const char *string, size_t *numScanned)
 		}
 	}
 
-	if( exponent )
+	if( negativeExponent )
+		exponent = -exponent;
+
+	// Exact powers of ten, 10^22 being the largest that fits in a double's mantissa
+	static const double exactPowersOf10[] =
 	{
-		if( negativeExponent )
-			exponent = -exponent;
-		value *= pow(10.0, exponent);
+		1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,  1e8,  1e9,  1e10, 1e11,
+		1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
+	};
+
+	int decimalExponent = exponent - fractionDigits;
+	if( mantissaIsExact && decimalExponent >= -22 && decimalExponent <= 22 )
+	{
+		if( decimalExponent >= 0 )
+			value = double(mantissa) * exactPowersOf10[decimalExponent];
+		else
+			value = double(mantissa) / exactPowersOf10[-decimalExponent];
 	}
+	else if( exponent )
+		value *= pow(10.0, exponent);
 
 	if( numScanned )
 		*numScanned = c;
