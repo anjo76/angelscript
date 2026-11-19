@@ -3278,6 +3278,71 @@ void asCReader::TranslateFunction(asCScriptFunction *func)
 	// Adjust the space needed for local variables
 	func->scriptData->variableSpace = AdjustStackPosition(func->scriptData->variableSpace);
 
+	// Validate that all SWORDARG operands are within [0, variableSpace).
+	// Without this check, crafted bytecode can reference stack offsets far
+	// outside the allocated stack frame, leading to out-of-bounds access
+	// during execution.
+	{
+		int varSpace = func->scriptData->variableSpace;
+		for( asUINT v = 0; v < bcLength; )
+		{
+			int c = *(asBYTE*)&bc[v];
+			short s0, s1, s2;
+			bool invalid = false;
+
+			switch( asBCInfo[c].type )
+			{
+			case asBCTYPE_wW_ARG:
+			case asBCTYPE_rW_DW_ARG:
+			case asBCTYPE_wW_QW_ARG:
+			case asBCTYPE_rW_ARG:
+			case asBCTYPE_wW_DW_ARG:
+			case asBCTYPE_wW_W_ARG:
+			case asBCTYPE_rW_QW_ARG:
+			case asBCTYPE_rW_W_DW_ARG:
+			case asBCTYPE_rW_DW_DW_ARG:
+				s0 = asBC_SWORDARG0(&bc[v]);
+				if( s0 < 0 || s0 >= varSpace )
+					invalid = true;
+				break;
+
+			case asBCTYPE_wW_rW_ARG:
+			case asBCTYPE_wW_rW_DW_ARG:
+			case asBCTYPE_rW_rW_ARG:
+				s0 = asBC_SWORDARG0(&bc[v]);
+				s1 = asBC_SWORDARG1(&bc[v]);
+				if( s0 < 0 || s0 >= varSpace || s1 < 0 || s1 >= varSpace )
+					invalid = true;
+				break;
+
+			case asBCTYPE_wW_rW_rW_ARG:
+				s0 = asBC_SWORDARG0(&bc[v]);
+				s1 = asBC_SWORDARG1(&bc[v]);
+				s2 = asBC_SWORDARG2(&bc[v]);
+				if( s0 < 0 || s0 >= varSpace || s1 < 0 || s1 >= varSpace || s2 < 0 || s2 >= varSpace )
+					invalid = true;
+				break;
+
+			case asBCTYPE_W_rW_ARG:
+				s1 = asBC_SWORDARG1(&bc[v]);
+				if( s1 < 0 || s1 >= varSpace )
+					invalid = true;
+				break;
+
+			default:
+				break;
+			}
+
+			if( invalid )
+			{
+				Error(TXT_INVALID_BYTECODE_d);
+				return;
+			}
+
+			v += asBCTypeSize[asBCInfo[c].type];
+		}
+	}
+
 	// Adjust the variable information. This will be used during the adjustment below
 	for( n = 0; n < func->scriptData->variables.GetLength(); n++ )
 	{
