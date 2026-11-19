@@ -1,5 +1,22 @@
 #include "utils.h"
 
+#if _HAS_CXX17
+#include <charconv>
+#endif
+#include <cstdint>
+#include <cstdio>
+#include <cstring>
+#include <fstream>
+#include <random>
+#include <string>
+#include <vector>
+#include <locale>
+#include <iostream>
+
+BEGIN_AS_NAMESPACE
+double asStringScanDouble(const char *string, size_t *numScanned);
+END_AS_NAMESPACE
+
 namespace TestFloat
 {
 
@@ -60,6 +77,84 @@ void print_gen(asIScriptGeneric *gen)
 	UNUSED_VAR(val);
 }
 
+static unsigned long long bitsOf(double d) { unsigned long long u; std::memcpy(&u, &d, 8); return u; }
+
+static double reference(const std::string &s, size_t len)
+{
+    std::string t;
+    for (size_t i = 0; i < len; ++i) if (s[i] != '\'') t += s[i];
+    double d = 0;
+#if _HAS_CXX17
+    std::from_chars(t.data(), t.data() + t.size(), d);
+#else
+    std::string tmp(t.data(), t.data() + t.size());
+    char *end;
+    d = strtod(tmp.c_str(), &end);
+#endif
+    return d;
+}
+
+// Does the literal fall in the fast path domain, judged independently of the code under test?
+static bool inFastDomain(const std::string &s, size_t len)
+{
+    std::string digits; int fractionDigits = 0; bool inFraction = false; long exponent = 0; bool negExp = false;
+    size_t i = 0;
+    for (; i < len && s[i] != 'e' && s[i] != 'E'; ++i)
+    {
+        if (s[i] == '.') inFraction = true;
+        else if (s[i] >= '0' && s[i] <= '9') { digits += s[i]; if (inFraction) ++fractionDigits; }
+    }
+    if (i < len) { ++i; if (s[i] == '-') { negExp = true; ++i; } else if (s[i] == '+') ++i;
+        for (; i < len; ++i) if (s[i] >= '0' && s[i] <= '9') exponent = exponent * 10 + (s[i] - '0'); }
+    size_t nz = digits.find_first_not_of('0');
+    std::string sig = nz == std::string::npos ? "0" : digits.substr(nz);
+    if (sig.size() > 15) return false;              // conservative: < 2^53 guaranteed
+    long e10 = (negExp ? -exponent : exponent) - fractionDigits;
+    return e10 >= -22 && e10 <= 22;
+}
+
+struct Stats { long n = 0, scriptWrong = 0, domainWrong = 0, floatScriptWrong = 0; };
+
+static std::string reportString;
+
+static void check(const std::string &s, Stats &st, bool verbose)
+{
+    size_t nP = 0;
+    double p = asStringScanDouble(s.c_str(), &nP);
+
+    ++st.n;
+    double r = reference(s, nP);
+    bool pOk = bitsOf(p) == bitsOf(r);
+
+    if (!pOk) ++st.scriptWrong;
+    if (!pOk && inFastDomain(s, nP)) { ++st.domainWrong; std::printf("FAST DOMAIN WRONG %s\n", s.c_str()); }
+    // float literals: compiler does float(asStringScanDouble(...))
+    std::string t; for (size_t i = 0; i < nP; ++i) if (s[i] != '\'') t += s[i];
+    float rf = 0; 
+#if _HAS_CXX17
+    std::from_chars(t.data(), t.data() + t.size(), rf);
+#else
+    std::string tmp(t.data(), t.data() + t.size());
+    char *end;
+    rf = strtof(tmp.c_str(), &end);
+#endif
+    if (float(p) != rf) ++st.floatScriptWrong;
+    if( verbose )
+    {
+        char buf[1024] = {0};
+        std::sprintf(buf, "  %-28s reference %-24.17g script %-24.17g %s\n", s.c_str(), r, p, pOk ? "ok" : "WRONG");
+        reportString += buf;
+    }
+}
+
+static void report(const char *title, const Stats &st)
+{
+    char buf[1024] = {0};
+    std::sprintf(buf, "%s: %ld literals | script wrong %ld | script wrong in fast domain %ld"
+                " | script wrong %ld\n",
+                title, st.n, st.scriptWrong, st.domainWrong, st.floatScriptWrong);
+    reportString += buf;
+}
 
 bool Test()
 {
@@ -70,6 +165,10 @@ bool Test()
 	engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
 
 	int r = ExecuteString(engine, "float a = 1e5; float b = 1.0e5; assert( a == b ); \n");
+	if( r != asEXECUTION_FINISHED )
+		TEST_FAILED;
+
+	r = ExecuteString(engine, "double a = 3; double b = 7; assert( a / 10 == 0.3 ); assert( b / 10 == 0.7 ); \n");
 	if( r != asEXECUTION_FINISHED )
 		TEST_FAILED;
 
@@ -139,6 +238,40 @@ bool Test()
 			TEST_FAILED;
 
 		engine->ShutDownAndRelease();
+	}
+
+    // Test internal asStringScanDouble directly
+    // Test harness provided by Rémy STIVANI
+	{
+        const char *edge[] = { "0.001", "0.123456789", "1.75", "0.05", "0.01", "0.005", "0.1", "2.5",
+                               "0", "0.0", "1'000.5", "0.000'001", "1.5e3", "1.5E+3", "25e-3", "1e22", "1e23",
+                               "9007199254740992.0", "9007199254740993.0", "123456789012345678901234567890.0",
+                               "0.1e-30", "1e308", "1e-320", "0.00000000000000000000000001", "3.14159f" };
+        Stats e;
+        for (const char *s : edge) check(s, e, true);
+        report("edge", e);
+
+        std::mt19937_64 rng(411);
+        auto digit = [&] { return char('0' + rng() % 10); };
+        Stats rs;
+        for (long k = 0; k < 10000; ++k)
+        {
+            std::string s;
+            int nInt = int(rng() % 18), nFrac = int(rng() % 21);
+            if (nInt == 0) s = "0"; else for (int i = 0; i < nInt; ++i) { if (i && rng() % 50 == 0) s += '\''; s += digit(); }
+            if (nFrac || rng() % 2) { s += '.'; for (int i = 0; i < nFrac; ++i) { if (i && rng() % 50 == 0) s += '\''; s += digit(); } if (!nFrac) s += '0'; }
+            if (rng() % 5 == 0) { s += (rng() % 2 ? 'e' : 'E'); int rnd = int(rng() % 3); if (rnd == 1) s += '-'; else if (rnd == 2) s += '+'; s += std::to_string(rng() % 40); }
+            check(s, rs, false);
+        }
+        report("random", rs);
+        if( e.scriptWrong > 3 || // TODO: fix these last cases too
+           e.domainWrong || e.floatScriptWrong ||
+           rs.scriptWrong > 2825 || // TOOD: fix these last cases too (the number of errors may differ on different platforms/compilers due to different reference implementations)
+           rs.domainWrong || rs.floatScriptWrong )
+        {
+            PRINTF("%s", reportString.c_str());
+            TEST_FAILED;
+        }
 	}
 
 	// Success
