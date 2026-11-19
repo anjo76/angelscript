@@ -254,8 +254,8 @@ int asCCompiler::CompileDefaultCopyConstructor(asCBuilder* in_builder, asCScript
 	// Remove the variable scope
 	RemoveVariableScope();
 
-	// Pop the object pointer from the stack
-	byteCode.Ret(AS_PTR_SIZE);
+	// Pop the object pointer and the source reference
+	byteCode.Ret(2 * AS_PTR_SIZE);
 
 	// Count total variable size
 	int varSize = GetVariableOffset((int)variableAllocations.GetLength()) - 1;
