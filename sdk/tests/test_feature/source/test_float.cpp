@@ -12,6 +12,7 @@
 #include <vector>
 #include <locale>
 #include <iostream>
+#include <math.h>
 
 BEGIN_AS_NAMESPACE
 double asStringScanDouble(const char *string, size_t *numScanned);
@@ -113,7 +114,7 @@ static bool inFastDomain(const std::string &s, size_t len)
     return e10 >= -22 && e10 <= 22;
 }
 
-struct Stats { long n = 0, scriptWrong = 0, domainWrong = 0, floatScriptWrong = 0; };
+struct Stats { long n = 0, scriptWrong = 0, scriptClose = 0, domainWrong = 0, floatScriptWrong = 0; };
 
 static std::string reportString;
 
@@ -125,8 +126,23 @@ static void check(const std::string &s, Stats &st, bool verbose)
     ++st.n;
     double r = reference(s, nP);
     bool pOk = bitsOf(p) == bitsOf(r);
+    bool pClose = false;
+    if( !pOk )
+    {
+        // Every platform / compiler has its own way implementation, so it is not required to be bitwise compatible, but the result must be close enough
+        double rMantissa, pMantissa;
+        int rExp, pExp;
+        rMantissa = frexp(r, &rExp);
+        pMantissa = frexp(p, &pExp);
 
-    if (!pOk) ++st.scriptWrong;
+        if( (rExp - pExp == 0) && abs(rMantissa - pMantissa) < 1.12e-15 ) // TODO: Can the margin for error be reduced even further? Probably
+        {
+            pClose = true;
+            ++st.scriptClose;
+        }
+    }
+
+    if (!pOk && !pClose) ++st.scriptWrong;
     if (!pOk && inFastDomain(s, nP)) { ++st.domainWrong; std::printf("FAST DOMAIN WRONG %s\n", s.c_str()); }
     // float literals: compiler does float(asStringScanDouble(...))
     std::string t; for (size_t i = 0; i < nP; ++i) if (s[i] != '\'') t += s[i];
@@ -142,7 +158,7 @@ static void check(const std::string &s, Stats &st, bool verbose)
     if( verbose )
     {
         char buf[1024] = {0};
-        std::sprintf(buf, "  %-28s reference %-24.17g script %-24.17g %s\n", s.c_str(), r, p, pOk ? "ok" : "WRONG");
+        std::sprintf(buf, "  %-28s reference %-24.17g script %-24.17g %s\n", s.c_str(), r, p, pOk ? "ok" : (pClose ? "close" : "WRONG"));
         reportString += buf;
     }
 }
@@ -150,9 +166,9 @@ static void check(const std::string &s, Stats &st, bool verbose)
 static void report(const char *title, const Stats &st)
 {
     char buf[1024] = {0};
-    std::sprintf(buf, "%s: %ld literals | script wrong %ld | script wrong in fast domain %ld"
+    std::sprintf(buf, "%s: %ld literals | script wrong %ld | script close %ld | script wrong in fast domain %ld"
                 " | script wrong %ld\n",
-                title, st.n, st.scriptWrong, st.domainWrong, st.floatScriptWrong);
+                title, st.n, st.scriptWrong, st.scriptClose, st.domainWrong, st.floatScriptWrong);
     reportString += buf;
 }
 
@@ -264,9 +280,11 @@ bool Test()
             check(s, rs, false);
         }
         report("random", rs);
-        if( e.scriptWrong > 5 || // TODO: fix these last cases too
+        if( e.scriptWrong > 0 ||
+           e.scriptClose > 5 ||
            e.domainWrong || e.floatScriptWrong ||
-           rs.scriptWrong > 2866 || // TOOD: fix these last cases too (the number of errors may differ on different platforms/compilers due to different reference implementations)
+           rs.scriptWrong > 0 ||
+           rs.scriptClose > 2866 ||
            rs.domainWrong || rs.floatScriptWrong )
         {
             PRINTF("%s", reportString.c_str());
