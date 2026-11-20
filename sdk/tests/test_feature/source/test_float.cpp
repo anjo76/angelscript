@@ -128,7 +128,7 @@ static void check(const std::string &s, Stats &st, bool verbose)
     bool pOk = bitsOf(p) == bitsOf(r);
     bool pClose = false;
     double diffMantissa = 0;
-    double diffExp = 0;
+    int diffExp = 0;
     if( !pOk )
     {
         // Every platform / compiler has its own way implementation, so it is not required to be bitwise compatible, but the result must be close enough
