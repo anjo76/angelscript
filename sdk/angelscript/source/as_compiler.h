@@ -337,6 +337,7 @@ protected:
 	int  ProcessPropertyGetAccessor(asCExprContext *ctx, asCScriptNode *node);
 	int  ProcessPropertySetAccessor(asCExprContext *ctx, asCExprContext *arg, asCScriptNode *node);
 	int  ProcessPropertyGetSetAccessor(asCExprContext *ctx, asCExprContext *lctx, asCExprContext *rctx, eTokenType op, asCScriptNode *errNode);
+	int  ProcessPropertyIncDecAccessor(asCExprContext *ctx, eTokenType op, bool isPostFix, asCScriptNode *errNode);
 	int  FindPropertyAccessor(const asCString &name, asCExprContext *ctx, asCScriptNode *node, asSNameSpace *ns, bool isThisAccess = false);
 	int  FindPropertyAccessor(const asCString &name, asCExprContext *ctx, asCExprContext *arg, asCScriptNode *node, asSNameSpace *ns, bool isThisAccess = false);
 	void PrepareTemporaryVariable(asCScriptNode *node, asCExprContext *ctx, bool forceOnHeap = false, bool forceValueCopy = false);
