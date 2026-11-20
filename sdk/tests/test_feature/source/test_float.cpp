@@ -127,6 +127,8 @@ static void check(const std::string &s, Stats &st, bool verbose)
     double r = reference(s, nP);
     bool pOk = bitsOf(p) == bitsOf(r);
     bool pClose = false;
+    double diffMantissa = 0;
+    double diffExp = 0;
     if( !pOk )
     {
         // Every platform / compiler has its own way implementation, so it is not required to be bitwise compatible, but the result must be close enough
@@ -134,8 +136,10 @@ static void check(const std::string &s, Stats &st, bool verbose)
         int rExp, pExp;
         rMantissa = frexp(r, &rExp);
         pMantissa = frexp(p, &pExp);
-
-        if( (rExp - pExp == 0) && abs(rMantissa - pMantissa) < 1.12e-15 ) // TODO: Can the margin for error be reduced even further? Probably
+        
+        diffExp = abs(rExp - pExp);
+        diffMantissa = abs(rMantissa - pMantissa);
+        if( diffExp == 0 && diffMantissa < 1.12e-15 ) // TODO: Can the margin for error be reduced even further? Probably
         {
             pClose = true;
             ++st.scriptClose;
@@ -158,7 +162,7 @@ static void check(const std::string &s, Stats &st, bool verbose)
     if( verbose )
     {
         char buf[1024] = {0};
-        std::sprintf(buf, "  %-28s reference %-24.17g script %-24.17g %s\n", s.c_str(), r, p, pOk ? "ok" : (pClose ? "close" : "WRONG"));
+        std::sprintf(buf, "  %-28s reference %-24.17g script %-24.17g %-24.17g %d %s\n", s.c_str(), r, p, diffMantissa, diffExp, pOk ? "ok" : (pClose ? "close" : "WRONG"));
         reportString += buf;
     }
 }
