@@ -178,6 +178,7 @@ public:
 		ot->AddRef();
 		isSet = false;
 		assert( ot == other.ot );
+		UNUSED_VAR(other);
 	}
 	~MyValueTmpl()
 	{ 
@@ -278,6 +279,7 @@ void print(void* p, int typeId)
 	error = error || (*(int*)p != 10);
 }
 
+
 bool Test()
 {
 	RET_ON_MAX_PORT
@@ -286,6 +288,45 @@ bool Test()
 	int r;
 	COutStream out;
 	CBufferedOutStream bout;
+
+	// Test registering a template function that instantiates a template
+	// https://github.com/anjo76/angelscript/issues/110
+	{
+		asIScriptEngine* engine = asCreateScriptEngine();
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+
+		bout.buffer = "";
+		engine->RegisterObjectType("Span<T>", 0, asOBJ_REF | asOBJ_TEMPLATE | asOBJ_NOCOUNT);
+
+		engine->RegisterObjectType("dummy", 0, asOBJ_REF | asOBJ_NOCOUNT);
+		engine->RegisterObjectBehaviour("dummy", asBEHAVE_FACTORY, "dummy @f()", asFUNCTION(0), asCALL_GENERIC);
+		r = engine->RegisterObjectMethod("dummy", "int read<T>(Span<T>@)", asFUNCTION(0), asCALL_GENERIC);
+		if( r < 0 )
+			TEST_FAILED;
+		else
+		{
+			asIScriptFunction *func = engine->GetFunctionById(r);
+			string decl = func->GetDeclaration(true);
+			if( decl != "int dummy::read<T>(Span<T>@)" )
+			{
+				PRINTF("%s\n", decl.c_str());
+				TEST_FAILED;
+			}
+
+			asIScriptModule *mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+			mod->AddScriptSection("test", "void func() { dummy d; d.read<int>(null); }");
+			r = mod->Build();
+			if( r < 0 )
+				TEST_FAILED;
+		}
+
+		engine->ShutDownAndRelease();
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
 
 	// Test that incorrect signature for template constructor is properly detected
 	// Reported by Patrick Jeeves

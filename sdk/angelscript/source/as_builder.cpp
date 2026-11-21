@@ -6322,7 +6322,7 @@ asSNameSpace *asCBuilder::GetNameSpaceFromNode(asCScriptNode *node, asCScriptCod
 			}
 
 			if (objType)
-				*objType = GetTemplateInstanceFromNode(sn, script, templateType, implicitNs, 0);
+				*objType = GetTemplateInstanceFromNode(sn, script, templateType, implicitNs, 0, 0);
 
 			// Return no namespace, since this is an object type
 			return 0;
@@ -6595,7 +6595,7 @@ asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCod
 							if (ti->flags & asOBJ_TEMPLATE || ti->GetSubTypeCount() )
 							{
 								// For template types, find the template instance. For already instantiated template types, match the subtypes
-								ti = GetTemplateInstanceFromNode(n, file, CastToObjectType(ti), implicitNamespace, currentType, &n);
+								ti = GetTemplateInstanceFromNode(n, file, CastToObjectType(ti), implicitNamespace, currentType, templSubTypes, &n);
 								if (ti == 0)
 								{
 									if (isValid)
@@ -6819,7 +6819,7 @@ asCDataType asCBuilder::CreateDataTypeFromNode(asCScriptNode *node, asCScriptCod
 	return dt;
 }
 
-asCObjectType *asCBuilder::GetTemplateInstanceFromNode(asCScriptNode *node, asCScriptCode *file, asCObjectType *templateType, asSNameSpace *implicitNamespace, asCObjectType *currentType, asCScriptNode **next)
+asCObjectType *asCBuilder::GetTemplateInstanceFromNode(asCScriptNode *node, asCScriptCode *file, asCObjectType *templateType, asSNameSpace *implicitNamespace, asCObjectType *currentType, asCArray<asCDataType> *templSubTypes, asCScriptNode **next)
 {
 	// Check if the subtype is a type or the template's subtype
 	// if it is the template's subtype then this is the actual template type,
@@ -6836,7 +6836,7 @@ asCObjectType *asCBuilder::GetTemplateInstanceFromNode(asCScriptNode *node, asCS
 		// When parsing function definitions for template registrations (currentType != 0) it is necessary
 		// to pass in the current template type to the recursive call since it is this ones sub-template types
 		// that should be allowed.
-		asCDataType subType = CreateDataTypeFromNode(n, file, implicitNamespace, false, module ? 0 : (currentType ? currentType : templateType));
+		asCDataType subType = CreateDataTypeFromNode(n, file, implicitNamespace, false, module ? 0 : (currentType ? currentType : templateType), true, 0, templSubTypes);
 		subTypes.PushLast(subType);
 	}
 
