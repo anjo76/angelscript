@@ -437,9 +437,87 @@ static int CountSuspends(asIScriptFunction *func)
 	return count;
 }
 
+
 bool TestOptimize()
 {
 	bool fail = false;
+
+	// Line cues before a declaration or a block must match with JIT instructions kept
+	// https://github.com/anjo76/angelscript/pull/112
+	{
+		const char *script =
+			"int n;                 \n"
+			"void blockBody()       \n"
+			"{                      \n"
+			"  {                    \n"
+			"    n = 1;             \n"
+			"  }                    \n"
+			"  n = 2;               \n"
+			"}                      \n"
+			"void bareDecl()        \n"
+			"{                      \n"
+			"  int a;               \n"
+			"  a = 1;               \n"
+			"}                      \n";
+		const char *names[2] = { "blockBody", "bareDecl" };
+		int suspends[2][2] = { { -1, -1 }, { -1, -1 } };
+		vector<string> hits[2];
+
+		for( int jit = 0; jit < 2; jit++ )
+		{
+			asIScriptEngine *engine = asCreateScriptEngine();
+			CBufferedOutStream bout;
+			engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+			engine->SetEngineProperty(asEP_INCLUDE_JIT_INSTRUCTIONS, jit ? true : false);
+
+			asIScriptModule *mod = engine->GetModule("mod", asGM_ALWAYS_CREATE);
+			mod->AddScriptSection("test", script);
+			int r = mod->Build();
+			if( r < 0 || bout.buffer != "" )
+			{
+				PRINTF("%s", bout.buffer.c_str());
+				TEST_FAILED;
+				engine->ShutDownAndRelease();
+				break;
+			}
+
+			g_cueHits.clear();
+			asIScriptContext *ctx = engine->CreateContext();
+			if( ctx->SetLineCallback(asFUNCTION(CueLineCallback), 0, asCALL_CDECL) < 0 )
+				TEST_FAILED;
+
+			for( int f = 0; f < 2; f++ )
+			{
+				asIScriptFunction *func = mod->GetFunctionByName(names[f]);
+				suspends[jit][f] = CountSuspends(func);
+				if( func == 0 || suspends[jit][f] < 0 )
+				{
+					TEST_FAILED;
+					continue;
+				}
+				r = ctx->Prepare(func);
+				if( r >= 0 )
+					r = ctx->Execute();
+				if( r != asEXECUTION_FINISHED )
+					TEST_FAILED;
+			}
+
+			hits[jit] = g_cueHits;
+			ctx->Release();
+			engine->ShutDownAndRelease();
+		}
+
+		if( suspends[0][0] != suspends[1][0] || suspends[0][1] != suspends[1][1] )
+		{
+			PRINTF("suspends %d %d and %d %d\n", suspends[0][0], suspends[0][1], suspends[1][0], suspends[1][1]);
+			TEST_FAILED;
+		}
+		if( hits[0].empty() || hits[0] != hits[1] )
+		{
+			PRINTF("line callbacks differ, %u vs %u\n", (unsigned)hits[0].size(), (unsigned)hits[1].size());
+			TEST_FAILED;
+		}
+	}
 
 	// Test segv with optimizations
 	// https://github.com/anjo76/angelscript/issues/91
@@ -1351,82 +1429,6 @@ bool TestOptimize()
 			TEST_FAILED;
 
 		engine->ShutDownAndRelease();
-	}
-
-	// Line cues before a declaration or a block must match with JIT instructions kept
-	{
-		const char *script =
-			"int n;                 \n"
-			"void blockBody()       \n"
-			"{                      \n"
-			"  {                    \n"
-			"    n = 1;             \n"
-			"  }                    \n"
-			"  n = 2;               \n"
-			"}                      \n"
-			"void bareDecl()        \n"
-			"{                      \n"
-			"  int a;               \n"
-			"  a = 1;               \n"
-			"}                      \n";
-		const char *names[2] = { "blockBody", "bareDecl" };
-		int suspends[2][2] = { { -1, -1 }, { -1, -1 } };
-		vector<string> hits[2];
-
-		for( int jit = 0; jit < 2; jit++ )
-		{
-			asIScriptEngine *engine = asCreateScriptEngine();
-			CBufferedOutStream bout;
-			engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
-			engine->SetEngineProperty(asEP_INCLUDE_JIT_INSTRUCTIONS, jit ? true : false);
-
-			asIScriptModule *mod = engine->GetModule("mod", asGM_ALWAYS_CREATE);
-			mod->AddScriptSection("test", script);
-			int r = mod->Build();
-			if( r < 0 || bout.buffer != "" )
-			{
-				PRINTF("%s", bout.buffer.c_str());
-				TEST_FAILED;
-				engine->ShutDownAndRelease();
-				break;
-			}
-
-			g_cueHits.clear();
-			asIScriptContext *ctx = engine->CreateContext();
-			if( ctx->SetLineCallback(asFUNCTION(CueLineCallback), 0, asCALL_CDECL) < 0 )
-				TEST_FAILED;
-
-			for( int f = 0; f < 2; f++ )
-			{
-				asIScriptFunction *func = mod->GetFunctionByName(names[f]);
-				suspends[jit][f] = CountSuspends(func);
-				if( func == 0 || suspends[jit][f] < 0 )
-				{
-					TEST_FAILED;
-					continue;
-				}
-				r = ctx->Prepare(func);
-				if( r >= 0 )
-					r = ctx->Execute();
-				if( r != asEXECUTION_FINISHED )
-					TEST_FAILED;
-			}
-
-			hits[jit] = g_cueHits;
-			ctx->Release();
-			engine->ShutDownAndRelease();
-		}
-
-		if( suspends[0][0] != suspends[1][0] || suspends[0][1] != suspends[1][1] )
-		{
-			PRINTF("suspends %d %d and %d %d\n", suspends[0][0], suspends[0][1], suspends[1][0], suspends[1][1]);
-			TEST_FAILED;
-		}
-		if( hits[0].empty() || hits[0] != hits[1] )
-		{
-			PRINTF("line callbacks differ, %u vs %u\n", (unsigned)hits[0].size(), (unsigned)hits[1].size());
-			TEST_FAILED;
-		}
 	}
 
 	// Success

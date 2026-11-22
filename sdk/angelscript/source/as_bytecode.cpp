@@ -1184,8 +1184,8 @@ void asCByteCode::Optimize()
 				// Without JIT instructions the two rules below remove this LINE.
 				// Do the same with them, so both builds have line cues in the same places.
 				else if( instrOp == asBC_JitEntry && instr->next &&
-				        (instr->next->op == asBC_VarDecl || instr->next->op == asBC_Block) &&
-				        instr->next->next && instr->next->next->op == asBC_LINE )
+				         (instr->next->op == asBC_VarDecl || instr->next->op == asBC_Block) &&
+				         instr->next->next && instr->next->next->op == asBC_LINE )
 				{
 					// Delete the two first instructions
 					DeleteInstruction(instr);
