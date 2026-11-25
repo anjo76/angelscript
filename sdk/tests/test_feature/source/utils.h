@@ -15,6 +15,7 @@
 #include "../../../add_on/scriptarray/scriptarray.h"
 #include "scriptstring.h"
 #include "../../../add_on/scriptstdstring/scriptstdstring.h"
+#include "../../../add_on/scriptdictionary/scriptdictionary.h"
 #include "../../../add_on/scripthelper/scripthelper.h"
 #if !defined(_MSC_VER) || _MSC_VER > 1200
 // This doesn't work on MSVC6. The template implementation in that compiler isn't good enough.

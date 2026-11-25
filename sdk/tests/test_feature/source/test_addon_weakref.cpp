@@ -70,6 +70,134 @@ bool Test()
 	CBufferedOutStream bout;
 	asIScriptEngine *engine;
 
+	// Test that weakref is properly initialized as member in class constructor
+	// https://github.com/anjo76/angelscript/issues/113
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->SetEngineProperty(asEP_MEMBER_INIT_MODE, 1);
+
+		RegisterStdString(engine);
+		RegisterScriptArray(engine, false);
+		RegisterScriptDictionary(engine);
+		RegisterScriptWeakRef(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection(TESTNAME, R"(
+			class A{}
+
+			weakref<A> Find()
+			{
+				weakref<A> aref;
+				A@ a = A();
+				@GetDictionary()["strong ref"] = a;
+				@aref = a;
+				return aref;
+			}
+
+			class B
+			{
+				weakref<A> m_a = Find();
+				B()
+				{
+					assert( m_a.get() !is null ); // should be valid
+					GetDictionary().deleteAll(); // this deletes the object, but the weakref should still be valid
+				}
+			}
+			B b;
+
+			void MapInit()
+			{
+				assert( b.m_a.get() is null );
+			}
+
+			dictionary@ dict;
+			dictionary@ GetDictionary()
+			{
+				if( dict is null )
+				{
+					@dict = {};
+				}
+				return dict;
+			} )");
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+
+		asIScriptContext *ctx = engine->CreateContext();
+		r = ExecuteString(engine, "MapInit(); \n", mod, ctx);
+		if( r != asEXECUTION_FINISHED )
+		{
+			TEST_FAILED;
+			if( r == asEXECUTION_EXCEPTION )
+				PRINTF("%s", GetExceptionInfo(ctx).c_str());
+		}
+		ctx->Release();
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
+	// Test that the weakref is properly initialized in constructor with asEP_MEMBER_INIT_MODE 0
+	// https://github.com/anjo76/angelscript/issues/113
+	{
+		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
+		engine->SetMessageCallback(asMETHOD(CBufferedOutStream, Callback), &bout, asCALL_THISCALL);
+		bout.buffer = "";
+
+		engine->SetEngineProperty(asEP_MEMBER_INIT_MODE, 0);
+
+		RegisterScriptWeakRef(engine);
+		engine->RegisterGlobalFunction("void assert(bool)", asFUNCTION(Assert), asCALL_GENERIC);
+
+		asIScriptModule* mod = engine->GetModule("test", asGM_ALWAYS_CREATE);
+		mod->AddScriptSection(TESTNAME, R"(
+			bool initialized = false;
+			class Foo {
+				Foo() { if( !initialized )
+						{
+							initialized = true;
+							Foo @f = Foo();
+							@m_weak = f; // Instance is created, and then destroyed when constructor exits since the handle is stored in a weakref
+							assert( m_weak.get() !is null ); // object is still alive
+						}
+				}
+				weakref<Foo> @m_weak;
+			} )");
+		r = mod->Build();
+		if( r < 0 )
+			TEST_FAILED;
+
+		asIScriptContext *ctx = engine->CreateContext();
+		r = ExecuteString(engine, "Foo f; \n"
+								  "assert( f.m_weak !is null ); \n" // The weakref still has a pointer so it is not nukll, even though the object is actually already dead
+								  "assert( f.m_weak.get() is null ); \n" // get() will return null since the object is dead
+								  , mod, ctx);
+		if( r != asEXECUTION_FINISHED )
+		{
+			TEST_FAILED;
+			if( r == asEXECUTION_EXCEPTION )
+				PRINTF("%s", GetExceptionInfo(ctx).c_str());
+		}
+		ctx->Release();
+
+		engine->ShutDownAndRelease();
+
+		if (bout.buffer != "")
+		{
+			PRINTF("%s", bout.buffer.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test value-assigning null to the weakref
 	// Reported by Patrick Jeeves
 	{

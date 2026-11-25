@@ -3500,7 +3500,7 @@ bool asCCompiler::CompileInitializationWithAssignment(asCByteCode* bc, const asC
 	// TODO: This can probably be done for local variables as well
 	// TODO: For value types, stored inline the rexpr would have to be compiled already to initialize the value so the following cannot be used
 	if ((isVarGlobOrMem == asVGM_MEMBER || isVarGlobOrMem == asVGM_GLOBAL) &&
-		rexpr->type.isTemporary && type.GetTypeInfo() == rexpr->type.dataType.GetTypeInfo() && type.IsObject() && (type.IsObjectHandle() || type.SupportHandles()))
+		rexpr->type.isTemporary && type.GetTypeInfo() == rexpr->type.dataType.GetTypeInfo() && type.IsObject() && (type.GetTypeInfo()->GetFlags() & asOBJ_REF) &&(type.IsObjectHandle() || type.SupportHandles()))
 	{
 		// Add the rexpr to the bytecode
 		if( !(type.GetTypeInfo()->flags & asOBJ_SCOPED) )
