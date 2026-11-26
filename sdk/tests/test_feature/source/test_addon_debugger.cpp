@@ -234,6 +234,22 @@ bool Test()
 	asIScriptModule *mod;
 	asIScriptContext *ctx;
 
+	// Test error handling in the debugger
+	// https://github.com/anjo76/angelscript/pull/101
+	{
+		// Try setting a break point without specifying location (should give error)
+		CMyDebugger2 debug;
+		debug.AddFuncBreakPoint("");
+		debug.AddFileBreakPoint("", 0);
+
+		if( debug.output != "Function breakpoint must have a name\n"
+							"File breakpoint must have a name\n" )
+		{
+			PRINTF("%s\n", debug.output.c_str());
+			TEST_FAILED;
+		}
+	}
+
 	// Test setting breakpoint with full path
 	{
 		engine = asCreateScriptEngine(ANGELSCRIPT_VERSION);
