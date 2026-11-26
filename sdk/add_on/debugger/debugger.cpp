@@ -841,6 +841,11 @@ void CDebugger::AddFuncBreakPoint(const string &func)
 	// Trim the function name
 	size_t b = func.find_first_not_of(" \t");
 	size_t e = func.find_last_not_of(" \t");
+
+	if (b == string::npos) {
+		Output("Function breakpoint must have a name\n");
+		return;
+	}
 	string actual = func.substr(b, e != string::npos ? e-b+1 : string::npos);
 
 	stringstream s;
