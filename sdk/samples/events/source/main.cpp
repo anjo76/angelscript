@@ -18,7 +18,7 @@
 
 using namespace std;
 
-#ifdef defined(__linux__) || defined(__unix__)
+#if defined(__linux__) || defined(__unix__)
 
 #define UINT unsigned int 
 typedef unsigned int DWORD;
